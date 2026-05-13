@@ -37,7 +37,8 @@ flutter run -d windows
 
 ## 发布版本
 
-正式发布使用 `Release` workflow，不需要手工提前创建 tag。
+正式发布使用 `Release` workflow。它由 `v*` tag 自动触发，构建完成后会把
+Android APK 和 Windows ZIP 上传到 GitHub Release。
 
 发布版本号只以 `pubspec.yaml` 的 `version` 字段为准。例如：
 
@@ -45,9 +46,8 @@ flutter run -d windows
 version: 0.1.0+1
 ```
 
-运行 `Release` workflow 后会自动生成：
+推送 `v0.1.0+1` tag 后会自动生成：
 
-- Git tag：`v0.1.0+1`
 - GitHub Release：`FeatherCanvas Studio v0.1.0+1`
 - Android 产物：`feather-canvas-studio-v0.1.0+1-android.apk`
 - Windows 产物：`feather-canvas-studio-v0.1.0+1-windows.zip`
@@ -56,10 +56,19 @@ version: 0.1.0+1
 
 1. 修改 `pubspec.yaml` 中的 `version`。
 2. 提交并推送到 `main`。
-3. 在 GitHub Actions 中手动运行 `Release` workflow。
+3. 创建并推送同名 tag，例如：
 
-`Release` workflow 只允许从 `main` 分支运行。它会先检查同名 tag 或
-Release 是否已经存在；如果存在，会要求先提升版本号，避免覆盖已发布版本。
+```bash
+git tag -a v0.1.0+1 -m "FeatherCanvas Studio v0.1.0+1"
+git push origin v0.1.0+1
+```
+
+如果 tag 已经存在但没有生成 Release，可以在 GitHub Actions 中手动运行
+`Release` workflow，并输入现有 tag，例如 `v0.1.0+1`。
+
+`Release` workflow 会检查 tag 是否和 `pubspec.yaml` 版本一致，并要求 tag
+对应的提交已经在 `main` 分支上。它也会检查同名 Release 是否已经存在；
+如果存在，会要求先提升版本号，避免覆盖已发布版本。
 
 ## 开源许可
 
