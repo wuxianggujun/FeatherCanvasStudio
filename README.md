@@ -1,22 +1,20 @@
 # FeatherCanvas Studio
 
-FeatherCanvas Studio 是一个基于 Flutter 的 AI 生图客户端骨架。
-目标很直接：让用户自己填写图片生成 API、提示词和参数，
+FeatherCanvas Studio 是一个基于 Flutter 的 OpenAI-compatible 生图客户端。
+目标很直接：让用户自己填写接口地址、密钥、模型和参数，
 然后快速生成、预览和管理图片结果。
 
 ## 当前定位
 
-- API 配置入口
-- 提示词编辑
-- 生成参数面板
-- 图片结果与历史记录
+- Base URL 配置
+- API Key 配置
+- 模型与尺寸参数
+- 图片结果预览
 
 ## 计划支持
 
 - OpenAI Images
-- Stability AI
-- ComfyUI 本地接口
-- AUTOMATIC1111 本地接口
+- 兼容 OpenAI 格式的第三方服务
 
 ## 本地开发
 
