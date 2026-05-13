@@ -6,7 +6,8 @@ void main() {
   testWidgets('renders the OpenAI-compatible workspace shell', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const FeatherCanvasApp());
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('FeatherCanvas Studio'), findsWidgets);
     expect(find.text('OpenAI 兼容生图'), findsOneWidget);

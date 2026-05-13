@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -79,6 +81,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
   final AppLocalStore _store = AppLocalStore();
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _historySectionKey = GlobalKey();
+  String? _generatedImagesDirectoryPath;
 
   String _size = _defaultSettings.size;
   int _imageCount = _defaultSettings.imageCount;
@@ -139,6 +142,19 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
       _isBootstrapping = false;
     });
     _isRestoringState = false;
+    unawaited(_loadGeneratedImagesDirectory());
+  }
+
+  Future<void> _loadGeneratedImagesDirectory() async {
+    final generatedImagesDirectory = await _store
+        .ensureGeneratedImagesDirectory();
+    if (!mounted) {
+      return;
+    }
+
+    setState(
+      () => _generatedImagesDirectoryPath = generatedImagesDirectory.path,
+    );
   }
 
   void _scheduleSettingsSave() {
@@ -229,9 +245,21 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
         return;
       }
 
-      setState(() => _generatedImages = response.images);
+      final historyId = DateTime.now().microsecondsSinceEpoch.toString();
+      final cachedImages = <GeneratedImage>[];
+      for (var index = 0; index < response.images.length; index++) {
+        cachedImages.add(
+          await _cacheGeneratedImage(
+            historyId: historyId,
+            index: index,
+            image: response.images[index],
+          ),
+        );
+      }
+
+      setState(() => _generatedImages = cachedImages);
       final historyEntry = GenerationHistoryEntry(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        id: historyId,
         createdAt: DateTime.now(),
         baseUrl: _baseUrlController.text.trim(),
         model: _modelController.text.trim(),
@@ -239,7 +267,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
         negativePrompt: _negativePromptController.text.trim(),
         size: _size,
         imageCount: _imageCount,
-        resultCount: response.images.length,
+        resultCount: cachedImages.length,
       );
       await _store.addHistoryEntry(historyEntry);
       if (mounted) {
@@ -268,6 +296,24 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
     }
   }
 
+  Future<GeneratedImage> _cacheGeneratedImage({
+    required String historyId,
+    required int index,
+    required GeneratedImage image,
+  }) async {
+    try {
+      final bytes = await _client.resolveImageBytes(image);
+      final file = await _store.saveGeneratedImageBytes(
+        historyId: historyId,
+        index: index,
+        bytes: bytes,
+      );
+      return GeneratedImage.file(file.path, revisedPrompt: image.revisedPrompt);
+    } catch (_) {
+      return image;
+    }
+  }
+
   Future<void> _reuseHistoryEntry(GenerationHistoryEntry entry) async {
     _isRestoringState = true;
     _baseUrlController.text = entry.baseUrl;
@@ -286,8 +332,30 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
     _showMessage('已载入历史参数。');
   }
 
+  Future<void> _copyHistoryEntry(GenerationHistoryEntry entry) async {
+    final summary = [
+      'Base URL: ${entry.baseUrl}',
+      'Model: ${entry.model}',
+      'Size: ${entry.size}',
+      'Count: ${entry.imageCount}',
+      'Prompt: ${entry.prompt}',
+      if (entry.negativePrompt.trim().isNotEmpty)
+        'Negative: ${entry.negativePrompt}',
+    ].join('\n');
+
+    await Clipboard.setData(ClipboardData(text: summary));
+    _showMessage('历史参数已复制。');
+  }
+
   Future<void> _deleteHistoryEntry(String id) async {
+    final removedEntry = _history.where((entry) => entry.id == id).toList();
     final nextHistory = _history.where((entry) => entry.id != id).toList();
+    if (removedEntry.isNotEmpty) {
+      await _store.deleteGeneratedImageFiles(
+        removedEntry.first.id,
+        removedEntry.first.resultCount,
+      );
+    }
     await _store.saveHistory(nextHistory);
     if (!mounted) {
       return;
@@ -296,6 +364,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
   }
 
   Future<void> _clearHistory() async {
+    await _store.clearGeneratedImageFiles();
     await _store.saveHistory(const []);
     if (!mounted) {
       return;
@@ -458,7 +527,9 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
                   _HistoryPanel(
                     key: _historySectionKey,
                     entries: _history,
+                    generatedImagesDirectoryPath: _generatedImagesDirectoryPath,
                     onReuse: _reuseHistoryEntry,
+                    onCopy: _copyHistoryEntry,
                     onDelete: _deleteHistoryEntry,
                     onClear: _history.isEmpty ? null : _clearHistory,
                   ),
@@ -729,20 +800,7 @@ class _GeneratedImageTile extends StatelessWidget {
             aspectRatio: 1,
             child: ColoredBox(
               color: theme.colorScheme.surfaceContainerHighest,
-              child: image.bytes != null
-                  ? Image.memory(image.bytes!, fit: BoxFit.cover)
-                  : Image.network(
-                      image.url!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text('图片加载失败：$error'),
-                          ),
-                        );
-                      },
-                    ),
+              child: _buildImageContent(),
             ),
           ),
         ),
@@ -756,6 +814,29 @@ class _GeneratedImageTile extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildImageContent() {
+    if (image.filePath != null) {
+      return Image.file(File(image.filePath!), fit: BoxFit.cover);
+    }
+
+    if (image.bytes != null) {
+      return Image.memory(image.bytes!, fit: BoxFit.cover);
+    }
+
+    return Image.network(
+      image.url!,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('图片加载失败：$error'),
+          ),
+        );
+      },
     );
   }
 }
@@ -800,13 +881,17 @@ class _HistoryPanel extends StatelessWidget {
   const _HistoryPanel({
     super.key,
     required this.entries,
+    required this.generatedImagesDirectoryPath,
     required this.onReuse,
+    required this.onCopy,
     required this.onDelete,
     required this.onClear,
   });
 
   final List<GenerationHistoryEntry> entries;
+  final String? generatedImagesDirectoryPath;
   final ValueChanged<GenerationHistoryEntry> onReuse;
+  final ValueChanged<GenerationHistoryEntry> onCopy;
   final ValueChanged<String> onDelete;
   final VoidCallback? onClear;
 
@@ -843,7 +928,9 @@ class _HistoryPanel extends StatelessWidget {
                 for (var index = 0; index < entries.length; index++) ...[
                   _HistoryEntryTile(
                     entry: entries[index],
+                    generatedImagesDirectoryPath: generatedImagesDirectoryPath,
                     onReuse: onReuse,
+                    onCopy: onCopy,
                     onDelete: onDelete,
                   ),
                   if (index != entries.length - 1) const SizedBox(height: 12),
@@ -857,12 +944,16 @@ class _HistoryPanel extends StatelessWidget {
 class _HistoryEntryTile extends StatelessWidget {
   const _HistoryEntryTile({
     required this.entry,
+    required this.generatedImagesDirectoryPath,
     required this.onReuse,
+    required this.onCopy,
     required this.onDelete,
   });
 
   final GenerationHistoryEntry entry;
+  final String? generatedImagesDirectoryPath;
   final ValueChanged<GenerationHistoryEntry> onReuse;
+  final ValueChanged<GenerationHistoryEntry> onCopy;
   final ValueChanged<String> onDelete;
 
   @override
@@ -880,7 +971,10 @@ class _HistoryEntryTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.image_outlined, color: theme.colorScheme.primary),
+              _HistoryThumbnail(
+                thumbnailPath: _thumbnailPath,
+                fallbackColor: theme.colorScheme.primary,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -911,6 +1005,13 @@ class _HistoryEntryTile extends StatelessWidget {
                     ),
                   ),
                   Tooltip(
+                    message: '复制参数',
+                    child: IconButton(
+                      onPressed: () => onCopy(entry),
+                      icon: const Icon(Icons.copy_outlined),
+                    ),
+                  ),
+                  Tooltip(
                     message: '删除记录',
                     child: IconButton(
                       onPressed: () => onDelete(entry.id),
@@ -923,6 +1024,63 @@ class _HistoryEntryTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  String? get _thumbnailPath {
+    final directoryPath = generatedImagesDirectoryPath;
+    if (directoryPath == null || entry.resultCount <= 0) {
+      return null;
+    }
+
+    final file = File(
+      '$directoryPath${Platform.pathSeparator}${entry.id}_01.png',
+    );
+    return file.existsSync() ? file.path : null;
+  }
+}
+
+class _HistoryThumbnail extends StatelessWidget {
+  const _HistoryThumbnail({
+    required this.thumbnailPath,
+    required this.fallbackColor,
+  });
+
+  final String? thumbnailPath;
+  final Color fallbackColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (thumbnailPath != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox(
+          width: 56,
+          height: 56,
+          child: Image.file(
+            File(thumbnailPath!),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _placeholder();
+            },
+          ),
+        ),
+      );
+    }
+
+    return _placeholder();
+  }
+
+  Widget _placeholder() {
+    return Container(
+      width: 56,
+      height: 56,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: fallbackColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Icon(Icons.image_outlined, color: fallbackColor),
     );
   }
 }
@@ -1038,6 +1196,30 @@ class OpenAICompatibleImageClient {
     return OpenAIImageResponse(images: images);
   }
 
+  Future<Uint8List> resolveImageBytes(GeneratedImage image) async {
+    if (image.bytes != null) {
+      return image.bytes!;
+    }
+
+    if (image.filePath != null) {
+      return File(image.filePath!).readAsBytes();
+    }
+
+    if (image.url != null) {
+      final response = await _httpClient
+          .get(Uri.parse(image.url!))
+          .timeout(const Duration(minutes: 2));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw ImageGenerationException(
+          '图片下载失败：HTTP ${response.statusCode} ${response.reasonPhrase ?? ''}',
+        );
+      }
+      return response.bodyBytes;
+    }
+
+    throw const ImageGenerationException('图片没有可用的二进制内容。');
+  }
+
   void close() => _httpClient.close();
 
   static Map<String, dynamic> _decodeJsonObject(List<int> bodyBytes) {
@@ -1135,6 +1317,7 @@ class GeneratedImage {
   const GeneratedImage._({
     required this.bytes,
     required this.url,
+    required this.filePath,
     required this.revisedPrompt,
   });
 
@@ -1142,6 +1325,7 @@ class GeneratedImage {
     return GeneratedImage._(
       bytes: bytes,
       url: null,
+      filePath: null,
       revisedPrompt: revisedPrompt,
     );
   }
@@ -1150,12 +1334,23 @@ class GeneratedImage {
     return GeneratedImage._(
       bytes: null,
       url: url,
+      filePath: null,
+      revisedPrompt: revisedPrompt,
+    );
+  }
+
+  factory GeneratedImage.file(String filePath, {String? revisedPrompt}) {
+    return GeneratedImage._(
+      bytes: null,
+      url: null,
+      filePath: filePath,
       revisedPrompt: revisedPrompt,
     );
   }
 
   final Uint8List? bytes;
   final String? url;
+  final String? filePath;
   final String? revisedPrompt;
 }
 
@@ -1353,5 +1548,65 @@ class AppLocalStore {
   Future<void> addHistoryEntry(GenerationHistoryEntry entry) async {
     final history = await loadHistory();
     await saveHistory([entry, ...history]);
+  }
+
+  Future<void> deleteGeneratedImageFiles(
+    String historyId,
+    int resultCount,
+  ) async {
+    final directory = await ensureGeneratedImagesDirectory();
+    for (var index = 0; index < resultCount; index++) {
+      final file = File(
+        '${directory.path}${Platform.pathSeparator}${historyId}_${(index + 1).toString().padLeft(2, '0')}.png',
+      );
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+  }
+
+  Future<void> clearGeneratedImageFiles() async {
+    final directory = await ensureGeneratedImagesDirectory();
+    if (!await directory.exists()) {
+      return;
+    }
+
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is File) {
+        await entity.delete();
+      } else if (entity is Directory) {
+        await entity.delete(recursive: true);
+      }
+    }
+  }
+
+  Future<Directory> ensureGeneratedImagesDirectory() async {
+    Directory baseDirectory;
+    try {
+      baseDirectory = await getApplicationSupportDirectory();
+    } catch (_) {
+      baseDirectory = Directory.systemTemp;
+    }
+    final directory = Directory(
+      '${baseDirectory.path}${Platform.pathSeparator}generated-images',
+    );
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+
+    return directory;
+  }
+
+  Future<File> saveGeneratedImageBytes({
+    required String historyId,
+    required int index,
+    required Uint8List bytes,
+  }) async {
+    final directory = await ensureGeneratedImagesDirectory();
+    final file = File(
+      '${directory.path}${Platform.pathSeparator}${historyId}_${(index + 1).toString().padLeft(2, '0')}.png',
+    );
+    await file.writeAsBytes(bytes, flush: true);
+    return file;
   }
 }
