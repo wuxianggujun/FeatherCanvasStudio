@@ -1,0 +1,271 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  FLUTTER_CHANNEL: stable
+  ARTIFACT_RETENTION_DAYS: 7
+
+jobs:
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      release_name: ${{ steps.version.outputs.release_name }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Verify release branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Release workflow must run from the main branch." >&2
+            exit 1
+          fi
+
+      - name: Read pubspec version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="$(grep -E '^version: ' pubspec.yaml | head -n 1 | sed 's/^version: //')"
+          if [ -z "${version}" ]; then
+            echo "Missing version field in pubspec.yaml" >&2
+            exit 1
+          fi
+
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Unsupported pubspec version: ${version}" >&2
+            echo "Expected examples: 1.2.3, 1.2.3+4, 1.2.3-beta.1, 1.2.3-beta.1+4" >&2
+            exit 1
+          fi
+
+          tag="v${version}"
+          prerelease=false
+          if [[ "${version}" == *"-"* ]]; then
+            prerelease=true
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "release_name=FeatherCanvas Studio ${tag}" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=${prerelease}" >> "$GITHUB_OUTPUT"
+
+      - name: Check existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists. Bump pubspec.yaml version before publishing again." >&2
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Tag ${RELEASE_TAG} already exists. Bump pubspec.yaml version before publishing again." >&2
+            exit 1
+          fi
+
+  quality:
+    name: Analyze and Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: prepare
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          pub-cache: true
+          cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+  build-android:
+    name: Build Android (${{ needs.prepare.outputs.release_tag }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - prepare
+      - quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+          cache-dependency-path: |
+            android/**/*.gradle*
+            android/**/gradle-wrapper.properties
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          pub-cache: true
+          cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Stage Android APK
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/feather-canvas-studio-${RELEASE_TAG}-android.apk"
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-android
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+  build-windows:
+    name: Build Windows (${{ needs.prepare.outputs.release_tag }})
+    runs-on: windows-latest
+    timeout-minutes: 35
+    needs:
+      - prepare
+      - quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          pub-cache: true
+          cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release app
+        run: flutter build windows --release
+
+      - name: Stage Windows app
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive `
+            -Path build/windows/x64/runner/Release/* `
+            -DestinationPath "dist/feather-canvas-studio-$env:RELEASE_TAG-windows.zip" `
+            -Force
+
+      - name: Upload Windows app
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-windows
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+  publish:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - prepare
+      - build-android
+      - build-windows
+
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-android
+          path: dist/android
+
+      - name: Download Windows release asset
+        uses: actions/download-artifact@v8
+        with:
+          name: release-windows
+          path: dist/windows
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+          RELEASE_NAME: ${{ needs.prepare.outputs.release_name }}
+          IS_PRERELEASE: ${{ needs.prepare.outputs.is_prerelease }}
+          TARGET_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          args=(
+            "${RELEASE_TAG}"
+            dist/android/*
+            dist/windows/*
+            --target "${TARGET_SHA}"
+            --title "${RELEASE_NAME}"
+            --generate-notes
+            --fail-on-no-commits
+          )
+
+          if [ "${IS_PRERELEASE}" = "true" ]; then
+            args+=(--prerelease)
+          fi
+
+          gh release create "${args[@]}"

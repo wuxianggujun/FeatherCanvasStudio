@@ -1,0 +1,62 @@
+name: Cleanup Actions Cache
+
+on:
+  schedule:
+    # Runs every Monday at 03:00 UTC to keep dependency caches bounded.
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: Delete caches not accessed for at least this many days.
+        required: true
+        default: "7"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: cleanup-actions-cache
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Delete stale caches
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RETENTION_DAYS: ${{ github.event.inputs.retention_days }}
+
+    steps:
+      - name: Delete stale GitHub Actions caches
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          retention_days="${RETENTION_DAYS:-7}"
+          if [[ ! "${retention_days}" =~ ^[0-9]+$ ]]; then
+            echo "retention_days must be a non-negative integer."
+            exit 1
+          fi
+
+          cutoff="$(date -u -d "${retention_days} days ago" +%s)"
+          cutoff_text="$(date -u -d "@${cutoff}" --iso-8601=seconds)"
+          echo "Deleting caches last accessed before ${cutoff_text}."
+
+          mapfile -t caches < <(
+            gh cache list --limit 1000 --json id,key,lastAccessedAt,sizeInBytes,ref \
+              --jq ".[] | select(.lastAccessedAt != null and (.lastAccessedAt | fromdateiso8601) < ${cutoff}) | [.id, .key, .lastAccessedAt, .sizeInBytes, .ref] | @tsv"
+          )
+
+          if [ "${#caches[@]}" -eq 0 ]; then
+            echo "No stale caches found."
+            exit 0
+          fi
+
+          for cache in "${caches[@]}"; do
+            IFS=$'\t' read -r id key last_accessed size ref <<< "${cache}"
+            echo "Deleting cache id=${id} key=${key} lastAccessedAt=${last_accessed} size=${size} ref=${ref}"
+            gh cache delete "${id}"
+          done

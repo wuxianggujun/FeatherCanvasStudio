@@ -48,4 +48,38 @@ void main() {
     expect(restoredHistory.single.prompt, historyEntry.prompt);
     expect(restoredHistory.single.resultCount, historyEntry.resultCount);
   });
+
+  test('persists API configurations and selected configuration id', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = AppLocalStore();
+
+    const configs = [
+      ApiConfig(
+        id: 'official',
+        name: 'OpenAI 官方',
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'official-key',
+        model: 'gpt-image-2',
+      ),
+      ApiConfig(
+        id: 'proxy',
+        name: '本地代理',
+        baseUrl: 'http://127.0.0.1:8080/v1',
+        apiKey: 'proxy-key',
+        model: 'gpt-image-2',
+      ),
+    ];
+
+    await store.saveApiConfigs(configs);
+    await store.saveSelectedApiConfigId('proxy');
+
+    final restoredConfigs = await store.loadApiConfigs();
+    final selectedId = await store.loadSelectedApiConfigId();
+
+    expect(restoredConfigs, hasLength(2));
+    expect(restoredConfigs.first.name, 'OpenAI 官方');
+    expect(restoredConfigs.last.baseUrl, 'http://127.0.0.1:8080/v1');
+    expect(restoredConfigs.last.apiKey, 'proxy-key');
+    expect(selectedId, 'proxy');
+  });
 }

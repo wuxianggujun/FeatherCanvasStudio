@@ -1,0 +1,162 @@
+name: Flutter CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/flutter-ci.yml"
+      - "analysis_options.yaml"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "lib/**"
+      - "test/**"
+      - "android/**"
+      - "windows/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/flutter-ci.yml"
+      - "analysis_options.yaml"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "lib/**"
+      - "test/**"
+      - "android/**"
+      - "windows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_CHANNEL: stable
+  ARTIFACT_RETENTION_DAYS: 7
+
+jobs:
+  quality:
+    name: Analyze and Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      release_label: ${{ steps.version.outputs.release_label }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Read version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version_line="$(grep -E '^version: ' pubspec.yaml | head -n 1 | sed 's/^version: //')"
+          if [ -z "${version_line}" ]; then
+            echo "Missing version field in pubspec.yaml" >&2
+            exit 1
+          fi
+
+          echo "release_label=v${version_line}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          pub-cache: true
+          cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+  build-android:
+    name: Build Android (${{ needs.quality.outputs.release_label }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+          cache-dependency-path: |
+            android/**/*.gradle*
+            android/**/gradle-wrapper.properties
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          pub-cache: true
+          cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: feather-canvas-studio-${{ needs.quality.outputs.release_label }}-android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+  build-windows:
+    name: Build Windows (${{ needs.quality.outputs.release_label }})
+    runs-on: windows-latest
+    timeout-minutes: 35
+    needs: quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+          pub-cache: true
+          cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release app
+        run: flutter build windows --release
+
+      - name: Upload Windows app
+        uses: actions/upload-artifact@v7
+        with:
+          name: feather-canvas-studio-${{ needs.quality.outputs.release_label }}-windows
+          path: build/windows/x64/runner/Release/
+          if-no-files-found: error
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
