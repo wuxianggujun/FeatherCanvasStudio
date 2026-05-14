@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing tag to publish, for example v0.1.1+1.
+        description: Existing tag to publish, for example v0.1.1.
         required: true
 
 permissions:
@@ -54,9 +54,10 @@ jobs:
             tag="${GITHUB_REF_NAME}"
           fi
 
-          if [[ ! "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+          if [[ ! "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
             echo "Unsupported release tag: ${tag}" >&2
-            echo "Expected examples: v1.2.3, v1.2.3+4, v1.2.3-beta.1, v1.2.3-beta.1+4" >&2
+            echo "Expected examples: v1.2.3, v1.2.3-beta.1" >&2
+            echo "Do not include Flutter build metadata like +1 in GitHub release tags." >&2
             exit 1
           fi
 
@@ -67,8 +68,10 @@ jobs:
           fi
 
           version="${tag#v}"
-          if [ "${version}" != "${pubspec_version}" ]; then
-            echo "Release tag ${tag} does not match pubspec.yaml version ${pubspec_version}." >&2
+          public_version="${pubspec_version%%+*}"
+          if [ "${version}" != "${public_version}" ]; then
+            echo "Release tag ${tag} does not match pubspec.yaml public version ${public_version}." >&2
+            echo "Full Flutter version in pubspec.yaml is ${pubspec_version}; build metadata after + is not part of the GitHub tag." >&2
             exit 1
           fi
 
