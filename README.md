@@ -38,19 +38,30 @@ flutter run -d windows
 ## 发布版本
 
 正式发布使用 `Release` workflow。它由 `v*` tag 自动触发，构建完成后会把
-Android APK 和 Windows ZIP 上传到 GitHub Release。
+Android APK、Windows 安装包和 Windows 便携包上传到 GitHub Release。
 
 发布版本号只以 `pubspec.yaml` 的 `version` 字段为准。例如：
 
 ```yaml
-version: 0.1.0+1
+version: 0.1.0+2
 ```
 
-推送 `v0.1.0+1` tag 后会自动生成：
+推送 `v0.1.0+2` tag 后会自动生成：
 
-- GitHub Release：`FeatherCanvas Studio v0.1.0+1`
-- Android 产物：`feather-canvas-studio-v0.1.0+1-android.apk`
-- Windows 产物：`feather-canvas-studio-v0.1.0+1-windows.zip`
+- GitHub Release：`FeatherCanvas Studio v0.1.0+2`
+- Android 产物：`feather-canvas-studio-v0.1.0+2-android.apk`
+- Windows 安装包：`feather-canvas-studio-v0.1.0+2-windows-setup.exe`
+- Windows 便携包：`feather-canvas-studio-v0.1.0+2-windows-portable.zip`
+
+Windows 不能只发布裸 `exe`。Flutter Windows 产物需要同时带上
+`flutter_windows.dll`、`data/` 和插件 DLL 等运行文件，所以发布页会同时提供：
+
+- `windows-setup.exe`：标准安装包，适合普通用户下载后安装。
+- `windows-portable.zip`：便携版，解压整个目录后运行里面的应用程序。
+
+当前仓库只启用了 Android 和 Windows 平台目录，所以 Release 只构建这两个平台。
+后续如果需要发布 Web、Linux、macOS 或 iOS，需要先补齐对应 Flutter 平台目录，
+再把对应平台加入 Release workflow。
 
 发布前需要先完成这些步骤：
 
@@ -59,12 +70,12 @@ version: 0.1.0+1
 3. 创建并推送同名 tag，例如：
 
 ```bash
-git tag -a v0.1.0+1 -m "FeatherCanvas Studio v0.1.0+1"
-git push origin v0.1.0+1
+git tag -a v0.1.0+2 -m "FeatherCanvas Studio v0.1.0+2"
+git push origin v0.1.0+2
 ```
 
 如果 tag 已经存在但没有生成 Release，可以在 GitHub Actions 中手动运行
-`Release` workflow，并输入现有 tag，例如 `v0.1.0+1`。
+`Release` workflow，并输入现有 tag，例如 `v0.1.0+2`。
 
 `Release` workflow 会检查 tag 是否和 `pubspec.yaml` 版本一致，并要求 tag
 对应的提交已经在 `main` 分支上。它也会检查同名 Release 是否已经存在；
