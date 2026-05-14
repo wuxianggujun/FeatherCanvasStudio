@@ -129,7 +129,7 @@ void main() {
     expect(fourthFrame.getPixel(0, 0).g.toInt(), 255);
   });
 
-  test('saves a generated sprite sheet and every sliced frame', () async {
+  test('saves only the generated sprite sheet', () async {
     final tempDir = await Directory.systemTemp.createTemp(
       'sprite_sheet_output_cache_test_',
     );
@@ -170,9 +170,9 @@ void main() {
       color: image_lib.ColorRgb8(255, 255, 0),
     );
 
-    final cachedImages = await SpriteSheetOutputCache.saveSheetAndFrames(
+    final saveResult = await SpriteSheetOutputCache.saveSheetOnly(
       store: store,
-      historyId: 'animation_test',
+      groupId: 'animation_test',
       sourceImage: GeneratedImage.bytes(
         Uint8List.fromList(image_lib.encodePng(spriteSheet)),
       ),
@@ -187,24 +187,22 @@ void main() {
       }
     });
 
-    expect(cachedImages, hasLength(5));
-    for (final image in cachedImages) {
-      expect(image.filePath, isNotNull);
-      expect(await File(image.filePath!).exists(), isTrue);
-    }
+    expect(saveResult.sheet.filePath, isNotNull);
+    expect(await File(saveResult.sheet.filePath!).exists(), isTrue);
+    expect(saveResult.rows, 2);
+    expect(saveResult.columns, 2);
+    expect(saveResult.frameWidth, 2);
+    expect(saveResult.frameHeight, 2);
 
-    final firstFrame = image_lib.decodeImage(
-      await File(cachedImages[1].filePath!).readAsBytes(),
-    )!;
-    final lastFrame = image_lib.decodeImage(
-      await File(cachedImages[4].filePath!).readAsBytes(),
+    final savedSheet = image_lib.decodeImage(
+      await File(saveResult.sheet.filePath!).readAsBytes(),
     )!;
 
-    expect(firstFrame.width, 2);
-    expect(firstFrame.height, 2);
-    expect(firstFrame.getPixel(0, 0).r.toInt(), 255);
-    expect(lastFrame.getPixel(0, 0).r.toInt(), 255);
-    expect(lastFrame.getPixel(0, 0).g.toInt(), 255);
+    expect(savedSheet.width, 4);
+    expect(savedSheet.height, 4);
+    expect(savedSheet.getPixel(0, 0).r.toInt(), 255);
+    expect(savedSheet.getPixel(2, 2).r.toInt(), 255);
+    expect(savedSheet.getPixel(2, 2).g.toInt(), 255);
   });
 
   test('replaces one sprite sheet cell without changing other cells', () {
