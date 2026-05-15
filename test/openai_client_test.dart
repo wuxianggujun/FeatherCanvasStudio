@@ -263,6 +263,50 @@ void main() {
     );
   });
 
+  test('reports generation timeout with a clear error message', () async {
+    ImageRequestDebugRecord? debugRecord;
+    final client = OpenAICompatibleImageClient(
+      generationTimeout: const Duration(milliseconds: 10),
+      httpClient: MockClient((request) async {
+        await Future<void>.delayed(const Duration(seconds: 1));
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'b64_json': base64Encode([1, 2, 3]),
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    await expectLater(
+      () => client.generate(
+        const OpenAIImageRequest(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'token',
+          model: 'gpt-image-2',
+          prompt: 'hello',
+          negativePrompt: '',
+          size: '1024x1024',
+          imageCount: 1,
+        ),
+        onDebugRecord: (record) => debugRecord = record,
+      ),
+      throwsA(
+        isA<ImageGenerationException>().having(
+          (error) => error.message,
+          'message',
+          contains('生图请求超时'),
+        ),
+      ),
+    );
+
+    expect(debugRecord?.toJson()['response']['error'], contains('生图请求超时'));
+  });
+
   test('uses image edit endpoint when a template image is supplied', () async {
     final templateFile = File(
       '${Directory.systemTemp.path}${Platform.pathSeparator}template-image.png',

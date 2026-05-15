@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,10 +12,18 @@ import '../models/image_advanced_settings.dart';
 import '../utils/image_dimensions.dart';
 
 class OpenAICompatibleImageClient {
-  OpenAICompatibleImageClient({http.Client? httpClient})
-    : _httpClient = httpClient ?? http.Client();
+  static const Duration defaultGenerationTimeout = Duration(minutes: 8);
+  static const Duration _modelFetchTimeout = Duration(seconds: 30);
+  static const Duration _imageDownloadTimeout = Duration(minutes: 2);
+
+  OpenAICompatibleImageClient({
+    http.Client? httpClient,
+    Duration generationTimeout = defaultGenerationTimeout,
+  }) : _httpClient = httpClient ?? http.Client(),
+       _generationTimeout = generationTimeout;
 
   final http.Client _httpClient;
+  final Duration _generationTimeout;
 
   Future<OpenAIImageResponse> generate(
     OpenAIImageRequest request, {
@@ -34,11 +43,18 @@ class OpenAICompatibleImageClient {
     }
 
     publishDebugRecord();
-    final response = request.providerKind == ApiProviderKind.gemini
-        ? await _postGeminiGenerateContent(request)
-        : request.hasTemplateImage
-        ? await _postImageEdit(request)
-        : await _postImageGeneration(request);
+    late final http.Response response;
+    try {
+      response = request.providerKind == ApiProviderKind.gemini
+          ? await _postGeminiGenerateContent(request)
+          : request.hasTemplateImage
+          ? await _postImageEdit(request)
+          : await _postImageGeneration(request);
+    } on TimeoutException catch (_) {
+      const message = '生图请求超时：服务端可能正在生成较慢的图片，或网关没有在预期时间内返回完整响应。';
+      onDebugRecord?.call(debugRecord.copyWith(errorMessage: message));
+      throw const ImageGenerationException(message);
+    }
 
     publishDebugRecord(response);
     final decoded = _decodeJsonObject(
@@ -134,7 +150,7 @@ class OpenAICompatibleImageClient {
           },
           body: jsonEncode(await request.toGeminiJson()),
         )
-        .timeout(const Duration(minutes: 2));
+        .timeout(_generationTimeout);
   }
 
   Future<http.Response> _postImageGeneration(OpenAIImageRequest request) {
@@ -147,7 +163,7 @@ class OpenAICompatibleImageClient {
           },
           body: jsonEncode(request.toJson()),
         )
-        .timeout(const Duration(minutes: 2));
+        .timeout(_generationTimeout);
   }
 
   Future<http.Response> _postImageEdit(OpenAIImageRequest request) async {
@@ -160,10 +176,10 @@ class OpenAICompatibleImageClient {
 
     final streamedResponse = await _httpClient
         .send(multipartRequest)
-        .timeout(const Duration(minutes: 2));
+        .timeout(_generationTimeout);
     return http.Response.fromStream(
       streamedResponse,
-    ).timeout(const Duration(minutes: 2));
+    ).timeout(_generationTimeout);
   }
 
   Future<List<ApiModelInfo>> fetchAvailableModels({
@@ -192,7 +208,7 @@ class OpenAICompatibleImageClient {
 
     final response = await _httpClient
         .get(endpoint, headers: headers)
-        .timeout(const Duration(seconds: 30));
+        .timeout(_modelFetchTimeout);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final decoded = safeDecodeJsonObject(response.bodyBytes);
@@ -226,7 +242,7 @@ class OpenAICompatibleImageClient {
     if (image.url != null) {
       final response = await _httpClient
           .get(Uri.parse(image.url!))
-          .timeout(const Duration(minutes: 2));
+          .timeout(_imageDownloadTimeout);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw ImageGenerationException(
           '图片下载失败：HTTP ${response.statusCode} ${response.reasonPhrase ?? ''}',
@@ -707,6 +723,7 @@ class ImageRequestDebugRecord {
     this.responseHeaders = const {},
     this.responseBody,
     this.decodedResponse,
+    this.errorMessage,
   });
 
   factory ImageRequestDebugRecord.fromRequest(OpenAIImageRequest request) {
@@ -723,10 +740,12 @@ class ImageRequestDebugRecord {
   final Map<String, String> responseHeaders;
   final String? responseBody;
   final Map<String, dynamic>? decodedResponse;
+  final String? errorMessage;
 
   ImageRequestDebugRecord copyWith({
     http.Response? response,
     Map<String, dynamic>? decodedResponse,
+    String? errorMessage,
   }) {
     return ImageRequestDebugRecord(
       createdAt: createdAt,
@@ -738,6 +757,7 @@ class ImageRequestDebugRecord {
           ? responseBody
           : utf8.decode(response.bodyBytes, allowMalformed: true),
       decodedResponse: decodedResponse ?? this.decodedResponse,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
@@ -751,6 +771,7 @@ class ImageRequestDebugRecord {
         'headers': responseHeaders,
         'body': responseBody,
         if (decodedResponse != null) 'json': decodedResponse,
+        if (errorMessage != null) 'error': errorMessage,
       },
     };
   }
