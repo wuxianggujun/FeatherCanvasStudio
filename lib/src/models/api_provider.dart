@@ -41,8 +41,8 @@ String defaultBaseUrlForProviderKind(ApiProviderKind kind) {
 
 String defaultModelForProviderKind(ApiProviderKind kind) {
   return switch (kind) {
-    ApiProviderKind.official => 'gpt-image-2',
-    ApiProviderKind.compatible => 'gpt-image-2',
+    ApiProviderKind.official => '',
+    ApiProviderKind.compatible => '',
     ApiProviderKind.gemini => 'gemini-2.5-flash-image',
   };
 }

@@ -13,6 +13,8 @@ mixin _LocalSettingsStateMixin
   List<GeneratedImage> get _animationFrames;
   Future<void> _selectFeature(WorkspaceFeature feature);
   Future<void> _confirmResetToDefaults();
+  @override
+  void _showMessage(String message);
 
   final TextEditingController _promptController = TextEditingController(
     text: defaultAppSettings.prompt,
@@ -24,6 +26,7 @@ mixin _LocalSettingsStateMixin
   String _size = defaultAppSettings.size;
   int _imageCount = defaultAppSettings.imageCount;
   ImageAdvancedSettings _advancedSettings = defaultAppSettings.advancedSettings;
+  bool _isCleaningStorage = false;
   Timer? _settingsSaveDebounce;
 
   void _initLocalSettingsState() {
@@ -95,11 +98,40 @@ mixin _LocalSettingsStateMixin
     _scheduleSettingsSave();
   }
 
+  Future<void> _cleanupLocalStorage() async {
+    if (_isCleaningStorage) {
+      return;
+    }
+
+    setState(() => _isCleaningStorage = true);
+    try {
+      final summary = await _store.cleanupGeneratedFiles(
+        libraryItems: _imageLibrary,
+      );
+      if (!mounted) {
+        return;
+      }
+      _showMessage(
+        '已清理 ${summary.removedFiles} 个文件，释放 ${formatBytes(summary.freedBytes)}',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('清理失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isCleaningStorage = false);
+      }
+    }
+  }
+
   Widget _buildLocalSettingsWorkspace() {
     return LocalSettingsWorkspace(
       apiConfigCount: _apiConfigs.length,
       imageLibraryCount: _imageLibrary.length,
       generatedPreviewCount: _generatedImages.length + _animationFrames.length,
+      isCleaningStorage: _isCleaningStorage,
       providerKind: _apiConfigProviderKind,
       promptController: _promptController,
       negativePromptController: _negativePromptController,
@@ -112,6 +144,7 @@ mixin _LocalSettingsStateMixin
       onAdvancedSettingsChanged: _setAdvancedSettings,
       onOpenApiSettings: () =>
           unawaited(_selectFeature(WorkspaceFeature.apiSettings)),
+      onCleanupStorage: () => unawaited(_cleanupLocalStorage()),
       onResetToDefaults: () => unawaited(_confirmResetToDefaults()),
     );
   }

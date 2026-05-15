@@ -76,6 +76,14 @@ String apiKeyHintForProviderKind(ApiProviderKind kind) {
   };
 }
 
+String apiModelHintForProviderKind(ApiProviderKind kind) {
+  final defaultModel = defaultModelForProviderKind(kind);
+  if (defaultModel.isNotEmpty) {
+    return defaultModel;
+  }
+  return '先获取模型列表，或手动填写模型名称';
+}
+
 String imageAssetKindLabel(ImageAssetKind kind) {
   return switch (kind) {
     ImageAssetKind.generatedImage => '生图',
@@ -121,6 +129,22 @@ String imageLibrarySortOrderLabel(ImageLibrarySortOrder sortOrder) {
 String fileNameFromPath(String path) {
   final parts = path.split(RegExp(r'[\\/]')).where((part) => part.isNotEmpty);
   return parts.isEmpty ? path : parts.last;
+}
+
+String formatBytes(int bytes) {
+  if (bytes < 1024) {
+    return '$bytes B';
+  }
+  final kib = bytes / 1024;
+  if (kib < 1024) {
+    return '${kib.toStringAsFixed(1)} KB';
+  }
+  final mib = kib / 1024;
+  if (mib < 1024) {
+    return '${mib.toStringAsFixed(1)} MB';
+  }
+  final gib = mib / 1024;
+  return '${gib.toStringAsFixed(1)} GB';
 }
 
 String editorFrameOptionLabel(int index, int columns) {

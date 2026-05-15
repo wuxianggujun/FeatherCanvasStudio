@@ -17,7 +17,7 @@ class ApiConfig {
       name: '默认配置',
       baseUrl: 'https://api.openai.com/v1',
       apiKey: '',
-      model: 'gpt-image-2',
+      model: '',
       providerKind: ApiProviderKind.official,
     );
   }
@@ -93,7 +93,7 @@ class AppSettings {
     return const AppSettings(
       baseUrl: 'https://api.openai.com/v1',
       apiKey: '',
-      model: 'gpt-image-2',
+      model: '',
       prompt:
           'A clean product render of a futuristic camera on a neutral background',
       negativePrompt: '',

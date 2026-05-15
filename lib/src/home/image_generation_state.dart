@@ -89,6 +89,11 @@ mixin _ImageGenerationStateMixin
       return;
     }
 
+    if (apiConfig.model.trim().isEmpty) {
+      _showMessage('请先在接口配置页获取模型列表并选择模型');
+      return;
+    }
+
     if (prompt.isEmpty) {
       _showMessage('请先填写正向提示词');
       return;
@@ -163,6 +168,11 @@ mixin _ImageGenerationStateMixin
 
     if (apiConfig.apiKey.trim().isEmpty) {
       setState(() => _animationErrorMessage = '请先在接口配置页填写 API Key。');
+      return;
+    }
+
+    if (apiConfig.model.trim().isEmpty) {
+      setState(() => _animationErrorMessage = '请先在接口配置页获取模型列表并选择模型。');
       return;
     }
 

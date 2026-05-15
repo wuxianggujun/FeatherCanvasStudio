@@ -1,10 +1,12 @@
 import 'package:feather_canvas_studio/main.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('renders the OpenAI-compatible workspace shell', (tester) async {
     SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
     await tester.pumpWidget(const FeatherCanvasApp());
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));

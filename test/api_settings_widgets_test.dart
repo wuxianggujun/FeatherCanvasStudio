@@ -1,4 +1,4 @@
-import 'package:feather_canvas_studio/main.dart';
+﻿import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

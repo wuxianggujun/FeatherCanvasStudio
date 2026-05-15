@@ -330,7 +330,7 @@ class _ConnectionSettingsFields extends StatelessWidget {
           controller: modelController,
           decoration: InputDecoration(
             labelText: '模型',
-            hintText: defaultModelForProviderKind(providerKind),
+            hintText: apiModelHintForProviderKind(providerKind),
             helperText: apiModelFetchHelperText(
               availableModels: availableModels,
               isFetchingModels: isFetchingModels,

@@ -10,6 +10,7 @@ class LocalSettingsWorkspace extends StatelessWidget {
     required this.apiConfigCount,
     required this.imageLibraryCount,
     required this.generatedPreviewCount,
+    required this.isCleaningStorage,
     required this.providerKind,
     required this.promptController,
     required this.negativePromptController,
@@ -21,6 +22,7 @@ class LocalSettingsWorkspace extends StatelessWidget {
     required this.onImageCountChanged,
     required this.onAdvancedSettingsChanged,
     required this.onOpenApiSettings,
+    required this.onCleanupStorage,
     required this.onResetToDefaults,
     super.key,
   });
@@ -28,6 +30,7 @@ class LocalSettingsWorkspace extends StatelessWidget {
   final int apiConfigCount;
   final int imageLibraryCount;
   final int generatedPreviewCount;
+  final bool isCleaningStorage;
   final ApiProviderKind providerKind;
   final TextEditingController promptController;
   final TextEditingController negativePromptController;
@@ -39,6 +42,7 @@ class LocalSettingsWorkspace extends StatelessWidget {
   final ValueChanged<int> onImageCountChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final VoidCallback onOpenApiSettings;
+  final VoidCallback onCleanupStorage;
   final VoidCallback onResetToDefaults;
 
   @override
@@ -51,6 +55,7 @@ class LocalSettingsWorkspace extends StatelessWidget {
           apiConfigCount: apiConfigCount,
           imageLibraryCount: imageLibraryCount,
           generatedPreviewCount: generatedPreviewCount,
+          isCleaningStorage: isCleaningStorage,
           providerKind: providerKind,
           promptController: promptController,
           negativePromptController: negativePromptController,
@@ -62,6 +67,7 @@ class LocalSettingsWorkspace extends StatelessWidget {
           onImageCountChanged: onImageCountChanged,
           onAdvancedSettingsChanged: onAdvancedSettingsChanged,
           onOpenApiSettings: onOpenApiSettings,
+          onCleanupStorage: onCleanupStorage,
           onResetToDefaults: onResetToDefaults,
         ),
       ],

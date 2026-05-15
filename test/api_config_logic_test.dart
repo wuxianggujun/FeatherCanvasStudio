@@ -1,4 +1,4 @@
-import 'package:feather_canvas_studio/main.dart';
+﻿import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -210,7 +210,7 @@ void main() {
         name: 'Config',
         baseUrl: 'https://example.com/v1',
         apiKey: 'key',
-        model: 'gpt-image-2',
+        model: '',
         providerKind: ApiProviderKind.compatible,
       );
       const customConfig = ApiConfig(
@@ -232,8 +232,8 @@ void main() {
       expect(
         preferredFetchedModel(const [
           ApiModelInfo(id: 'models/gpt-image-2'),
-        ], config),
-        isNull,
+        ], config)?.id,
+        'models/gpt-image-2',
       );
       expect(
         preferredFetchedModel(const [

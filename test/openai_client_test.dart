@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:feather_canvas_studio/main.dart';
+import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -306,6 +306,42 @@ void main() {
 
     expect(debugRecord?.toJson()['response']['error'], contains('生图请求超时'));
     expect(debugRecord?.toJson()['durationMs'], isA<int>());
+  });
+
+  test('rejects generation when model is empty', () async {
+    var requestSent = false;
+    ImageRequestDebugRecord? debugRecord;
+    final client = OpenAICompatibleImageClient(
+      httpClient: MockClient((request) async {
+        requestSent = true;
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await expectLater(
+      () => client.generate(
+        const OpenAIImageRequest(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'token',
+          model: '',
+          prompt: 'hello',
+          negativePrompt: '',
+          size: '1024x1024',
+          imageCount: 1,
+        ),
+        onDebugRecord: (record) => debugRecord = record,
+      ),
+      throwsA(
+        isA<ImageGenerationException>().having(
+          (error) => error.message,
+          'message',
+          contains('获取模型列表并选择模型'),
+        ),
+      ),
+    );
+
+    expect(requestSent, isFalse);
+    expect(debugRecord?.toJson()['response']['error'], contains('获取模型列表并选择模型'));
   });
 
   test('uses image edit endpoint when a template image is supplied', () async {

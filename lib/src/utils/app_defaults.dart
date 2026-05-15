@@ -5,7 +5,7 @@ import '../services/gif_composer_service.dart';
 const AppSettings defaultAppSettings = AppSettings(
   baseUrl: 'https://api.openai.com/v1',
   apiKey: '',
-  model: 'gpt-image-2',
+  model: '',
   prompt:
       'A clean product render of a futuristic camera on a neutral background',
   negativePrompt: '',

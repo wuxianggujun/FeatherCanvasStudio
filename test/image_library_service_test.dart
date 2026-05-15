@@ -1,7 +1,7 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:feather_canvas_studio/main.dart';
+import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

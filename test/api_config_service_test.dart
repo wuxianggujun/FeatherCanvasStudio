@@ -1,6 +1,6 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
-import 'package:feather_canvas_studio/main.dart';
+import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -108,7 +108,7 @@ void main() {
         name: 'Proxy',
         baseUrl: 'https://proxy.example.com/v1',
         apiKey: 'token',
-        model: 'gpt-image-2',
+        model: '',
         providerKind: ApiProviderKind.compatible,
       ),
     );

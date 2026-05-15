@@ -6,12 +6,14 @@ import '../theme/layout_constants.dart';
 import '../widgets/image_advanced_settings_widgets.dart';
 import '../widgets/image_size_widgets.dart';
 import '../widgets/common_form_widgets.dart';
+import '../widgets/layout_navigation_widgets.dart';
 
 class LocalSettingsPanel extends StatelessWidget {
   const LocalSettingsPanel({
     required this.apiConfigCount,
     required this.imageLibraryCount,
     required this.generatedPreviewCount,
+    required this.isCleaningStorage,
     required this.providerKind,
     required this.promptController,
     required this.negativePromptController,
@@ -23,6 +25,7 @@ class LocalSettingsPanel extends StatelessWidget {
     required this.onImageCountChanged,
     required this.onAdvancedSettingsChanged,
     required this.onOpenApiSettings,
+    required this.onCleanupStorage,
     required this.onResetToDefaults,
     super.key,
   });
@@ -30,6 +33,7 @@ class LocalSettingsPanel extends StatelessWidget {
   final int apiConfigCount;
   final int imageLibraryCount;
   final int generatedPreviewCount;
+  final bool isCleaningStorage;
   final ApiProviderKind providerKind;
   final TextEditingController promptController;
   final TextEditingController negativePromptController;
@@ -41,6 +45,7 @@ class LocalSettingsPanel extends StatelessWidget {
   final ValueChanged<int> onImageCountChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final VoidCallback onOpenApiSettings;
+  final VoidCallback onCleanupStorage;
   final VoidCallback onResetToDefaults;
 
   @override
@@ -151,6 +156,33 @@ class LocalSettingsPanel extends StatelessWidget {
                   onPressed: onOpenApiSettings,
                   icon: const Icon(Icons.tune_outlined),
                   label: const Text('打开接口配置'),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: sectionGap),
+        AppPanel(
+          title: '存储清理',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '清理作品库不再引用的生成文件，以及临时参考图缓存。不会删除作品库仍在使用的文件。',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: fieldGap),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: isCleaningStorage ? null : onCleanupStorage,
+                  icon: ButtonProgressIcon(
+                    isBusy: isCleaningStorage,
+                    icon: Icons.cleaning_services_outlined,
+                  ),
+                  label: Text(isCleaningStorage ? '清理中' : '清理未引用文件'),
                 ),
               ),
             ],
