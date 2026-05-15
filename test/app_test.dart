@@ -108,6 +108,7 @@ void main() {
     expect(find.text('Base URL'), findsOneWidget);
     expect(find.text('API Key'), findsOneWidget);
     expect(find.text('模型'), findsOneWidget);
+    expect(find.text('尚未获取模型列表'), findsOneWidget);
     expect(find.byTooltip('获取模型列表'), findsOneWidget);
     expect(find.text('保存配置'), findsOneWidget);
     expect(find.text('测试接口'), findsOneWidget);

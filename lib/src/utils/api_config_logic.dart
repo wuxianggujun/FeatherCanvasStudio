@@ -211,6 +211,21 @@ ApiModelInfo? preferredFetchedModel(
   return bestImageModelCandidate(models) ?? models.first;
 }
 
+ApiModelInfo? matchingFetchedModel(List<ApiModelInfo> models, String modelId) {
+  final normalizedModelId = normalizeModelIdForSelection(modelId);
+  if (normalizedModelId.isEmpty) {
+    return null;
+  }
+
+  for (final model in models) {
+    if (normalizeModelIdForSelection(model.id) == normalizedModelId) {
+      return model;
+    }
+  }
+
+  return null;
+}
+
 ApiModelInfo? bestImageModelCandidate(List<ApiModelInfo> models) {
   const preferredKeywords = [
     'gpt-image',

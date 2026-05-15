@@ -5,6 +5,7 @@ import '../models/app_config.dart';
 import '../models/ui_state.dart';
 import '../services/image_api_client.dart';
 import '../theme/layout_constants.dart';
+import '../utils/api_config_logic.dart';
 import '../utils/display_labels.dart';
 import '../widgets/common_form_widgets.dart';
 import '../widgets/layout_navigation_widgets.dart';
@@ -481,10 +482,14 @@ class _ConnectionSettingsFields extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedModel =
-        availableModels.any((model) => model.id == modelController.text.trim())
-        ? modelController.text.trim()
-        : null;
+    final selectedModel = matchingFetchedModel(
+      availableModels,
+      modelController.text,
+    )?.id;
+    final modelListKey = Object.hashAll(
+      availableModels.map((model) => Object.hash(model.id, model.ownedBy)),
+    );
+    final hasFetchedModels = availableModels.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -521,8 +526,14 @@ class _ConnectionSettingsFields extends StatelessWidget {
           decoration: InputDecoration(
             labelText: '模型',
             hintText: defaultModelForProviderKind(providerKind),
+            helperText: _modelFetchHelperText(
+              availableModels: availableModels,
+              isFetchingModels: isFetchingModels,
+              modelFetchErrorMessage: modelFetchErrorMessage,
+            ),
+            helperMaxLines: 2,
             suffixIcon: Tooltip(
-              message: '获取模型列表',
+              message: hasFetchedModels ? '刷新模型列表' : '获取模型列表',
               child: IconButton(
                 onPressed: isFetchingModels ? null : onFetchModels,
                 icon: ButtonProgressIcon(
@@ -536,7 +547,7 @@ class _ConnectionSettingsFields extends StatelessWidget {
         if (availableModels.isNotEmpty) ...[
           const SizedBox(height: fieldGap),
           DropdownButtonFormField<String>(
-            key: ValueKey('api-model-${availableModels.length}-$selectedModel'),
+            key: ValueKey('api-model-$modelListKey-$selectedModel'),
             initialValue: selectedModel,
             isExpanded: true,
             decoration: InputDecoration(
@@ -586,5 +597,22 @@ class _ConnectionSettingsFields extends StatelessWidget {
         ],
       ],
     );
+  }
+
+  String _modelFetchHelperText({
+    required List<ApiModelInfo> availableModels,
+    required bool isFetchingModels,
+    required String? modelFetchErrorMessage,
+  }) {
+    if (isFetchingModels) {
+      return '正在获取模型列表...';
+    }
+    if (availableModels.isNotEmpty) {
+      return '已获取 ${availableModels.length} 个模型';
+    }
+    if (modelFetchErrorMessage != null) {
+      return '模型列表获取失败，可修正配置后重试';
+    }
+    return '尚未获取模型列表';
   }
 }

@@ -244,6 +244,22 @@ void main() {
     },
   );
 
+  test('matches fetched models by normalized model id', () {
+    expect(
+      matchingFetchedModel(const [
+        ApiModelInfo(id: 'models/gpt-image-2'),
+        ApiModelInfo(id: 'custom-model'),
+      ], ' gpt-image-2 ')?.id,
+      'models/gpt-image-2',
+    );
+    expect(
+      matchingFetchedModel(const [
+        ApiModelInfo(id: 'models/gpt-image-2'),
+      ], 'missing-model'),
+      isNull,
+    );
+  });
+
   test('decorates API test errors with provider-specific hint', () {
     final decorated = decorateApiTestErrorMessage(
       baseMessage: '502 Bad Gateway',
