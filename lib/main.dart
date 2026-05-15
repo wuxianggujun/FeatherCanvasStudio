@@ -85,6 +85,7 @@ export 'src/widgets/workspaces.dart';
 
 part 'src/home/api_config_state.dart';
 part 'src/home/editor_gif_state.dart';
+part 'src/home/home_shell_state.dart';
 part 'src/home/image_generation_state.dart';
 part 'src/home/image_library_state.dart';
 part 'src/home/local_settings_state.dart';
@@ -141,7 +142,8 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
         _LocalSettingsStateMixin,
         _ImageLibraryStateMixin,
         _EditorGifStateMixin,
-        _ImageGenerationStateMixin {
+        _ImageGenerationStateMixin,
+        _HomeShellStateMixin {
   @override
   final TextEditingController _animationPromptController =
       TextEditingController(text: defaultAnimationPrompt);
@@ -245,173 +247,5 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     }
     _ephemeralTemplatePaths.clear();
     super.dispose();
-  }
-
-  Future<void> _bootstrap() async {
-    final settings = await _store.loadSettings();
-    final storedApiConfigs = await _store.loadApiConfigs();
-    final storedSelectedApiConfigId = await _store.loadSelectedApiConfigId();
-    final imageLibrary = await _store.loadImageLibrary();
-
-    if (!mounted) {
-      return;
-    }
-
-    final apiConfigs = storedApiConfigs.isEmpty
-        ? [ApiConfig.defaults()]
-        : storedApiConfigs;
-    final selectedApiConfig = resolveApiConfig(
-      apiConfigs,
-      storedSelectedApiConfigId,
-    );
-
-    _isRestoringState = true;
-    _apiConfigNameController.text = selectedApiConfig.name;
-    _baseUrlController.text = selectedApiConfig.baseUrl;
-    _apiKeyController.text = selectedApiConfig.apiKey;
-    _modelController.text = selectedApiConfig.model;
-    _promptController.text = settings.prompt;
-    _negativePromptController.text = settings.negativePrompt;
-    _userController.text = settings.advancedSettings.user;
-
-    setState(() {
-      _apiConfigs = apiConfigs;
-      _selectedApiConfigId = selectedApiConfig.id;
-      _apiConfigProviderKind = selectedApiConfig.providerKind;
-      _size = imageDimensionsFromSize(settings.size).size;
-      _imageCount = settings.imageCount;
-      _advancedSettings = settings.advancedSettings;
-      _imageLibrary = imageLibrary;
-      _isBootstrapping = false;
-    });
-    _isRestoringState = false;
-    await _store.saveApiConfigs(apiConfigs);
-    await _store.saveSelectedApiConfigId(selectedApiConfig.id);
-  }
-
-  @override
-  Future<void> _selectFeature(WorkspaceFeature feature) async {
-    if (_selectedFeature == feature) {
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() => _selectedFeature = feature);
-  }
-
-  Future<void> _resetToDefaults() async {
-    _settingsSaveDebounce?.cancel();
-    _apiConfigSaveDebounce?.cancel();
-    _isRestoringState = true;
-
-    final defaultApiConfig = ApiConfig.defaults();
-    _apiConfigNameController.text = defaultApiConfig.name;
-    _baseUrlController.text = defaultApiConfig.baseUrl;
-    _apiKeyController.clear();
-    _modelController.text = defaultApiConfig.model;
-    _promptController.text = defaultAppSettings.prompt;
-    _negativePromptController.clear();
-    _animationPromptController.text = defaultAnimationPrompt;
-    _userController.clear();
-
-    setState(() {
-      _apiConfigs = [defaultApiConfig];
-      _selectedApiConfigId = defaultApiConfig.id;
-      _apiConfigProviderKind = defaultApiConfig.providerKind;
-      _size = defaultAppSettings.size;
-      _imageCount = defaultAppSettings.imageCount;
-      _advancedSettings = defaultAppSettings.advancedSettings;
-      _animationRows = defaultAnimationRows;
-      _animationColumns = defaultAnimationColumns;
-      _editorRows = defaultEditorRows;
-      _editorColumns = defaultEditorColumns;
-      _editorTargetFrameIndex = defaultEditorTargetFrameIndex;
-      _editorFrameFit = defaultEditorFrameFit;
-      _errorMessage = null;
-      _animationErrorMessage = null;
-      _imageRequestDebugRecord = null;
-      _animationRequestDebugRecord = null;
-      _generatedImages = const [];
-      _animationFrames = const [];
-      _animationTemplateImagePath = null;
-      _editorImagePath = null;
-      _editorPatchImagePath = null;
-      _editorErrorMessage = null;
-      _gifSourceFrames = const [];
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-      _gifDefaultFrameDelayMs = defaultGifFrameDelayMs;
-      _gifLoopCount = defaultGifLoopCount;
-      _gifPlaybackMode = defaultGifPlaybackMode;
-      _apiTestDebugRecord = null;
-      _isTestingApiConfig = false;
-    });
-
-    _isRestoringState = false;
-    await _store.saveApiConfigs([defaultApiConfig]);
-    await _store.saveSelectedApiConfigId(defaultApiConfig.id);
-    await _saveSettings();
-    if (mounted) {
-      _showMessage('表单已重置');
-    }
-  }
-
-  @override
-  Future<void> _confirmResetToDefaults() async {
-    final shouldReset = await confirmResetToDefaultsDialog(context);
-    if (shouldReset) {
-      await _resetToDefaults();
-    }
-  }
-
-  @override
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final navigationExtended = MediaQuery.sizeOf(context).width >= 980;
-
-    if (_isBootstrapping) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    return Scaffold(
-      body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            FeatureNavigationRail(
-              selectedFeature: _selectedFeature,
-              extended: navigationExtended,
-              onFeatureSelected: (feature) =>
-                  unawaited(_selectFeature(feature)),
-              onOpenSettings: () =>
-                  unawaited(_selectFeature(WorkspaceFeature.localSettings)),
-            ),
-            const VerticalDivider(width: 1),
-            Expanded(child: _buildSelectedWorkspace()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectedWorkspace() {
-    return switch (_selectedFeature) {
-      WorkspaceFeature.imageGeneration => _buildImageGenerationWorkspace(),
-      WorkspaceFeature.frameAnimation => _buildFrameAnimationWorkspace(),
-      WorkspaceFeature.imageEditor => _buildImageEditorWorkspace(),
-      WorkspaceFeature.gifComposer => _buildGifComposerWorkspace(),
-      WorkspaceFeature.imageLibrary => _buildImageLibraryWorkspace(),
-      WorkspaceFeature.apiSettings => _buildApiSettingsWorkspace(),
-      WorkspaceFeature.localSettings => _buildLocalSettingsWorkspace(),
-    };
   }
 }
