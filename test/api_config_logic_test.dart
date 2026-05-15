@@ -1,0 +1,230 @@
+import 'package:feather_canvas_studio/main.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('builds API config draft from controller text', () {
+    final draft = buildApiConfigDraft(
+      selectedId: null,
+      nameText: '  ',
+      baseUrlText: ' https://example.com/v1 ',
+      apiKeyText: ' key ',
+      modelText: ' gpt-image-2 ',
+      providerKind: ApiProviderKind.official,
+    );
+
+    expect(draft.id, isNotEmpty);
+    expect(draft.name, unnamedApiConfigName);
+    expect(draft.baseUrl, 'https://example.com/v1');
+    expect(draft.apiKey, ' key ');
+    expect(draft.model, 'gpt-image-2');
+    expect(draft.providerKind, ApiProviderKind.official);
+  });
+
+  test('resolves and upserts API configs', () {
+    const first = ApiConfig(
+      id: 'first',
+      name: 'First',
+      baseUrl: 'https://first.test/v1',
+      apiKey: 'first-key',
+      model: 'gpt-image-2',
+    );
+    const second = ApiConfig(
+      id: 'second',
+      name: 'Second',
+      baseUrl: 'https://second.test/v1',
+      apiKey: 'second-key',
+      model: 'gpt-image-2',
+    );
+    final updatedSecond = second.copyWith(model: 'imagen');
+
+    expect(resolveApiConfig([first, second], 'second'), second);
+    expect(resolveApiConfig([first, second], 'missing'), first);
+    expect(upsertApiConfig([first, second], updatedSecond), [
+      first,
+      updatedSecond,
+    ]);
+    expect(upsertApiConfig([first], second), [first, second]);
+  });
+
+  test('creates compatible API config with safe defaults', () {
+    final config = createCompatibleApiConfig(id: 'new');
+
+    expect(config.id, 'new');
+    expect(config.name, newApiConfigName);
+    expect(
+      config.baseUrl,
+      defaultBaseUrlForProviderKind(ApiProviderKind.compatible),
+    );
+    expect(
+      config.model,
+      defaultModelForProviderKind(ApiProviderKind.compatible),
+    );
+    expect(config.providerKind, ApiProviderKind.compatible);
+  });
+
+  test('applies provider defaults only when current fields are unchanged', () {
+    final defaulted = apiProviderKindDefaultedFields(
+      previousKind: ApiProviderKind.compatible,
+      nextKind: ApiProviderKind.gemini,
+      currentBaseUrl: defaultBaseUrlForProviderKind(ApiProviderKind.compatible),
+      currentModel: defaultModelForProviderKind(ApiProviderKind.compatible),
+    );
+    final preserved = apiProviderKindDefaultedFields(
+      previousKind: ApiProviderKind.compatible,
+      nextKind: ApiProviderKind.gemini,
+      currentBaseUrl: 'https://proxy.example/v1',
+      currentModel: 'custom-model',
+    );
+
+    expect(
+      defaulted.baseUrl,
+      defaultBaseUrlForProviderKind(ApiProviderKind.gemini),
+    );
+    expect(
+      defaulted.model,
+      defaultModelForProviderKind(ApiProviderKind.gemini),
+    );
+    expect(preserved.baseUrl, 'https://proxy.example/v1');
+    expect(preserved.model, 'custom-model');
+  });
+
+  test(
+    'deletes selected API config and chooses the first remaining config',
+    () {
+      const first = ApiConfig(
+        id: 'first',
+        name: 'First',
+        baseUrl: 'https://first.test/v1',
+        apiKey: 'first-key',
+        model: 'gpt-image-2',
+      );
+      const second = ApiConfig(
+        id: 'second',
+        name: 'Second',
+        baseUrl: 'https://second.test/v1',
+        apiKey: 'second-key',
+        model: 'gpt-image-2',
+      );
+
+      final result = deleteApiConfigSelection([first, second], 'first');
+
+      expect(result?.configs, [second]);
+      expect(result?.selectedConfig, second);
+      expect(deleteApiConfigSelection([first], 'first'), isNull);
+      expect(deleteApiConfigSelection([first, second], 'missing'), isNull);
+    },
+  );
+
+  test('builds stable model request key', () {
+    const config = ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: ' https://example.com/v1 ',
+      apiKey: ' key ',
+      model: 'gpt-image-2',
+      providerKind: ApiProviderKind.gemini,
+    );
+
+    expect(apiModelRequestKey(config), 'gemini\nhttps://example.com/v1\nkey');
+  });
+
+  test('builds basic and full API config test requests', () {
+    const official = ApiConfig(
+      id: 'official',
+      name: 'Official',
+      baseUrl: 'https://api.openai.com/v1',
+      apiKey: ' key ',
+      model: 'gpt-image-2',
+      providerKind: ApiProviderKind.official,
+    );
+    const gemini = ApiConfig(
+      id: 'gemini',
+      name: 'Gemini',
+      baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+      apiKey: ' key ',
+      model: 'gemini-2.5-flash-image',
+      providerKind: ApiProviderKind.gemini,
+    );
+
+    final basicRequest = buildApiConfigTestRequest(
+      apiConfig: official,
+      basic: true,
+    );
+    final fullRequest = buildApiConfigTestRequest(
+      apiConfig: official,
+      basic: false,
+    );
+    final geminiBasicRequest = buildApiConfigTestRequest(
+      apiConfig: gemini,
+      basic: true,
+    );
+
+    expect(basicRequest.providerKind, ApiProviderKind.compatible);
+    expect(basicRequest.advancedSettings.quality, 'auto');
+    expect(fullRequest.providerKind, ApiProviderKind.official);
+    expect(fullRequest.advancedSettings.quality, 'low');
+    expect(geminiBasicRequest.providerKind, ApiProviderKind.gemini);
+    expect(basicRequest.apiKey, 'key');
+  });
+
+  test(
+    'prefers image-capable fetched models when current model is default',
+    () {
+      const config = ApiConfig(
+        id: 'config',
+        name: 'Config',
+        baseUrl: 'https://example.com/v1',
+        apiKey: 'key',
+        model: 'gpt-image-2',
+        providerKind: ApiProviderKind.compatible,
+      );
+      const customConfig = ApiConfig(
+        id: 'custom',
+        name: 'Custom',
+        baseUrl: 'https://example.com/v1',
+        apiKey: 'key',
+        model: 'custom-model',
+        providerKind: ApiProviderKind.compatible,
+      );
+
+      expect(
+        preferredFetchedModel(const [
+          ApiModelInfo(id: 'text-model'),
+          ApiModelInfo(id: 'imagen-pro'),
+        ], config)?.id,
+        'imagen-pro',
+      );
+      expect(
+        preferredFetchedModel(const [
+          ApiModelInfo(id: 'models/gpt-image-2'),
+        ], config),
+        isNull,
+      );
+      expect(
+        preferredFetchedModel(const [
+          ApiModelInfo(id: 'imagen-pro'),
+        ], customConfig),
+        isNull,
+      );
+    },
+  );
+
+  test('decorates API test errors with provider-specific hint', () {
+    final decorated = decorateApiTestErrorMessage(
+      baseMessage: '502 Bad Gateway',
+      providerKind: ApiProviderKind.official,
+      basic: false,
+    );
+
+    expect(decorated, contains('接口测试失败'));
+    expect(decorated, contains('OpenAI 官方'));
+    expect(
+      decorateApiTestErrorMessage(
+        baseMessage: '502 Bad Gateway',
+        providerKind: ApiProviderKind.official,
+        basic: true,
+      ),
+      isNot(contains('OpenAI 官方')),
+    );
+  });
+}

@@ -205,6 +205,51 @@ void main() {
     expect(savedSheet.getPixel(2, 2).g.toInt(), 255);
   });
 
+  test('exports and saves edited sprite sheet files', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'sprite_sheet_file_service_test_',
+    );
+    addTearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    final store = AppLocalStore(baseDirectoryOverride: tempDir);
+    final sheetPath = '${tempDir.path}${Platform.pathSeparator}sheet.png';
+    final patchPath = '${tempDir.path}${Platform.pathSeparator}patch.png';
+    await File(
+      sheetPath,
+    ).writeAsBytes(_pngOfColorWithSize(255, 0, 0, width: 4, height: 4));
+    await File(patchPath).writeAsBytes(_pngOfColor(0, 255, 0));
+
+    final exported = await SpriteSheetFileService.exportPng(
+      store: store,
+      pngBytes: _pngOfColor(0, 0, 255),
+      rows: 2,
+      columns: 2,
+    );
+    final edited = await SpriteSheetFileService.replaceFrameAndSave(
+      store: store,
+      readFileBytes: (path) => File(path).readAsBytes(),
+      sheetPath: sheetPath,
+      patchPath: patchPath,
+      rows: 2,
+      columns: 2,
+      frameIndex: 1,
+      fit: SpriteSheetFrameFit.stretch,
+    );
+
+    final editedImage = image_lib.decodeImage(
+      await File(edited.path).readAsBytes(),
+    )!;
+
+    expect(exported.directoryPath, contains('generated-images'));
+    expect(await File(exported.path).exists(), isTrue);
+    expect(await File(edited.path).exists(), isTrue);
+    expect(editedImage.getPixel(2, 0).g.toInt(), 255);
+  });
+
   test('replaces one sprite sheet cell without changing other cells', () {
     final spriteSheet = image_lib.Image(width: 4, height: 4)
       ..clear(image_lib.ColorRgb8(0, 0, 0));

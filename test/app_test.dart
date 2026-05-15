@@ -96,10 +96,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('应用内作品'), findsOneWidget);
-    expect(
-      find.text('暂无作品。生成、导出、编辑或合成后的图片会保存到这里。'),
-      findsOneWidget,
-    );
+    expect(find.text('暂无作品。生成、导出、编辑或合成后的图片会保存到这里。'), findsOneWidget);
     expect(find.text('删除作品'), findsNothing);
 
     await tester.tap(find.text('接口配置').first);
@@ -107,11 +104,21 @@ void main() {
 
     expect(find.text('接口名称'), findsOneWidget);
     expect(find.text('供应商'), findsOneWidget);
-    expect(find.text('OpenAI 兼容'), findsOneWidget);
+    expect(find.text('OpenAI 官方'), findsOneWidget);
     expect(find.text('Base URL'), findsOneWidget);
     expect(find.text('API Key'), findsOneWidget);
     expect(find.text('模型'), findsOneWidget);
+    expect(find.byTooltip('获取模型列表'), findsOneWidget);
     expect(find.text('保存配置'), findsOneWidget);
     expect(find.text('测试接口'), findsOneWidget);
+
+    await tester.tap(find.text('设置'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('本地设置'), findsOneWidget);
+    expect(find.text('本地状态'), findsOneWidget);
+    expect(find.text('打开接口配置'), findsOneWidget);
+    expect(find.text('恢复默认表单'), findsOneWidget);
+    expect(find.text('恢复默认表单？'), findsNothing);
   });
 }

@@ -82,4 +82,48 @@ void main() {
     expect(await File(outputPath).exists(), isTrue);
     expect(await File(outputPath).length(), greaterThan(0));
   });
+
+  test('composes a gif into the app store output directory', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'gif_composer_store_test_',
+    );
+    addTearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    final firstFrame = image_lib.encodePng(
+      image_lib.Image(width: 2, height: 2)
+        ..clear(image_lib.ColorRgb8(255, 0, 0)),
+    );
+    final secondFrame = image_lib.encodePng(
+      image_lib.Image(width: 2, height: 2)
+        ..clear(image_lib.ColorRgb8(0, 255, 0)),
+    );
+
+    final result = await GifComposer.composeToStore(
+      store: AppLocalStore(baseDirectoryOverride: tempDir),
+      frames: [
+        GifSourceFrame.fromBytes(
+          firstFrame,
+          sourcePath: 'first.png',
+          delayMs: 120,
+          seed: 1,
+        ),
+        GifSourceFrame.fromBytes(
+          secondFrame,
+          sourcePath: 'second.png',
+          delayMs: 160,
+          seed: 2,
+        ),
+      ],
+      loopCount: 0,
+      playbackMode: GifPlaybackMode.normal,
+    );
+
+    expect(result.path, endsWith('.gif'));
+    expect(result.directoryPath, contains('generated-images'));
+    expect(await File(result.path).exists(), isTrue);
+  });
 }

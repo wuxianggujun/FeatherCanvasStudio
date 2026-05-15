@@ -621,4 +621,71 @@ void main() {
 
     expect(response.images.single.bytes, [4, 5, 6]);
   });
+
+  test('fetches OpenAI-compatible model lists', () async {
+    final client = OpenAICompatibleImageClient(
+      httpClient: MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.toString(), 'https://proxy.example.com/v1/models');
+        expect(request.headers['Authorization'], 'Bearer token');
+
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {'id': 'gpt-image-1', 'owned_by': 'openai'},
+              'custom-image-model',
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final models = await client.fetchAvailableModels(
+      baseUrl: 'https://proxy.example.com/v1/images/generations',
+      apiKey: 'token',
+      providerKind: ApiProviderKind.compatible,
+    );
+
+    expect(models.map((model) => model.id), [
+      'custom-image-model',
+      'gpt-image-1',
+    ]);
+    expect(models.last.ownedBy, 'openai');
+  });
+
+  test('fetches Gemini model lists from a generateContent endpoint', () async {
+    final client = OpenAICompatibleImageClient(
+      httpClient: MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(
+          request.url.toString(),
+          'https://generativelanguage.googleapis.com/v1beta/models',
+        );
+        expect(request.headers['x-goog-api-key'], 'gemini-key');
+
+        return http.Response(
+          jsonEncode({
+            'models': [
+              {
+                'name': 'models/gemini-2.5-flash-image',
+                'displayName': 'Gemini 2.5 Flash Image',
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final models = await client.fetchAvailableModels(
+      baseUrl:
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent',
+      apiKey: 'gemini-key',
+      providerKind: ApiProviderKind.gemini,
+    );
+
+    expect(models.single.id, 'gemini-2.5-flash-image');
+    expect(models.single.ownedBy, 'Gemini 2.5 Flash Image');
+  });
 }
