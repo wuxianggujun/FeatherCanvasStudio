@@ -24,6 +24,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
     required this.availableModels,
     required this.isFetchingModels,
     required this.modelFetchErrorMessage,
+    required this.modelFetchedAt,
     required this.onApiConfigChanged,
     required this.onAddApiConfig,
     required this.onDeleteApiConfig,
@@ -52,6 +53,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
   final List<ApiModelInfo> availableModels;
   final bool isFetchingModels;
   final String? modelFetchErrorMessage;
+  final DateTime? modelFetchedAt;
   final ValueChanged<String> onApiConfigChanged;
   final VoidCallback onAddApiConfig;
   final VoidCallback onDeleteApiConfig;
@@ -85,6 +87,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
           availableModels: availableModels,
           isFetchingModels: isFetchingModels,
           modelFetchErrorMessage: modelFetchErrorMessage,
+          modelFetchedAt: modelFetchedAt,
           onApiConfigChanged: onApiConfigChanged,
           onAddApiConfig: onAddApiConfig,
           onDeleteApiConfig: onDeleteApiConfig,

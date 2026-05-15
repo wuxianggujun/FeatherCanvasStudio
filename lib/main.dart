@@ -209,6 +209,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
   bool _isFetchingApiModels = false;
   Map<String, List<ApiModelInfo>> _apiModelCache = const {};
   Map<String, String> _apiModelFetchErrorCache = const {};
+  Map<String, DateTime> _apiModelFetchedAtCache = const {};
   int _apiConfigSaveVersion = 0;
   Timer? _settingsSaveDebounce;
   Timer? _apiConfigSaveDebounce;
@@ -239,6 +240,11 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
   String? get _visibleApiModelFetchErrorMessage {
     final requestKey = apiModelRequestKey(_currentApiConfigDraft);
     return _apiModelFetchErrorCache[requestKey];
+  }
+
+  DateTime? get _visibleApiModelFetchedAt {
+    final requestKey = apiModelRequestKey(_currentApiConfigDraft);
+    return _apiModelFetchedAtCache[requestKey];
   }
 
   @override
@@ -506,6 +512,10 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
           requestKey: result.requestKey,
           models: result.models,
         );
+        _apiModelFetchedAtCache = Map.unmodifiable({
+          ..._apiModelFetchedAtCache,
+          result.requestKey: DateTime.now(),
+        });
       }
       _apiModelFetchErrorCache = updateApiModelFetchErrorCache(
         cache: _apiModelFetchErrorCache,
@@ -1933,6 +1943,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
       availableModels: _visibleApiModels,
       isFetchingModels: _isFetchingApiModels,
       modelFetchErrorMessage: _visibleApiModelFetchErrorMessage,
+      modelFetchedAt: _visibleApiModelFetchedAt,
       onApiConfigChanged: _selectApiConfig,
       onAddApiConfig: _addApiConfig,
       onDeleteApiConfig: _deleteSelectedApiConfig,

@@ -6,9 +6,47 @@ import '../models/ui_state.dart';
 import '../services/image_api_client.dart';
 import '../theme/layout_constants.dart';
 import '../utils/api_config_logic.dart';
+import '../utils/date_formatting.dart';
 import '../utils/display_labels.dart';
 import '../widgets/common_form_widgets.dart';
 import '../widgets/layout_navigation_widgets.dart';
+
+String apiModelFetchHelperText({
+  required List<ApiModelInfo> availableModels,
+  required bool isFetchingModels,
+  required String? modelFetchErrorMessage,
+  required DateTime? modelFetchedAt,
+}) {
+  if (isFetchingModels) {
+    if (availableModels.isNotEmpty) {
+      return '正在刷新模型列表，当前显示 ${availableModels.length} 个缓存模型';
+    }
+    return '正在获取模型列表...';
+  }
+
+  final hasModels = availableModels.isNotEmpty;
+  final hasError =
+      modelFetchErrorMessage != null &&
+      modelFetchErrorMessage.trim().isNotEmpty;
+  final fetchedAtLabel = modelFetchedAt == null
+      ? null
+      : '上次成功：${formatTimestamp(modelFetchedAt)}';
+
+  if (hasError && hasModels) {
+    return fetchedAtLabel == null
+        ? '刷新失败，继续显示 ${availableModels.length} 个缓存模型'
+        : '刷新失败，继续显示 ${availableModels.length} 个缓存模型，$fetchedAtLabel';
+  }
+  if (hasModels) {
+    return fetchedAtLabel == null
+        ? '已获取 ${availableModels.length} 个模型'
+        : '已缓存 ${availableModels.length} 个模型，$fetchedAtLabel';
+  }
+  if (hasError) {
+    return '模型列表获取失败，可修正配置后重试';
+  }
+  return '尚未获取模型列表';
+}
 
 class ApiConfigSelector extends StatelessWidget {
   const ApiConfigSelector({
@@ -92,6 +130,7 @@ class ApiSettingsPanel extends StatelessWidget {
     required this.availableModels,
     required this.isFetchingModels,
     required this.modelFetchErrorMessage,
+    required this.modelFetchedAt,
     required this.onApiConfigChanged,
     required this.onAddApiConfig,
     required this.onDeleteApiConfig,
@@ -120,6 +159,7 @@ class ApiSettingsPanel extends StatelessWidget {
   final List<ApiModelInfo> availableModels;
   final bool isFetchingModels;
   final String? modelFetchErrorMessage;
+  final DateTime? modelFetchedAt;
   final ValueChanged<String> onApiConfigChanged;
   final VoidCallback onAddApiConfig;
   final VoidCallback onDeleteApiConfig;
@@ -178,6 +218,7 @@ class ApiSettingsPanel extends StatelessWidget {
             availableModels: availableModels,
             isFetchingModels: isFetchingModels,
             modelFetchErrorMessage: modelFetchErrorMessage,
+            modelFetchedAt: modelFetchedAt,
             onFetchModels: onFetchModels,
             onModelSelected: onModelSelected,
             onToggleApiKeyVisibility: onToggleApiKeyVisibility,
@@ -462,6 +503,7 @@ class _ConnectionSettingsFields extends StatelessWidget {
     required this.availableModels,
     required this.isFetchingModels,
     required this.modelFetchErrorMessage,
+    required this.modelFetchedAt,
     required this.onFetchModels,
     required this.onModelSelected,
     required this.onToggleApiKeyVisibility,
@@ -475,6 +517,7 @@ class _ConnectionSettingsFields extends StatelessWidget {
   final List<ApiModelInfo> availableModels;
   final bool isFetchingModels;
   final String? modelFetchErrorMessage;
+  final DateTime? modelFetchedAt;
   final VoidCallback onFetchModels;
   final ValueChanged<String> onModelSelected;
   final VoidCallback onToggleApiKeyVisibility;
@@ -526,10 +569,11 @@ class _ConnectionSettingsFields extends StatelessWidget {
           decoration: InputDecoration(
             labelText: '模型',
             hintText: defaultModelForProviderKind(providerKind),
-            helperText: _modelFetchHelperText(
+            helperText: apiModelFetchHelperText(
               availableModels: availableModels,
               isFetchingModels: isFetchingModels,
               modelFetchErrorMessage: modelFetchErrorMessage,
+              modelFetchedAt: modelFetchedAt,
             ),
             helperMaxLines: 2,
             suffixIcon: Tooltip(
@@ -597,22 +641,5 @@ class _ConnectionSettingsFields extends StatelessWidget {
         ],
       ],
     );
-  }
-
-  String _modelFetchHelperText({
-    required List<ApiModelInfo> availableModels,
-    required bool isFetchingModels,
-    required String? modelFetchErrorMessage,
-  }) {
-    if (isFetchingModels) {
-      return '正在获取模型列表...';
-    }
-    if (availableModels.isNotEmpty) {
-      return '已获取 ${availableModels.length} 个模型';
-    }
-    if (modelFetchErrorMessage != null) {
-      return '模型列表获取失败，可修正配置后重试';
-    }
-    return '尚未获取模型列表';
   }
 }
