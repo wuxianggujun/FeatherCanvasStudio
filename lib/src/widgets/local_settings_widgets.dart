@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../models/api_provider.dart';
+import '../models/image_advanced_settings.dart';
 import '../theme/layout_constants.dart';
+import '../widgets/image_advanced_settings_widgets.dart';
+import '../widgets/image_size_widgets.dart';
 import '../widgets/common_form_widgets.dart';
 
 class LocalSettingsPanel extends StatelessWidget {
@@ -8,6 +12,16 @@ class LocalSettingsPanel extends StatelessWidget {
     required this.apiConfigCount,
     required this.imageLibraryCount,
     required this.generatedPreviewCount,
+    required this.providerKind,
+    required this.promptController,
+    required this.negativePromptController,
+    required this.size,
+    required this.imageCount,
+    required this.advancedSettings,
+    required this.userController,
+    required this.onSizeChanged,
+    required this.onImageCountChanged,
+    required this.onAdvancedSettingsChanged,
     required this.onOpenApiSettings,
     required this.onResetToDefaults,
     super.key,
@@ -16,6 +30,16 @@ class LocalSettingsPanel extends StatelessWidget {
   final int apiConfigCount;
   final int imageLibraryCount;
   final int generatedPreviewCount;
+  final ApiProviderKind providerKind;
+  final TextEditingController promptController;
+  final TextEditingController negativePromptController;
+  final String size;
+  final int imageCount;
+  final ImageAdvancedSettings advancedSettings;
+  final TextEditingController userController;
+  final ValueChanged<String> onSizeChanged;
+  final ValueChanged<int> onImageCountChanged;
+  final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final VoidCallback onOpenApiSettings;
   final VoidCallback onResetToDefaults;
 
@@ -46,6 +70,64 @@ class LocalSettingsPanel extends StatelessWidget {
                 icon: Icons.preview_outlined,
                 label: '当前预览结果',
                 value: '$generatedPreviewCount 张',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: sectionGap),
+        AppPanel(
+          title: '默认生成设置',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '这些值会保存在本机，并作为文本生图、帧动画等工作区的默认表单状态。',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: fieldGap),
+              TextField(
+                controller: promptController,
+                minLines: 4,
+                maxLines: 8,
+                decoration: const InputDecoration(
+                  labelText: '默认正向提示词',
+                  hintText: '新会话或恢复默认后使用的正向提示词',
+                  alignLabelWithHint: true,
+                ),
+              ),
+              const SizedBox(height: fieldGap),
+              TextField(
+                controller: negativePromptController,
+                minLines: 2,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: '默认负向提示词',
+                  hintText: '可选，会合并到 prompt 中',
+                  alignLabelWithHint: true,
+                ),
+              ),
+              const SizedBox(height: fieldGap),
+              ImageSizeInput(
+                size: size,
+                providerKind: providerKind,
+                onChanged: onSizeChanged,
+              ),
+              const SizedBox(height: fieldGap),
+              OptionDropdown<int>(
+                label: '默认生成数量',
+                value: imageCount,
+                options: const [1, 2, 3, 4],
+                labelBuilder: (value) => '$value 张',
+                onChanged: onImageCountChanged,
+              ),
+              const SizedBox(height: fieldGap),
+              ImageAdvancedSettingsSection(
+                settings: advancedSettings,
+                userController: userController,
+                hasTemplateImage: false,
+                onChanged: onAdvancedSettingsChanged,
               ),
             ],
           ),

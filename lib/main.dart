@@ -76,6 +76,7 @@ export 'src/widgets/app_dialogs.dart';
 export 'src/widgets/editor_gif_widgets.dart';
 export 'src/widgets/generation_form_widgets.dart';
 export 'src/widgets/image_library_widgets.dart';
+export 'src/widgets/image_advanced_settings_widgets.dart';
 export 'src/widgets/image_size_widgets.dart';
 export 'src/widgets/layout_navigation_widgets.dart';
 export 'src/widgets/local_settings_widgets.dart';
@@ -1951,6 +1952,16 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
       apiConfigCount: _apiConfigs.length,
       imageLibraryCount: _imageLibrary.length,
       generatedPreviewCount: _generatedImages.length + _animationFrames.length,
+      providerKind: _apiConfigProviderKind,
+      promptController: _promptController,
+      negativePromptController: _negativePromptController,
+      size: _size,
+      imageCount: _imageCount,
+      advancedSettings: _advancedSettings,
+      userController: _userController,
+      onSizeChanged: _setSize,
+      onImageCountChanged: _setImageCount,
+      onAdvancedSettingsChanged: _setAdvancedSettings,
       onOpenApiSettings: () =>
           unawaited(_selectFeature(WorkspaceFeature.apiSettings)),
       onResetToDefaults: () => unawaited(_confirmResetToDefaults()),

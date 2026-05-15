@@ -112,6 +112,38 @@ class OptionDropdown<T> extends StatelessWidget {
   }
 }
 
+class ResponsivePair extends StatelessWidget {
+  const ResponsivePair({required this.first, required this.second, super.key});
+
+  final Widget first;
+  final Widget second;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 360) {
+          return Column(
+            children: [
+              first,
+              const SizedBox(height: fieldGap),
+              second,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: first),
+            const SizedBox(width: fieldGap),
+            Expanded(child: second),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class RequestDebugButton extends StatelessWidget {
   const RequestDebugButton({required this.record, super.key});
 

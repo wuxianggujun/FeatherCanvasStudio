@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/api_provider.dart';
 import '../theme/layout_constants.dart';
 import '../utils/image_dimensions.dart';
+import 'common_form_widgets.dart';
 
 enum _ImageAspectPreset { square, landscape, portrait, custom }
 
@@ -238,36 +239,4 @@ String imageAspectName(int width, int height) {
     return '方图';
   }
   return width > height ? '横图' : '竖图';
-}
-
-class ResponsivePair extends StatelessWidget {
-  const ResponsivePair({required this.first, required this.second, super.key});
-
-  final Widget first;
-  final Widget second;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 360) {
-          return Column(
-            children: [
-              first,
-              const SizedBox(height: fieldGap),
-              second,
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(child: first),
-            const SizedBox(width: fieldGap),
-            Expanded(child: second),
-          ],
-        );
-      },
-    );
-  }
 }

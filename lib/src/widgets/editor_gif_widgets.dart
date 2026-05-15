@@ -7,7 +7,6 @@ import '../services/gif_composer_service.dart';
 import '../theme/layout_constants.dart';
 import '../utils/display_labels.dart';
 import '../widgets/common_form_widgets.dart';
-import '../widgets/image_size_widgets.dart';
 import '../widgets/layout_navigation_widgets.dart';
 import '../widgets/preview_widgets.dart';
 
@@ -76,15 +75,15 @@ class SpriteSheetEditorPanel extends StatelessWidget {
               label: '行数',
               value: rows,
               options: _gridSizes,
-              labelBuilder: (value) => ' 行',
+              labelBuilder: (value) => '$value 行',
               onChanged: onRowsChanged,
             ),
             second: OptionDropdown<int>(
               label: '列数',
               value: columns,
               options: _gridSizes,
-              labelBuilder: (value) => ' 列',
-              helperText: '共  帧',
+              labelBuilder: (value) => '$value 列',
+              helperText: '共 $frameTotal 帧',
               onChanged: onColumnsChanged,
             ),
           ),

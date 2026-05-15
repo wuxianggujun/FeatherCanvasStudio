@@ -117,6 +117,11 @@ void main() {
 
     expect(find.text('本地设置'), findsOneWidget);
     expect(find.text('本地状态'), findsOneWidget);
+    expect(find.text('默认生成设置'), findsOneWidget);
+    expect(find.text('默认正向提示词'), findsOneWidget);
+    expect(find.text('默认负向提示词'), findsOneWidget);
+    expect(find.text('默认生成数量'), findsOneWidget);
+    expect(find.text('高级输出参数'), findsOneWidget);
     expect(find.text('打开接口配置'), findsOneWidget);
     expect(find.text('恢复默认表单'), findsOneWidget);
     expect(find.text('恢复默认表单？'), findsNothing);
