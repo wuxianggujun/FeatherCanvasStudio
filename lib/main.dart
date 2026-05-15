@@ -206,9 +206,8 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
   String? _apiConfigSaveErrorMessage;
   ImageRequestDebugRecord? _apiTestDebugRecord;
   bool _isFetchingApiModels = false;
-  List<ApiModelInfo> _availableApiModels = const [];
-  String? _apiModelFetchErrorMessage;
-  String? _apiModelFetchKey;
+  Map<String, List<ApiModelInfo>> _apiModelCache = const {};
+  Map<String, String> _apiModelFetchErrorCache = const {};
   int _apiConfigSaveVersion = 0;
   Timer? _settingsSaveDebounce;
   Timer? _apiConfigSaveDebounce;
@@ -233,12 +232,12 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
 
   List<ApiModelInfo> get _visibleApiModels {
     final requestKey = apiModelRequestKey(_currentApiConfigDraft);
-    return _apiModelFetchKey == requestKey ? _availableApiModels : const [];
+    return _apiModelCache[requestKey] ?? const [];
   }
 
   String? get _visibleApiModelFetchErrorMessage {
     final requestKey = apiModelRequestKey(_currentApiConfigDraft);
-    return _apiModelFetchKey == requestKey ? _apiModelFetchErrorMessage : null;
+    return _apiModelFetchErrorCache[requestKey];
   }
 
   @override
@@ -478,8 +477,11 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
 
     setState(() {
       _isFetchingApiModels = true;
-      _apiModelFetchErrorMessage = null;
-      _apiModelFetchKey = requestKey;
+      _apiModelFetchErrorCache = updateApiModelFetchErrorCache(
+        cache: _apiModelFetchErrorCache,
+        requestKey: requestKey,
+        errorMessage: null,
+      );
     });
 
     final result = await fetchApiModelsForConfig(
@@ -497,9 +499,18 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
     }
 
     setState(() {
-      _availableApiModels = result.models;
-      _apiModelFetchErrorMessage = result.errorMessage;
-      _apiModelFetchKey = result.requestKey;
+      if (result.success) {
+        _apiModelCache = cacheApiModelsForRequest(
+          cache: _apiModelCache,
+          requestKey: result.requestKey,
+          models: result.models,
+        );
+      }
+      _apiModelFetchErrorCache = updateApiModelFetchErrorCache(
+        cache: _apiModelFetchErrorCache,
+        requestKey: result.requestKey,
+        errorMessage: result.errorMessage,
+      );
       _isFetchingApiModels = false;
     });
 

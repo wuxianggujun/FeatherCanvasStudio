@@ -119,6 +119,34 @@ String apiModelRequestKey(ApiConfig config) {
   ].join('\n');
 }
 
+Map<String, List<ApiModelInfo>> cacheApiModelsForRequest({
+  required Map<String, List<ApiModelInfo>> cache,
+  required String requestKey,
+  required List<ApiModelInfo> models,
+}) {
+  final nextCache = <String, List<ApiModelInfo>>{
+    for (final entry in cache.entries)
+      entry.key: List<ApiModelInfo>.unmodifiable(entry.value),
+  };
+  nextCache[requestKey] = List<ApiModelInfo>.unmodifiable(models);
+  return Map.unmodifiable(nextCache);
+}
+
+Map<String, String> updateApiModelFetchErrorCache({
+  required Map<String, String> cache,
+  required String requestKey,
+  required String? errorMessage,
+}) {
+  final nextCache = Map<String, String>.of(cache);
+  final normalizedMessage = errorMessage?.trim();
+  if (normalizedMessage == null || normalizedMessage.isEmpty) {
+    nextCache.remove(requestKey);
+  } else {
+    nextCache[requestKey] = normalizedMessage;
+  }
+  return Map.unmodifiable(nextCache);
+}
+
 OpenAIImageRequest buildApiConfigTestRequest({
   required ApiConfig apiConfig,
   required bool basic,

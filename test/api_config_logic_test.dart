@@ -128,6 +128,41 @@ void main() {
     expect(apiModelRequestKey(config), 'gemini\nhttps://example.com/v1\nkey');
   });
 
+  test('caches fetched API models by request key', () {
+    final cache = cacheApiModelsForRequest(
+      cache: const {
+        'first': [ApiModelInfo(id: 'first-image')],
+      },
+      requestKey: 'second',
+      models: const [
+        ApiModelInfo(id: 'second-image'),
+        ApiModelInfo(id: 'second-text'),
+      ],
+    );
+
+    expect(cache['first']?.single.id, 'first-image');
+    expect(cache['second']?.map((model) => model.id), [
+      'second-image',
+      'second-text',
+    ]);
+  });
+
+  test('updates model fetch errors without leaking between request keys', () {
+    final withError = updateApiModelFetchErrorCache(
+      cache: const {'first': 'first failed'},
+      requestKey: 'second',
+      errorMessage: ' second failed ',
+    );
+    final cleared = updateApiModelFetchErrorCache(
+      cache: withError,
+      requestKey: 'second',
+      errorMessage: null,
+    );
+
+    expect(withError, {'first': 'first failed', 'second': 'second failed'});
+    expect(cleared, {'first': 'first failed'});
+  });
+
   test('builds basic and full API config test requests', () {
     const official = ApiConfig(
       id: 'official',
