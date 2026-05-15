@@ -29,17 +29,18 @@ class OpenAICompatibleImageClient {
     OpenAIImageRequest request, {
     ValueChanged<ImageRequestDebugRecord>? onDebugRecord,
   }) async {
-    final debugRecord = ImageRequestDebugRecord.fromRequest(request);
-    void publishDebugRecord([
+    var debugRecord = ImageRequestDebugRecord.fromRequest(request);
+    void publishDebugRecord({
       http.Response? response,
       Map<String, dynamic>? decodedResponse,
-    ]) {
-      onDebugRecord?.call(
-        debugRecord.copyWith(
-          response: response,
-          decodedResponse: decodedResponse,
-        ),
+      String? errorMessage,
+    }) {
+      debugRecord = debugRecord.copyWith(
+        response: response,
+        decodedResponse: decodedResponse,
+        errorMessage: errorMessage,
       );
+      onDebugRecord?.call(debugRecord);
     }
 
     publishDebugRecord();
@@ -52,17 +53,17 @@ class OpenAICompatibleImageClient {
           : await _postImageGeneration(request);
     } on TimeoutException catch (_) {
       const message = '生图请求超时：服务端可能正在生成较慢的图片，或网关没有在预期时间内返回完整响应。';
-      onDebugRecord?.call(debugRecord.copyWith(errorMessage: message));
+      publishDebugRecord(errorMessage: message);
       throw const ImageGenerationException(message);
     }
 
-    publishDebugRecord(response);
+    publishDebugRecord(response: response);
     final decoded = _decodeJsonObject(
       response.bodyBytes,
       statusCode: response.statusCode,
       reasonPhrase: response.reasonPhrase,
     );
-    publishDebugRecord(response, decoded);
+    publishDebugRecord(response: response, decodedResponse: decoded);
     final responseErrorMessage = _extractErrorMessage(decoded);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -718,6 +719,7 @@ class ImageRequestDebugRecord {
   const ImageRequestDebugRecord({
     required this.createdAt,
     required this.request,
+    this.completedAt,
     this.statusCode,
     this.reasonPhrase,
     this.responseHeaders = const {},
@@ -734,6 +736,7 @@ class ImageRequestDebugRecord {
   }
 
   final DateTime createdAt;
+  final DateTime? completedAt;
   final Map<String, dynamic> request;
   final int? statusCode;
   final String? reasonPhrase;
@@ -746,9 +749,16 @@ class ImageRequestDebugRecord {
     http.Response? response,
     Map<String, dynamic>? decodedResponse,
     String? errorMessage,
+    DateTime? completedAt,
   }) {
     return ImageRequestDebugRecord(
       createdAt: createdAt,
+      completedAt:
+          completedAt ??
+          this.completedAt ??
+          ((response != null || decodedResponse != null || errorMessage != null)
+              ? DateTime.now()
+              : null),
       request: request,
       statusCode: response?.statusCode ?? statusCode,
       reasonPhrase: response?.reasonPhrase ?? reasonPhrase,
@@ -764,6 +774,9 @@ class ImageRequestDebugRecord {
   Map<String, dynamic> toJson() {
     return {
       'createdAt': createdAt.toIso8601String(),
+      if (completedAt != null) 'completedAt': completedAt!.toIso8601String(),
+      if (completedAt != null)
+        'durationMs': completedAt!.difference(createdAt).inMilliseconds,
       'request': request,
       'response': {
         'statusCode': statusCode,

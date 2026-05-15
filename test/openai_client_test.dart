@@ -305,6 +305,7 @@ void main() {
     );
 
     expect(debugRecord?.toJson()['response']['error'], contains('生图请求超时'));
+    expect(debugRecord?.toJson()['durationMs'], isA<int>());
   });
 
   test('uses image edit endpoint when a template image is supplied', () async {
