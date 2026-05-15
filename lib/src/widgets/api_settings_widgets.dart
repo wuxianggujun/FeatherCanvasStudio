@@ -17,9 +17,13 @@ String apiModelFetchHelperText({
   required String? modelFetchErrorMessage,
   required DateTime? modelFetchedAt,
 }) {
+  final hasFetchedModels = modelFetchedAt != null;
   if (isFetchingModels) {
     if (availableModels.isNotEmpty) {
       return '正在刷新模型列表，当前显示 ${availableModels.length} 个缓存模型';
+    }
+    if (hasFetchedModels) {
+      return '正在刷新模型列表，当前缓存为空';
     }
     return '正在获取模型列表...';
   }
@@ -43,7 +47,15 @@ String apiModelFetchHelperText({
         : '已缓存 ${availableModels.length} 个模型，$fetchedAtLabel';
   }
   if (hasError) {
+    if (hasFetchedModels) {
+      return fetchedAtLabel == null
+          ? '模型列表刷新失败，当前缓存为空，可修正配置后重试'
+          : '模型列表刷新失败，当前缓存为空，$fetchedAtLabel';
+    }
     return '模型列表获取失败，可修正配置后重试';
+  }
+  if (hasFetchedModels) {
+    return fetchedAtLabel == null ? '已获取 0 个模型' : '已缓存 0 个模型，$fetchedAtLabel';
   }
   return '尚未获取模型列表';
 }
@@ -532,7 +544,7 @@ class _ConnectionSettingsFields extends StatelessWidget {
     final modelListKey = Object.hashAll(
       availableModels.map((model) => Object.hash(model.id, model.ownedBy)),
     );
-    final hasFetchedModels = availableModels.isNotEmpty;
+    final hasFetchedModels = modelFetchedAt != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

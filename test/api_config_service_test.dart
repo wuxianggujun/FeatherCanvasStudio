@@ -122,6 +122,35 @@ void main() {
     expect(result.message, contains('并选择 imagen-pro'));
   });
 
+  test('treats an empty model response as a successful fetch', () async {
+    final client = OpenAICompatibleImageClient(
+      httpClient: MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.toString(), 'https://proxy.example.com/v1/models');
+
+        return http.Response(jsonEncode({'data': []}), 200);
+      }),
+    );
+
+    final result = await fetchApiModelsForConfig(
+      client: client,
+      apiConfig: const ApiConfig(
+        id: 'proxy',
+        name: 'Proxy',
+        baseUrl: 'https://proxy.example.com/v1',
+        apiKey: 'token',
+        model: 'gpt-image-2',
+        providerKind: ApiProviderKind.compatible,
+      ),
+    );
+
+    expect(result.success, isTrue);
+    expect(result.models, isEmpty);
+    expect(result.errorMessage, isNull);
+    expect(result.autoSelectedModel, isNull);
+    expect(result.message, contains('没有返回可用模型'));
+  });
+
   test('validates API key before fetching model lists', () async {
     final client = OpenAICompatibleImageClient(
       httpClient: MockClient((request) async {

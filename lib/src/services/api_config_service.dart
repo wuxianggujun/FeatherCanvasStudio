@@ -117,7 +117,7 @@ Future<ApiModelFetchResult> fetchApiModelsForConfig({
         models: models,
         autoSelectedModel: autoSelectedModel,
       ),
-      errorMessage: models.isEmpty ? '接口没有返回可用模型' : null,
+      errorMessage: null,
     );
   } on ImageGenerationException catch (error) {
     return ApiModelFetchResult(
