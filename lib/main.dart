@@ -83,6 +83,10 @@ export 'src/widgets/local_settings_widgets.dart';
 export 'src/widgets/preview_widgets.dart';
 export 'src/widgets/workspaces.dart';
 
+part 'src/home/api_config_state.dart';
+part 'src/home/image_library_state.dart';
+part 'src/home/local_settings_state.dart';
+
 void main() {
   runApp(const FeatherCanvasApp());
 }
@@ -129,40 +133,24 @@ class FeatherCanvasHomePage extends StatefulWidget {
   State<FeatherCanvasHomePage> createState() => _FeatherCanvasHomePageState();
 }
 
-class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
-  final TextEditingController _baseUrlController = TextEditingController(
-    text: defaultAppSettings.baseUrl,
-  );
-  final TextEditingController _apiKeyController = TextEditingController();
-  final TextEditingController _modelController = TextEditingController(
-    text: defaultAppSettings.model,
-  );
-  final TextEditingController _apiConfigNameController = TextEditingController(
-    text: '默认配置',
-  );
-  final TextEditingController _promptController = TextEditingController(
-    text: defaultAppSettings.prompt,
-  );
-  final TextEditingController _negativePromptController =
-      TextEditingController();
+class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
+    with
+        _ApiConfigStateMixin,
+        _LocalSettingsStateMixin,
+        _ImageLibraryStateMixin {
   final TextEditingController _animationPromptController =
       TextEditingController(text: defaultAnimationPrompt);
-  final TextEditingController _userController = TextEditingController();
-  final TextEditingController _imageLibrarySearchController =
-      TextEditingController();
 
+  @override
   final OpenAICompatibleImageClient _client = OpenAICompatibleImageClient();
+  @override
   final AppLocalStore _store = AppLocalStore();
-  final ImageLibraryFileService _fileService = const ImageLibraryFileService();
-  final ImageLibraryService _imageLibraryService = const ImageLibraryService();
   final ImageGenerationService _imageGenerationService =
       const ImageGenerationService();
   final ScrollController _scrollController = ScrollController();
 
+  @override
   WorkspaceFeature _selectedFeature = WorkspaceFeature.imageGeneration;
-  String _size = defaultAppSettings.size;
-  int _imageCount = defaultAppSettings.imageCount;
-  ImageAdvancedSettings _advancedSettings = defaultAppSettings.advancedSettings;
   int _animationRows = defaultAnimationRows;
   int _animationColumns = defaultAnimationColumns;
   int _editorRows = defaultEditorRows;
@@ -173,109 +161,56 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
   bool _isGeneratingAnimation = false;
   bool _isComposingGif = false;
   bool _isReplacingEditorFrame = false;
-  bool _isTestingApiConfig = false;
-  bool _showApiKey = false;
+  @override
   bool _isBootstrapping = true;
+  @override
   bool _isRestoringState = false;
+  @override
   String? _errorMessage;
   String? _animationErrorMessage;
   ImageRequestDebugRecord? _imageRequestDebugRecord;
   ImageRequestDebugRecord? _animationRequestDebugRecord;
-  List<ApiConfig> _apiConfigs = const [];
-  String? _selectedApiConfigId;
-  ApiProviderKind _apiConfigProviderKind = ApiProviderKind.compatible;
+  @override
   List<GeneratedImage> _generatedImages = const [];
+  @override
   List<GeneratedImage> _animationFrames = const [];
-  List<ImageLibraryItem> _imageLibrary = const [];
-  ImageLibraryKindFilter _imageLibraryKindFilter = ImageLibraryKindFilter.all;
-  ImageLibrarySortOrder _imageLibrarySortOrder = ImageLibrarySortOrder.newest;
-  String _imageLibrarySearchQuery = '';
-  Set<String> _selectedImageLibraryItemIds = <String>{};
-  bool _showStandaloneSpriteFrames = false;
   final Set<String> _ephemeralTemplatePaths = <String>{};
+  @override
   String? _animationTemplateImagePath;
+  @override
   String? _editorImagePath;
+  @override
   String? _editorPatchImagePath;
+  @override
   String? _editorErrorMessage;
+  @override
   List<GifSourceFrame> _gifSourceFrames = const [];
   String? _gifOutputPath;
   String? _gifErrorMessage;
   int _gifDefaultFrameDelayMs = defaultGifFrameDelayMs;
   int _gifLoopCount = defaultGifLoopCount;
   GifPlaybackMode _gifPlaybackMode = defaultGifPlaybackMode;
-  ApiConfigSaveStatus _apiConfigSaveStatus = ApiConfigSaveStatus.saved;
-  String? _apiConfigSaveErrorMessage;
-  ImageRequestDebugRecord? _apiTestDebugRecord;
-  bool _isFetchingApiModels = false;
-  Map<String, List<ApiModelInfo>> _apiModelCache = const {};
-  Map<String, String> _apiModelFetchErrorCache = const {};
-  Map<String, DateTime> _apiModelFetchedAtCache = const {};
-  int _apiConfigSaveVersion = 0;
-  Timer? _settingsSaveDebounce;
-  Timer? _apiConfigSaveDebounce;
 
   int get _animationFrameCount => _animationRows * _animationColumns;
   int get _editorFrameCount => _editorRows * _editorColumns;
-
-  ApiConfig get _selectedApiConfig {
-    return resolveApiConfig(_apiConfigs, _selectedApiConfigId);
-  }
-
-  ApiConfig get _currentApiConfigDraft {
-    return buildApiConfigDraft(
-      selectedId: _selectedApiConfigId,
-      nameText: _apiConfigNameController.text,
-      baseUrlText: _baseUrlController.text,
-      apiKeyText: _apiKeyController.text,
-      modelText: _modelController.text,
-      providerKind: _apiConfigProviderKind,
-    );
-  }
-
-  List<ApiModelInfo> get _visibleApiModels {
-    final requestKey = apiModelRequestKey(_currentApiConfigDraft);
-    return _apiModelCache[requestKey] ?? const [];
-  }
-
-  String? get _visibleApiModelFetchErrorMessage {
-    final requestKey = apiModelRequestKey(_currentApiConfigDraft);
-    return _apiModelFetchErrorCache[requestKey];
-  }
-
-  DateTime? get _visibleApiModelFetchedAt {
-    final requestKey = apiModelRequestKey(_currentApiConfigDraft);
-    return _apiModelFetchedAtCache[requestKey];
-  }
 
   @override
   void initState() {
     super.initState();
 
-    _apiConfigNameController.addListener(_markApiConfigDirty);
-    _baseUrlController.addListener(_markApiConfigDirty);
-    _apiKeyController.addListener(_markApiConfigDirty);
-    _modelController.addListener(_markApiConfigDirty);
-    _promptController.addListener(_scheduleSettingsSave);
-    _negativePromptController.addListener(_scheduleSettingsSave);
-    _userController.addListener(_syncUserAndScheduleSettingsSave);
+    _initApiConfigState();
+    _initLocalSettingsState();
 
     unawaited(_bootstrap());
   }
 
   @override
   void dispose() {
-    _settingsSaveDebounce?.cancel();
-    _apiConfigSaveDebounce?.cancel();
+    _disposeApiConfigState();
+    _disposeLocalSettingsState();
+    _disposeImageLibraryState();
     _client.close();
     _scrollController.dispose();
-    _baseUrlController.dispose();
-    _apiKeyController.dispose();
-    _modelController.dispose();
-    _apiConfigNameController.dispose();
-    _promptController.dispose();
-    _negativePromptController.dispose();
-    _userController.dispose();
-    _imageLibrarySearchController.dispose();
     _animationPromptController.dispose();
     for (final path in _ephemeralTemplatePaths) {
       unawaited(_fileService.safeDeleteFile(path));
@@ -326,6 +261,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
     await _store.saveSelectedApiConfigId(selectedApiConfig.id);
   }
 
+  @override
   Future<void> _selectFeature(WorkspaceFeature feature) async {
     if (_selectedFeature == feature) {
       return;
@@ -336,294 +272,6 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
     }
 
     setState(() => _selectedFeature = feature);
-  }
-
-  Future<ApiConfig> _prepareSelectedApiConfigForRequest() async {
-    _apiConfigSaveDebounce?.cancel();
-    return _selectedApiConfig;
-  }
-
-  void _scheduleSettingsSave() {
-    if (_isBootstrapping || _isRestoringState) {
-      return;
-    }
-
-    _settingsSaveDebounce?.cancel();
-    _settingsSaveDebounce = Timer(const Duration(milliseconds: 350), () {
-      unawaited(_saveSettings());
-    });
-  }
-
-  void _syncUserAndScheduleSettingsSave() {
-    _advancedSettings = _advancedSettings.copyWith(
-      user: _userController.text.trim(),
-    );
-    _scheduleSettingsSave();
-  }
-
-  void _markApiConfigDirty() {
-    if (_isBootstrapping || _isRestoringState) {
-      return;
-    }
-
-    _apiConfigSaveDebounce?.cancel();
-    ++_apiConfigSaveVersion;
-    setState(() {
-      _apiConfigSaveStatus = ApiConfigSaveStatus.pending;
-      _apiConfigSaveErrorMessage = null;
-    });
-  }
-
-  Future<void> _saveSettings() async {
-    final apiConfig = _selectedApiConfig;
-    final normalizedSize = imageDimensionsFromSize(_size).size;
-    await _store.saveSettings(
-      AppSettings(
-        baseUrl: apiConfig.baseUrl,
-        apiKey: apiConfig.apiKey,
-        model: apiConfig.model,
-        prompt: _promptController.text,
-        negativePrompt: _negativePromptController.text,
-        size: normalizedSize,
-        imageCount: _imageCount,
-        advancedSettings: _advancedSettings.copyWith(
-          user: _userController.text.trim(),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _saveCurrentApiConfig({int? saveVersion}) async {
-    final activeSaveVersion = saveVersion ?? _apiConfigSaveVersion;
-    if (mounted) {
-      setState(() {
-        _apiConfigSaveStatus = ApiConfigSaveStatus.saving;
-        _apiConfigSaveErrorMessage = null;
-      });
-    }
-
-    final selectedId = _selectedApiConfigId ?? ApiConfig.newId();
-    final nextConfig = buildApiConfigDraft(
-      selectedId: selectedId,
-      nameText: _apiConfigNameController.text,
-      baseUrlText: _baseUrlController.text,
-      apiKeyText: _apiKeyController.text,
-      modelText: _modelController.text,
-      providerKind: _apiConfigProviderKind,
-    );
-
-    final nextConfigs = upsertApiConfig(_apiConfigs, nextConfig);
-
-    if (mounted) {
-      setState(() {
-        _apiConfigs = nextConfigs;
-        _selectedApiConfigId = selectedId;
-      });
-    } else {
-      _apiConfigs = nextConfigs;
-      _selectedApiConfigId = selectedId;
-    }
-
-    try {
-      await _store.saveApiConfigs(nextConfigs);
-      await _store.saveSelectedApiConfigId(selectedId);
-      await _saveSettings();
-      if (mounted && activeSaveVersion == _apiConfigSaveVersion) {
-        setState(() {
-          _apiConfigSaveStatus = ApiConfigSaveStatus.saved;
-          _apiConfigSaveErrorMessage = null;
-        });
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() {
-          _apiConfigSaveStatus = ApiConfigSaveStatus.failed;
-          _apiConfigSaveErrorMessage = error.toString();
-        });
-      }
-    }
-  }
-
-  void _saveSelectedApiConfig() {
-    _apiConfigSaveDebounce?.cancel();
-    final saveVersion = ++_apiConfigSaveVersion;
-    unawaited(_saveCurrentApiConfig(saveVersion: saveVersion));
-  }
-
-  Future<void> _testCurrentApiConfig({bool basic = false}) async {
-    final apiConfig = _currentApiConfigDraft;
-
-    setState(() {
-      _isTestingApiConfig = true;
-      _apiTestDebugRecord = null;
-    });
-
-    final result = await testApiConfigConnection(
-      client: _client,
-      apiConfig: apiConfig,
-      basic: basic,
-      onDebugRecord: (record) {
-        _apiTestDebugRecord = record;
-      },
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _apiTestDebugRecord = result.debugRecord ?? _apiTestDebugRecord;
-      _isTestingApiConfig = false;
-    });
-    _showMessage(result.message);
-  }
-
-  Future<void> _fetchCurrentApiModels() async {
-    final apiConfig = _currentApiConfigDraft;
-    final requestKey = apiModelRequestKey(apiConfig);
-
-    setState(() {
-      _isFetchingApiModels = true;
-      _apiModelFetchErrorCache = updateApiModelFetchErrorCache(
-        cache: _apiModelFetchErrorCache,
-        requestKey: requestKey,
-        errorMessage: null,
-      );
-    });
-
-    final result = await fetchApiModelsForConfig(
-      client: _client,
-      apiConfig: apiConfig,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    if (apiModelRequestKey(_currentApiConfigDraft) != requestKey) {
-      setState(() => _isFetchingApiModels = false);
-      return;
-    }
-
-    setState(() {
-      if (result.success) {
-        _apiModelCache = cacheApiModelsForRequest(
-          cache: _apiModelCache,
-          requestKey: result.requestKey,
-          models: result.models,
-        );
-        _apiModelFetchedAtCache = Map.unmodifiable({
-          ..._apiModelFetchedAtCache,
-          result.requestKey: DateTime.now(),
-        });
-      }
-      _apiModelFetchErrorCache = updateApiModelFetchErrorCache(
-        cache: _apiModelFetchErrorCache,
-        requestKey: result.requestKey,
-        errorMessage: result.errorMessage,
-      );
-      _isFetchingApiModels = false;
-    });
-
-    final autoSelectedModel = result.autoSelectedModel;
-    if (autoSelectedModel != null &&
-        _modelController.text.trim() != autoSelectedModel.id) {
-      _modelController.text = autoSelectedModel.id;
-    }
-
-    _showMessage(result.message);
-  }
-
-  void _selectFetchedApiModel(String modelId) {
-    _modelController.text = modelId;
-  }
-
-  Future<void> _selectApiConfig(String id) async {
-    _apiConfigSaveDebounce?.cancel();
-    final nextConfig = resolveApiConfig(_apiConfigs, id);
-    _isRestoringState = true;
-    _apiConfigNameController.text = nextConfig.name;
-    _baseUrlController.text = nextConfig.baseUrl;
-    _apiKeyController.text = nextConfig.apiKey;
-    _modelController.text = nextConfig.model;
-    if (mounted) {
-      setState(() {
-        _selectedApiConfigId = nextConfig.id;
-        _apiConfigProviderKind = nextConfig.providerKind;
-        _apiConfigSaveStatus = ApiConfigSaveStatus.saved;
-        _apiConfigSaveErrorMessage = null;
-      });
-    } else {
-      _selectedApiConfigId = nextConfig.id;
-      _apiConfigProviderKind = nextConfig.providerKind;
-    }
-    _isRestoringState = false;
-
-    await _store.saveSelectedApiConfigId(nextConfig.id);
-    await _saveSettings();
-  }
-
-  Future<void> _addApiConfig() async {
-    _apiConfigSaveDebounce?.cancel();
-
-    final nextConfig = createCompatibleApiConfig();
-    final nextConfigs = [..._apiConfigs, nextConfig];
-    setState(() => _apiConfigs = nextConfigs);
-    await _store.saveApiConfigs(nextConfigs);
-    await _selectApiConfig(nextConfig.id);
-  }
-
-  void _setApiConfigProviderKind(ApiProviderKind kind) {
-    if (kind == _apiConfigProviderKind) {
-      return;
-    }
-    final fields = apiProviderKindDefaultedFields(
-      previousKind: _apiConfigProviderKind,
-      nextKind: kind,
-      currentBaseUrl: _baseUrlController.text,
-      currentModel: _modelController.text,
-    );
-
-    _isRestoringState = true;
-    _baseUrlController.text = fields.baseUrl;
-    _modelController.text = fields.model;
-    _isRestoringState = false;
-    setState(() => _apiConfigProviderKind = kind);
-    _markApiConfigDirty();
-  }
-
-  Future<void> _deleteSelectedApiConfig() async {
-    if (_apiConfigs.length <= 1) {
-      _showMessage('至少需要保留一个接口配置');
-      return;
-    }
-
-    final result = deleteApiConfigSelection(_apiConfigs, _selectedApiConfigId);
-    if (result == null) {
-      return;
-    }
-
-    setState(() => _apiConfigs = result.configs);
-    await _store.saveApiConfigs(result.configs);
-    await _selectApiConfig(result.selectedConfig.id);
-  }
-
-  void _setSize(String value) {
-    setState(() => _size = value.trim());
-    _scheduleSettingsSave();
-  }
-
-  void _setImageCount(int value) {
-    setState(() => _imageCount = value);
-    _scheduleSettingsSave();
-  }
-
-  void _setAdvancedSettings(ImageAdvancedSettings value) {
-    setState(() => _advancedSettings = value);
-    if (_userController.text != value.user) {
-      _userController.text = value.user;
-    }
-    _scheduleSettingsSave();
   }
 
   void _setAnimationRows(int value) {
@@ -709,38 +357,6 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
       title: title,
       allowLibrary: allowLibrary,
       libraryEmptyMessage: libraryEmptyMessage,
-    );
-  }
-
-  Future<T?> _showImageLibraryPicker<T extends Object>({
-    required String title,
-    bool allowMultiple = false,
-    List<ImageAssetKind>? allowedKinds,
-  }) async {
-    if (!mounted) {
-      return null;
-    }
-
-    final candidates = _availableImageLibraryItems(allowedKinds: allowedKinds);
-    if (candidates.isEmpty) {
-      _showMessage('作品库还没有可用图片');
-      return null;
-    }
-
-    return showImageLibraryPickerDialog<T>(
-      context,
-      title: title,
-      items: candidates,
-      allowMultiple: allowMultiple,
-    );
-  }
-
-  List<ImageLibraryItem> _availableImageLibraryItems({
-    List<ImageAssetKind>? allowedKinds,
-  }) {
-    return availableImageLibraryItems(
-      _imageLibrary,
-      allowedKinds: allowedKinds,
     );
   }
 
@@ -865,23 +481,6 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
     if (previous != null && _ephemeralTemplatePaths.remove(previous)) {
       unawaited(_fileService.safeDeleteFile(previous));
     }
-  }
-
-  Future<List<MapEntry<int, Uint8List>>?> _showSlicePicker(
-    ImageLibraryItem sheet, {
-    required bool allowMultiple,
-    String? title,
-  }) async {
-    if (!sheet.isSpriteSheetWithMetadata) {
-      _showMessage('该 Sprite Sheet 缺少行列元数据，无法切片');
-      return null;
-    }
-    return showSpriteSheetSlicePicker(
-      context,
-      sheet: sheet,
-      allowMultiple: allowMultiple,
-      title: title,
-    );
   }
 
   Future<void> _pickGifSourceImages() async {
@@ -1393,334 +992,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
     }
   }
 
-  Future<bool> _saveSingleSlice(
-    ImageLibraryItem sheet,
-    int frameIndex,
-    Uint8List bytes,
-  ) async {
-    final groupId = sheet.groupId;
-    if (groupId == null) {
-      _showMessage('该 Sprite Sheet 缺少 groupId，无法保存切片');
-      return false;
-    }
-    if (savedSpriteFrameIndexesForSheet(
-      _imageLibrary,
-      sheet,
-    ).contains(frameIndex)) {
-      return false;
-    }
-    try {
-      final item = await _imageLibraryService.saveSpriteFrame(
-        store: _store,
-        sheet: sheet,
-        frameIndex: frameIndex,
-        bytes: bytes,
-      );
-      if (!mounted) {
-        return false;
-      }
-      setState(() => _imageLibrary = [item, ..._imageLibrary]);
-      return true;
-    } catch (error) {
-      _showMessage('保存切片失败：$error');
-      return false;
-    }
-  }
-
-  Future<int> _saveAllSlices(
-    ImageLibraryItem sheet,
-    List<MapEntry<int, Uint8List>> framesToSave,
-  ) async {
-    var saved = 0;
-    for (final entry in framesToSave) {
-      final ok = await _saveSingleSlice(sheet, entry.key, entry.value);
-      if (!ok) break;
-      saved++;
-    }
-    if (mounted) {
-      _showMessage('已保存 $saved 个切片帧到作品集');
-    }
-    return saved;
-  }
-
-  Future<void> _openSliceExplorer(ImageLibraryItem sheet) async {
-    if (!sheet.isSpriteSheetWithMetadata) {
-      _showMessage('该作品缺少行列元数据，无法切片');
-      return;
-    }
-    await showSpriteSheetSliceExplorer(
-      context,
-      sheet: sheet,
-      savedFrameIndexes: savedSpriteFrameIndexesForSheet(_imageLibrary, sheet),
-      onSaveSlice: (frameIndex, bytes) =>
-          _saveSingleSlice(sheet, frameIndex, bytes),
-      onSaveAllSlices: (frames) => _saveAllSlices(sheet, frames),
-    );
-  }
-
-  Future<void> _updateImageLibraryItemMetadata(
-    ImageLibraryItem item, {
-    required String title,
-    required String note,
-  }) async {
-    final nextLibrary = await _imageLibraryService.updateItemMetadata(
-      store: _store,
-      library: _imageLibrary,
-      itemId: item.id,
-      title: title,
-      note: note,
-    );
-    if (!mounted) {
-      return;
-    }
-
-    setState(() => _imageLibrary = nextLibrary);
-    _showMessage('作品信息已更新');
-  }
-
-  Future<void> _showEditImageLibraryItemDialog(ImageLibraryItem item) async {
-    final result = await showImageLibraryMetadataDialog(context, item);
-    if (result == null || !mounted) {
-      return;
-    }
-
-    await _updateImageLibraryItemMetadata(
-      item,
-      title: result.title,
-      note: result.note,
-    );
-  }
-
-  Future<void> _copyImageLibraryItemPath(ImageLibraryItem item) async {
-    await _fileService.copyTextToClipboard(item.path);
-    if (!mounted) {
-      return;
-    }
-    _showMessage('作品路径已复制');
-  }
-
-  Future<void> _openImageLibraryItemLocation(ImageLibraryItem item) async {
-    final result = await _fileService.openFileLocation(item.path);
-    if (!mounted) {
-      return;
-    }
-    switch (result.status) {
-      case OpenFileLocationStatus.opened:
-        _showMessage('已打开作品所在位置');
-      case OpenFileLocationStatus.directoryMissing:
-        _showMessage('作品所在目录不存在');
-      case OpenFileLocationStatus.copiedUnsupportedPlatform:
-        _showMessage('已复制作品目录路径');
-      case OpenFileLocationStatus.copiedAfterFailure:
-        _showMessage('无法打开目录，已复制作品目录路径');
-    }
-  }
-
-  void _setImageLibraryKindFilter(ImageLibraryKindFilter filter) {
-    setState(() {
-      _imageLibraryKindFilter = filter;
-      _selectedImageLibraryItemIds = <String>{};
-    });
-  }
-
-  void _setImageLibrarySortOrder(ImageLibrarySortOrder sortOrder) {
-    setState(() => _imageLibrarySortOrder = sortOrder);
-  }
-
-  void _setImageLibrarySearchQuery(String value) {
-    setState(() {
-      _imageLibrarySearchQuery = value;
-      _selectedImageLibraryItemIds = <String>{};
-    });
-  }
-
-  void _clearImageLibrarySearchQuery() {
-    _imageLibrarySearchController.clear();
-    _setImageLibrarySearchQuery('');
-  }
-
-  void _setImageLibraryItemSelected(ImageLibraryItem item, bool selected) {
-    setState(() {
-      final nextSelection = Set<String>.from(_selectedImageLibraryItemIds);
-      if (selected) {
-        nextSelection.add(item.id);
-      } else {
-        nextSelection.remove(item.id);
-      }
-      _selectedImageLibraryItemIds = nextSelection;
-    });
-  }
-
-  void _selectVisibleImageLibraryItems(List<ImageLibraryItem> items) {
-    if (items.isEmpty) {
-      return;
-    }
-
-    setState(() {
-      _selectedImageLibraryItemIds = {
-        ..._selectedImageLibraryItemIds,
-        for (final item in items) item.id,
-      };
-    });
-  }
-
-  void _clearImageLibrarySelection() {
-    setState(() => _selectedImageLibraryItemIds = <String>{});
-  }
-
-  Future<void> _confirmDeleteImageLibraryItem(String id) async {
-    final items = [
-      for (final item in _imageLibrary)
-        if (item.id == id) item,
-    ];
-    await _confirmDeleteImageLibraryItems(items);
-  }
-
-  Future<void> _confirmDeleteSelectedImageLibraryItems() async {
-    final selectedIds = _selectedImageLibraryItemIds;
-    final items = [
-      for (final item in _imageLibrary)
-        if (selectedIds.contains(item.id)) item,
-    ];
-    await _confirmDeleteImageLibraryItems(items);
-  }
-
-  Future<void> _confirmDeleteImageLibraryItems(
-    List<ImageLibraryItem> items,
-  ) async {
-    if (items.isEmpty) {
-      return;
-    }
-
-    final plan = buildImageLibraryDeletePlan(
-      library: _imageLibrary,
-      selectedItems: items,
-    );
-
-    final confirmed = await confirmDeleteImageLibraryItemsDialog(
-      context,
-      items: items,
-      cascadeCount: plan.cascadeChildFrames.length,
-    );
-    if (!confirmed || !mounted) {
-      return;
-    }
-
-    await _deleteImageLibraryItems(plan.ids);
-  }
-
-  Future<void> _deleteImageLibraryItems(Set<String> ids) async {
-    if (ids.isEmpty) {
-      return;
-    }
-
-    final impact = await _imageLibraryService.deleteItems(
-      store: _store,
-      fileService: _fileService,
-      library: _imageLibrary,
-      ids: ids,
-    );
-
-    if (!mounted) {
-      return;
-    }
-    final cleanup = cleanDeletedImageLibraryReferences(
-      removedIds: ids,
-      removedPaths: impact.removedPaths,
-      selectedItemIds: _selectedImageLibraryItemIds,
-      editorImagePath: _editorImagePath,
-      editorPatchImagePath: _editorPatchImagePath,
-      animationTemplateImagePath: _animationTemplateImagePath,
-      gifSourceFrames: _gifSourceFrames,
-    );
-    setState(() {
-      _imageLibrary = impact.remainingItems;
-      _selectedImageLibraryItemIds = cleanup.selectedItemIds;
-      _editorImagePath = cleanup.editorImagePath;
-      _editorPatchImagePath = cleanup.editorPatchImagePath;
-      _animationTemplateImagePath = cleanup.animationTemplateImagePath;
-      _gifSourceFrames = cleanup.gifSourceFrames;
-    });
-    _showMessage(
-      impact.removedItems.length == 1
-          ? '作品已删除'
-          : '已删除 ${impact.removedItems.length} 个作品',
-    );
-  }
-
-  Future<void> _useImageLibraryItemInEditor(ImageLibraryItem item) async {
-    if (!item.canUseAsSpriteSheet) {
-      _showMessage('这类作品不能直接作为 Sprite Sheet 编辑');
-      return;
-    }
-    await _selectFeature(WorkspaceFeature.imageEditor);
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _editorImagePath = item.path;
-      _editorErrorMessage = null;
-    });
-  }
-
-  Future<void> _reuseImageLibraryGeneration(ImageLibraryItem item) async {
-    final generation = item.generation;
-    if (generation == null) {
-      _showMessage('这个作品没有可复用的生成参数');
-      return;
-    }
-
-    if (_selectedFeature != WorkspaceFeature.imageGeneration) {
-      await _selectFeature(WorkspaceFeature.imageGeneration);
-      if (!mounted) {
-        return;
-      }
-    }
-
-    _isRestoringState = true;
-    _promptController.text = generation.prompt;
-    _negativePromptController.text = generation.negativePrompt;
-    _userController.text = generation.advancedSettings.user;
-    final draft = buildImageLibraryGenerationReuseDraft(
-      generation: generation,
-      apiConfigs: _apiConfigs,
-    );
-    final matchingConfigId = draft.matchingConfigId;
-
-    setState(() {
-      if (matchingConfigId != null) {
-        _selectedApiConfigId = matchingConfigId;
-      }
-      _size = draft.size;
-      _imageCount = draft.imageCount;
-      _advancedSettings = draft.advancedSettings;
-      _errorMessage = null;
-    });
-
-    _isRestoringState = false;
-    if (matchingConfigId != null) {
-      await _selectApiConfig(matchingConfigId);
-    }
-    await _saveSettings();
-    _showMessage(matchingConfigId == null ? '已载入作品参数，接口配置需要手动选择' : '已载入作品参数');
-  }
-
-  Future<void> _copyImageLibraryGeneration(ImageLibraryItem item) async {
-    final generation = item.generation;
-    if (generation == null) {
-      _showMessage('这个作品没有可复制的生成参数');
-      return;
-    }
-
-    await _fileService.copyTextToClipboard(
-      formatGenerationSnapshotSummary(generation),
-    );
-    if (!mounted) {
-      return;
-    }
-    _showMessage('作品参数已复制');
-  }
-
+  @override
   Future<void> _confirmResetToDefaults() async {
     final shouldReset = await confirmResetToDefaultsDialog(context);
     if (shouldReset) {
@@ -1728,6 +1000,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
     }
   }
 
+  @override
   void _showMessage(String message) {
     ScaffoldMessenger.of(
       context,
@@ -1884,98 +1157,6 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage> {
       onLoopCountChanged: _setGifLoopCount,
       onPlaybackModeChanged: _setGifPlaybackMode,
       onCompose: _composeGif,
-    );
-  }
-
-  Widget _buildImageLibraryWorkspace() {
-    final viewData = buildImageLibraryViewData(
-      library: _imageLibrary,
-      filter: _imageLibraryKindFilter,
-      sortOrder: _imageLibrarySortOrder,
-      searchQuery: _imageLibrarySearchQuery,
-      showStandaloneFrames: _showStandaloneSpriteFrames,
-    );
-
-    return ImageLibraryWorkspace(
-      viewData: viewData,
-      searchController: _imageLibrarySearchController,
-      searchQuery: _imageLibrarySearchQuery,
-      selectedFilter: _imageLibraryKindFilter,
-      onSearchChanged: _setImageLibrarySearchQuery,
-      onClearSearch: _clearImageLibrarySearchQuery,
-      onFilterChanged: _setImageLibraryKindFilter,
-      sortOrder: _imageLibrarySortOrder,
-      onSortOrderChanged: _setImageLibrarySortOrder,
-      selectedItemIds: _selectedImageLibraryItemIds,
-      onSelectionChanged: _setImageLibraryItemSelected,
-      onSelectVisible: () =>
-          _selectVisibleImageLibraryItems(viewData.filteredItems),
-      onClearSelection: _clearImageLibrarySelection,
-      onDeleteSelected: _confirmDeleteSelectedImageLibraryItems,
-      onUseInEditor: _useImageLibraryItemInEditor,
-      onReuseGeneration: _reuseImageLibraryGeneration,
-      onCopyGeneration: _copyImageLibraryGeneration,
-      onEditMetadata: _showEditImageLibraryItemDialog,
-      onCopyPath: _copyImageLibraryItemPath,
-      onOpenLocation: _openImageLibraryItemLocation,
-      onDelete: _confirmDeleteImageLibraryItem,
-      onOpenSliceExplorer: _openSliceExplorer,
-      showStandaloneFrames: _showStandaloneSpriteFrames,
-      onToggleStandaloneFrames: (value) =>
-          setState(() => _showStandaloneSpriteFrames = value),
-    );
-  }
-
-  Widget _buildApiSettingsWorkspace() {
-    return ApiSettingsWorkspace(
-      apiConfigs: _apiConfigs,
-      selectedApiConfig: _selectedApiConfig,
-      saveStatus: _apiConfigSaveStatus,
-      saveErrorMessage: _apiConfigSaveErrorMessage,
-      isTestingApiConfig: _isTestingApiConfig,
-      apiTestDebugRecord: _apiTestDebugRecord,
-      nameController: _apiConfigNameController,
-      baseUrlController: _baseUrlController,
-      apiKeyController: _apiKeyController,
-      modelController: _modelController,
-      providerKind: _apiConfigProviderKind,
-      showApiKey: _showApiKey,
-      availableModels: _visibleApiModels,
-      isFetchingModels: _isFetchingApiModels,
-      modelFetchErrorMessage: _visibleApiModelFetchErrorMessage,
-      modelFetchedAt: _visibleApiModelFetchedAt,
-      onApiConfigChanged: _selectApiConfig,
-      onAddApiConfig: _addApiConfig,
-      onDeleteApiConfig: _deleteSelectedApiConfig,
-      onSaveApiConfig: _saveSelectedApiConfig,
-      onTestApiConfig: () => _testCurrentApiConfig(),
-      onBasicTestApiConfig: () => _testCurrentApiConfig(basic: true),
-      onFetchModels: _fetchCurrentApiModels,
-      onModelSelected: _selectFetchedApiModel,
-      onProviderKindChanged: _setApiConfigProviderKind,
-      onToggleApiKeyVisibility: () =>
-          setState(() => _showApiKey = !_showApiKey),
-    );
-  }
-
-  Widget _buildLocalSettingsWorkspace() {
-    return LocalSettingsWorkspace(
-      apiConfigCount: _apiConfigs.length,
-      imageLibraryCount: _imageLibrary.length,
-      generatedPreviewCount: _generatedImages.length + _animationFrames.length,
-      providerKind: _apiConfigProviderKind,
-      promptController: _promptController,
-      negativePromptController: _negativePromptController,
-      size: _size,
-      imageCount: _imageCount,
-      advancedSettings: _advancedSettings,
-      userController: _userController,
-      onSizeChanged: _setSize,
-      onImageCountChanged: _setImageCount,
-      onAdvancedSettingsChanged: _setAdvancedSettings,
-      onOpenApiSettings: () =>
-          unawaited(_selectFeature(WorkspaceFeature.apiSettings)),
-      onResetToDefaults: () => unawaited(_confirmResetToDefaults()),
     );
   }
 }
