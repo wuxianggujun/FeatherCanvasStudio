@@ -29,9 +29,12 @@ class FrameAnimationPreviewPanel extends StatefulWidget {
     required this.columns,
     required this.gridSpec,
     required this.onExportSpriteSheet,
+    this.selectedFrameIndex,
+    this.onFrameSelected,
     this.onSendToGif,
     this.labelBuilder,
     this.onRetry,
+    this.enablePlayback = true,
     super.key,
   });
 
@@ -45,9 +48,12 @@ class FrameAnimationPreviewPanel extends StatefulWidget {
   final int columns;
   final SpriteSheetGridSpec gridSpec;
   final ValueChanged<Uint8List> onExportSpriteSheet;
+  final int? selectedFrameIndex;
+  final ValueChanged<int>? onFrameSelected;
   final ValueChanged<SpriteSheetPreviewData>? onSendToGif;
   final String Function(int index)? labelBuilder;
   final VoidCallback? onRetry;
+  final bool enablePlayback;
 
   @override
   State<FrameAnimationPreviewPanel> createState() =>
@@ -61,7 +67,7 @@ class FrameAnimationPreviewPanelState
   Future<SpriteSheetPreviewData>? _previewFuture;
   _FramePreviewMode _mode = _FramePreviewMode.playback;
   Timer? _playbackTimer;
-  bool _isPlaying = true;
+  late bool _isPlaying;
   int _selectedRow = 0;
   int _currentColumn = 0;
   int _frameDelayMs = 120;
@@ -70,6 +76,8 @@ class FrameAnimationPreviewPanelState
   @override
   void initState() {
     super.initState();
+    _isPlaying = widget.enablePlayback;
+    _syncSelectedFrameIndex();
     _refreshPreviewFuture();
     _restartPlaybackTimer();
   }
@@ -89,7 +97,14 @@ class FrameAnimationPreviewPanelState
       _refreshPreviewFuture();
     }
 
-    if (oldWidget.columns != widget.columns) {
+    if (oldWidget.selectedFrameIndex != widget.selectedFrameIndex ||
+        oldWidget.rows != widget.rows ||
+        oldWidget.columns != widget.columns) {
+      _syncSelectedFrameIndex();
+    }
+
+    if (oldWidget.columns != widget.columns &&
+        widget.selectedFrameIndex == null) {
       _currentColumn = 0;
     }
 
@@ -98,7 +113,12 @@ class FrameAnimationPreviewPanelState
     }
     _collapsedRows.removeWhere((row) => row >= widget.rows);
 
-    if (oldWidget.isGenerating != widget.isGenerating) {
+    if (oldWidget.enablePlayback != widget.enablePlayback) {
+      _isPlaying = widget.enablePlayback;
+    }
+
+    if (oldWidget.isGenerating != widget.isGenerating ||
+        oldWidget.enablePlayback != widget.enablePlayback) {
       _restartPlaybackTimer();
     }
   }
@@ -124,9 +144,33 @@ class FrameAnimationPreviewPanelState
     );
   }
 
+  void _syncSelectedFrameIndex() {
+    final index = widget.selectedFrameIndex;
+    if (index == null || widget.columns <= 0) {
+      return;
+    }
+
+    final safeIndex = index.clamp(0, _frameTotal - 1).toInt();
+    _selectedRow = safeIndex ~/ widget.columns;
+    _currentColumn = safeIndex % widget.columns;
+  }
+
+  int get _frameTotal => (widget.rows * widget.columns).clamp(1, 9999).toInt();
+
+  int get _currentFrameIndex {
+    if (widget.columns <= 0) {
+      return 0;
+    }
+    return (_selectedRow * widget.columns + _currentColumn)
+        .clamp(0, _frameTotal - 1)
+        .toInt();
+  }
+
   void _restartPlaybackTimer() {
     _playbackTimer?.cancel();
-    if (!_isPlaying ||
+    if (!widget.enablePlayback ||
+        widget.onFrameSelected != null ||
+        !_isPlaying ||
         _mode != _FramePreviewMode.playback ||
         widget.columns <= 1) {
       return;
@@ -144,6 +188,10 @@ class FrameAnimationPreviewPanelState
   }
 
   void _togglePlayback() {
+    if (!widget.enablePlayback) {
+      return;
+    }
+
     setState(() => _isPlaying = !_isPlaying);
     _restartPlaybackTimer();
   }
@@ -154,10 +202,12 @@ class FrameAnimationPreviewPanelState
   }
 
   void _selectRow(int row) {
+    final safeRow = row.clamp(0, widget.rows - 1).toInt();
     setState(() {
-      _selectedRow = row;
+      _selectedRow = safeRow;
       _currentColumn = 0;
     });
+    widget.onFrameSelected?.call(_currentFrameIndex);
   }
 
   void _selectFrameIndex(int index) {
@@ -165,10 +215,12 @@ class FrameAnimationPreviewPanelState
       return;
     }
 
+    final safeIndex = index.clamp(0, _frameTotal - 1).toInt();
     setState(() {
-      _selectedRow = index ~/ widget.columns;
-      _currentColumn = index % widget.columns;
+      _selectedRow = safeIndex ~/ widget.columns;
+      _currentColumn = safeIndex % widget.columns;
     });
+    widget.onFrameSelected?.call(safeIndex);
   }
 
   void _setFrameDelay(int value) {
@@ -185,10 +237,17 @@ class FrameAnimationPreviewPanelState
         _collapsedRows.add(row);
       }
     });
+    widget.onFrameSelected?.call(_currentFrameIndex);
   }
 
   void _stepFrame(int delta) {
     if (widget.columns <= 0) {
+      return;
+    }
+
+    if (widget.onFrameSelected != null) {
+      final nextIndex = (_currentFrameIndex + delta) % _frameTotal;
+      _selectFrameIndex(nextIndex < 0 ? nextIndex + _frameTotal : nextIndex);
       return;
     }
 
@@ -267,13 +326,17 @@ class FrameAnimationPreviewPanelState
             ),
             const SizedBox(height: fieldGap),
             SegmentedButton<_FramePreviewMode>(
-              segments: const [
+              segments: [
                 ButtonSegment<_FramePreviewMode>(
                   value: _FramePreviewMode.playback,
-                  icon: Icon(Icons.play_circle_outline),
-                  label: Text('切片播放'),
+                  icon: Icon(
+                    widget.onFrameSelected == null
+                        ? Icons.play_circle_outline
+                        : Icons.ads_click_outlined,
+                  ),
+                  label: Text(widget.onFrameSelected == null ? '切片播放' : '目标选择'),
                 ),
-                ButtonSegment<_FramePreviewMode>(
+                const ButtonSegment<_FramePreviewMode>(
                   value: _FramePreviewMode.grid,
                   icon: Icon(Icons.grid_view_outlined),
                   label: Text('网格检查'),

@@ -305,38 +305,79 @@ class _SpriteSheetPreviewCanvas extends StatelessWidget {
     required this.previewData,
     required this.selectedRow,
     required this.selectedColumn,
+    this.onFrameSelected,
   });
 
   final SpriteSheetPreviewData previewData;
   final int selectedRow;
   final int selectedColumn;
+  final ValueChanged<int>? onFrameSelected;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return SizedBox(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.memory(
-            previewData.sheetBytes,
-            fit: BoxFit.fill,
-            filterQuality: FilterQuality.none,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final canvas = SizedBox(
+          key: const ValueKey('sprite-sheet-preview-canvas'),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.memory(
+                previewData.sheetBytes,
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.none,
+              ),
+              CustomPaint(
+                painter: _SpriteSheetHighlightPainter(
+                  previewData: previewData,
+                  selectedRow: selectedRow,
+                  selectedColumn: selectedColumn,
+                  rowColor: colorScheme.primary.withValues(alpha: 0.18),
+                  rowBorderColor: colorScheme.primary,
+                  cellBorderColor: colorScheme.tertiary,
+                ),
+              ),
+            ],
           ),
-          CustomPaint(
-            painter: _SpriteSheetHighlightPainter(
-              previewData: previewData,
-              selectedRow: selectedRow,
-              selectedColumn: selectedColumn,
-              rowColor: colorScheme.primary.withValues(alpha: 0.18),
-              rowBorderColor: colorScheme.primary,
-              cellBorderColor: colorScheme.tertiary,
-            ),
+        );
+
+        if (onFrameSelected == null) {
+          return canvas;
+        }
+
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (details) {
+              final index = _frameIndexAtPosition(
+                Size(constraints.maxWidth, constraints.maxHeight),
+                details.localPosition,
+              );
+              if (index != null) {
+                onFrameSelected!(index);
+              }
+            },
+            child: canvas,
           ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  int? _frameIndexAtPosition(Size size, Offset position) {
+    for (var row = 0; row < previewData.rows; row++) {
+      for (var column = 0; column < previewData.columns; column++) {
+        if (previewData
+            .cellRectForDisplay(size, row, column)
+            .contains(position)) {
+          return row * previewData.columns + column;
+        }
+      }
+    }
+    return null;
   }
 }
 
@@ -464,28 +505,52 @@ class _FrameDirectionSection extends StatelessWidget {
 
 class _SpriteSheetFrameTile extends StatelessWidget {
   const _SpriteSheetFrameTile({
+    super.key,
     required this.frameBytes,
     required this.aspectRatio,
+    this.isSelected = false,
+    this.onTap,
   });
 
   final Uint8List frameBytes;
   final double aspectRatio;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: AspectRatio(
-        aspectRatio: aspectRatio,
-        child: ColoredBox(
-          color: theme.colorScheme.surfaceContainerHighest,
-          child: Image.memory(
-            frameBytes,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.none,
-            gaplessPlayback: true,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: AspectRatio(
+              aspectRatio: aspectRatio,
+              child: ColoredBox(
+                color: colorScheme.surfaceContainerHighest,
+                child: Image.memory(
+                  frameBytes,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.none,
+                  gaplessPlayback: true,
+                ),
+              ),
+            ),
           ),
         ),
       ),

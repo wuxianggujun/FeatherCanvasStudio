@@ -132,14 +132,12 @@ class SpriteSheetEditorPanel extends StatelessWidget {
           ),
           const SizedBox(height: fieldGap),
           ResponsivePair(
-            first: OptionDropdown<int>(
-              fieldKey: ValueKey(
-                'editor-target-frame-$safeFrameIndex-$frameTotal',
-              ),
+            first: _TargetFrameSelector(
+              frameIndex: safeFrameIndex,
+              frameTotal: frameTotal,
+              columns: columns,
+              enabled: !isReplacingFrame,
               label: '替换目标',
-              value: safeFrameIndex,
-              options: [for (var index = 0; index < frameTotal; index++) index],
-              labelBuilder: (index) => editorFrameOptionLabel(index, columns),
               onChanged: onTargetFrameChanged,
             ),
             second: OptionDropdown<SpriteSheetFrameFit>(
@@ -178,6 +176,152 @@ class SpriteSheetEditorPanel extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TargetFrameSelector extends StatefulWidget {
+  const _TargetFrameSelector({
+    required this.frameIndex,
+    required this.frameTotal,
+    required this.columns,
+    required this.enabled,
+    required this.label,
+    required this.onChanged,
+  });
+
+  final int frameIndex;
+  final int frameTotal;
+  final int columns;
+  final bool enabled;
+  final String label;
+  final ValueChanged<int> onChanged;
+
+  @override
+  State<_TargetFrameSelector> createState() => _TargetFrameSelectorState();
+}
+
+class _TargetFrameSelectorState extends State<_TargetFrameSelector> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _displayValue.toString());
+    _focusNode = FocusNode()..addListener(_normalizeWhenUnfocused);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TargetFrameSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.frameIndex == oldWidget.frameIndex &&
+        widget.frameTotal == oldWidget.frameTotal) {
+      return;
+    }
+
+    final currentValue = int.tryParse(_controller.text);
+    if (!_focusNode.hasFocus || currentValue != _displayValue) {
+      _setText(_displayValue);
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_normalizeWhenUnfocused)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  int get _safeFrameTotal => widget.frameTotal.clamp(1, 9999).toInt();
+
+  int get _safeFrameIndex =>
+      widget.frameIndex.clamp(0, _safeFrameTotal - 1).toInt();
+
+  int get _displayValue => _safeFrameIndex + 1;
+
+  String get _helperText {
+    final safeColumns = widget.columns.clamp(1, 9999).toInt();
+    final row = _safeFrameIndex ~/ safeColumns + 1;
+    final column = _safeFrameIndex % safeColumns + 1;
+    return '第 $row 行 · 第 $column 列 · 共 $_safeFrameTotal 帧';
+  }
+
+  void _normalizeWhenUnfocused() {
+    if (!_focusNode.hasFocus) {
+      _setText(_normalizeInput(_controller.text));
+    }
+  }
+
+  void _setText(int value) {
+    final text = value.toString();
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  int _normalizeInput(String input) {
+    final parsed = int.tryParse(input);
+    if (parsed == null) {
+      return _displayValue;
+    }
+    return parsed.clamp(1, _safeFrameTotal).toInt();
+  }
+
+  void _emitInput(String input) {
+    final parsed = int.tryParse(input);
+    if (parsed == null) {
+      return;
+    }
+    widget.onChanged(parsed.clamp(1, _safeFrameTotal).toInt() - 1);
+  }
+
+  void _step(int delta) {
+    final nextIndex = (_safeFrameIndex + delta)
+        .clamp(0, _safeFrameTotal - 1)
+        .toInt();
+    widget.onChanged(nextIndex);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        IconButton(
+          tooltip: '上一帧',
+          onPressed: widget.enabled && _safeFrameIndex > 0
+              ? () => _step(-1)
+              : null,
+          icon: const Icon(Icons.chevron_left),
+        ),
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            enabled: widget.enabled,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: widget.label,
+              helperText: _helperText,
+              suffixText: '/ $_safeFrameTotal',
+            ),
+            onChanged: _emitInput,
+            onSubmitted: (value) => _setText(_normalizeInput(value)),
+          ),
+        ),
+        IconButton(
+          tooltip: '下一帧',
+          onPressed: widget.enabled && _safeFrameIndex < _safeFrameTotal - 1
+              ? () => _step(1)
+              : null,
+          icon: const Icon(Icons.chevron_right),
+        ),
+      ],
     );
   }
 }

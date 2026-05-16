@@ -138,6 +138,9 @@ class ImageEditorWorkspace extends StatelessWidget {
             rows: rows,
             columns: columns,
             gridSpec: gridSpec,
+            selectedFrameIndex: targetFrameIndex,
+            onFrameSelected: onTargetFrameChanged,
+            enablePlayback: false,
             labelBuilder: (index) =>
                 editorFrameGridLabel(index, columns: columns),
             onExportSpriteSheet: onExportSpriteSheet,

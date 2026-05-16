@@ -56,8 +56,11 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                       const SizedBox(height: 6),
                     ],
                     _SpriteSheetFrameTile(
+                      key: ValueKey('sprite-frame-tile-${start + index}'),
                       frameBytes: rowFrames[index],
                       aspectRatio: previewData.frameAspectRatio,
+                      isSelected: _currentFrameIndex == start + index,
+                      onTap: () => _selectFrameIndex(start + index),
                     ),
                   ],
                 ),
@@ -76,6 +79,7 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
     final safeColumn = _currentColumn.clamp(0, previewData.columns - 1);
     final safeFrameIndex = safeRow * previewData.columns + safeColumn;
     final currentFrame = previewData.frameAt(safeRow, safeColumn);
+    final isTargetSelection = widget.onFrameSelected != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,7 +93,7 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
               width: 172,
               child: OptionDropdown<int>(
                 fieldKey: ValueKey('preview-frame-$safeFrameIndex'),
-                label: '帧号',
+                label: isTargetSelection ? '目标帧' : '帧号',
                 value: safeFrameIndex,
                 options: [
                   for (
@@ -114,24 +118,26 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                 onChanged: _selectRow,
               ),
             ),
-            SizedBox(
-              width: 156,
-              child: OptionDropdown<int>(
-                fieldKey: ValueKey('preview-speed-$_frameDelayMs'),
-                label: '播放速度',
-                value: _frameDelayMs,
-                options: FrameAnimationPreviewPanelState._playbackSpeeds,
-                labelBuilder: (speed) => '$speed ms',
-                onChanged: _setFrameDelay,
+            if (widget.enablePlayback)
+              SizedBox(
+                width: 156,
+                child: OptionDropdown<int>(
+                  fieldKey: ValueKey('preview-speed-$_frameDelayMs'),
+                  label: '播放速度',
+                  value: _frameDelayMs,
+                  options: FrameAnimationPreviewPanelState._playbackSpeeds,
+                  labelBuilder: (speed) => '$speed ms',
+                  onChanged: _setFrameDelay,
+                ),
               ),
-            ),
-            FilledButton.tonalIcon(
-              onPressed: previewData.columns <= 1 ? null : _togglePlayback,
-              icon: Icon(
-                _isPlaying ? Icons.pause_circle_outline : Icons.play_arrow,
+            if (widget.enablePlayback)
+              FilledButton.tonalIcon(
+                onPressed: previewData.columns <= 1 ? null : _togglePlayback,
+                icon: Icon(
+                  _isPlaying ? Icons.pause_circle_outline : Icons.play_arrow,
+                ),
+                label: Text(_isPlaying ? '暂停' : '播放'),
               ),
-              label: Text(_isPlaying ? '暂停' : '播放'),
-            ),
             FilledButton.tonalIcon(
               onPressed: () =>
                   widget.onExportSpriteSheet(previewData.sheetBytes),
@@ -166,11 +172,16 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
         ),
         const SizedBox(height: fieldGap),
         Text(
-          '第 ${safeFrameIndex + 1} 帧 · 第 ${safeRow + 1} 行 · 第 ${safeColumn + 1} / ${previewData.columns} 列',
+          '${isTargetSelection ? '当前目标' : '当前播放'}：第 ${safeFrameIndex + 1} 帧 · 第 ${safeRow + 1} 行 · 第 ${safeColumn + 1} / ${previewData.columns} 列',
           style: theme.textTheme.labelLarge,
         ),
         const SizedBox(height: 6),
-        Text('按行检查动画轨道，按列检查动作连续性。', style: theme.textTheme.bodySmall),
+        Text(
+          isTargetSelection
+              ? '点击右侧 Sprite Sheet 或网格切片，可以直接选择要替换的目标帧。'
+              : '按行检查动画轨道，按列检查动作连续性。',
+          style: theme.textTheme.bodySmall,
+        ),
         const SizedBox(height: fieldGap),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -188,6 +199,9 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                 previewData: previewData,
                 selectedRow: safeRow,
                 selectedColumn: safeColumn,
+                onFrameSelected: widget.onFrameSelected == null
+                    ? null
+                    : _selectFrameIndex,
               ),
             );
 
