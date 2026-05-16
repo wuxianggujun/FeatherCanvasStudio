@@ -1444,6 +1444,13 @@ mixin _EditorGifStateMixin
   Future<void> _replaceEditorFrame() async {
     final sheetPath = _editorImagePath;
     final patchPath = _editorPatchImagePath;
+    final rows = _editorRows;
+    final columns = _editorColumns;
+    final gridSpec = _editorGridSpec;
+    final frameIndex = _editorTargetFrameIndex
+        .clamp(0, _editorFrameCount - 1)
+        .toInt();
+    final frameFit = _editorFrameFit;
     if (sheetPath == null) {
       _showMessage('请先选择一张 Sprite Sheet');
       return;
@@ -1459,29 +1466,48 @@ mixin _EditorGifStateMixin
     });
 
     try {
-      final output = await SpriteSheetFileService.replaceFrameAndSave(
-        store: _store,
-        readFileBytes: _fileService.readFileBytes,
-        sheetPath: sheetPath,
-        patchPath: patchPath,
-        rows: _editorRows,
-        columns: _editorColumns,
-        frameIndex: _editorTargetFrameIndex,
-        fit: _editorFrameFit,
-        gridSpec: _editorGridSpec,
+      final sheetBytes = await _fileService.readFileBytes(sheetPath);
+      final patchBytes = await _fileService.readFileBytes(patchPath);
+      final preview = SpriteSheetEditorComposer.buildReplacementPreview(
+        sheetBytes: sheetBytes,
+        patchBytes: patchBytes,
+        rows: rows,
+        columns: columns,
+        frameIndex: frameIndex,
+        fit: frameFit,
+        gridSpec: gridSpec,
       );
-
       if (!mounted) {
         return;
       }
+      setState(() => _isReplacingEditorFrame = false);
+
+      final confirmed = await confirmSpriteSheetFrameReplacementDialog(
+        context,
+        preview: preview,
+        columns: columns,
+        fitLabel: spriteSheetFrameFitLabel(frameFit),
+      );
+      if (!confirmed || !mounted) {
+        return;
+      }
+
+      setState(() => _isReplacingEditorFrame = true);
+      final output = await SpriteSheetFileService.exportPng(
+        store: _store,
+        pngBytes: preview.editedSheetBytes,
+        rows: rows,
+        columns: columns,
+        gridSpec: gridSpec,
+      );
 
       final item = await _imageLibraryService.addEditedSpriteSheet(
         store: _store,
         path: output.path,
-        frameIndex: _editorTargetFrameIndex,
-        rows: _editorRows,
-        columns: _editorColumns,
-        gridSpec: _editorGridSpec,
+        frameIndex: frameIndex,
+        rows: rows,
+        columns: columns,
+        gridSpec: gridSpec,
       );
       if (!mounted) {
         return;
@@ -1491,13 +1517,13 @@ mixin _EditorGifStateMixin
         _imageLibrary = [item, ..._imageLibrary];
       });
       _pushEditorFrameHistory(
-        label: '替换第 ${_editorTargetFrameIndex + 1} 帧',
+        label: '替换第 ${frameIndex + 1} 帧',
         beforeSheetPath: sheetPath,
         afterSheetPath: output.path,
         appendedItem: item,
       );
       _showMessage(
-        '已替换第 ${_editorTargetFrameIndex + 1} 帧：${fileNameFromPath(output.path)} · 目录：${output.directoryPath}',
+        '已替换第 ${frameIndex + 1} 帧：${fileNameFromPath(output.path)} · 目录：${output.directoryPath}',
       );
     } catch (error) {
       if (!mounted) {

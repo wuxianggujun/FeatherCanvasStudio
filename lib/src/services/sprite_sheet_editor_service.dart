@@ -1,5 +1,25 @@
 part of 'sprite_sheet_service.dart';
 
+class SpriteSheetFrameReplacementPreview {
+  const SpriteSheetFrameReplacementPreview({
+    required this.originalFrameBytes,
+    required this.patchBytes,
+    required this.resultFrameBytes,
+    required this.editedSheetBytes,
+    required this.frameIndex,
+    required this.frameWidth,
+    required this.frameHeight,
+  });
+
+  final Uint8List originalFrameBytes;
+  final Uint8List patchBytes;
+  final Uint8List resultFrameBytes;
+  final Uint8List editedSheetBytes;
+  final int frameIndex;
+  final int frameWidth;
+  final int frameHeight;
+}
+
 class SpriteSheetEditorComposer {
   const SpriteSheetEditorComposer._();
 
@@ -89,6 +109,26 @@ class SpriteSheetEditorComposer {
     required SpriteSheetFrameFit fit,
     SpriteSheetGridSpec? gridSpec,
   }) {
+    return buildReplacementPreview(
+      sheetBytes: sheetBytes,
+      patchBytes: patchBytes,
+      rows: rows,
+      columns: columns,
+      frameIndex: frameIndex,
+      fit: fit,
+      gridSpec: gridSpec,
+    ).editedSheetBytes;
+  }
+
+  static SpriteSheetFrameReplacementPreview buildReplacementPreview({
+    required Uint8List sheetBytes,
+    required Uint8List patchBytes,
+    required int rows,
+    required int columns,
+    required int frameIndex,
+    required SpriteSheetFrameFit fit,
+    SpriteSheetGridSpec? gridSpec,
+  }) {
     final spec = _resolveGridSpec(
       rows: rows,
       columns: columns,
@@ -133,6 +173,13 @@ class SpriteSheetEditorComposer {
       row: row,
       column: column,
     );
+    final originalFrame = image_lib.copyCrop(
+      sheet,
+      x: cellRect.left.toInt(),
+      y: cellRect.top.toInt(),
+      width: frameWidth,
+      height: frameHeight,
+    );
 
     _clearRectTransparent(editedSheet, cellRect);
     image_lib.compositeImage(
@@ -141,8 +188,25 @@ class SpriteSheetEditorComposer {
       dstX: cellRect.left.toInt(),
       dstY: cellRect.top.toInt(),
     );
+    final resultFrame = image_lib.copyCrop(
+      editedSheet,
+      x: cellRect.left.toInt(),
+      y: cellRect.top.toInt(),
+      width: frameWidth,
+      height: frameHeight,
+    );
 
-    return Uint8List.fromList(image_lib.encodePng(editedSheet));
+    return SpriteSheetFrameReplacementPreview(
+      originalFrameBytes: Uint8List.fromList(
+        image_lib.encodePng(originalFrame),
+      ),
+      patchBytes: patchBytes,
+      resultFrameBytes: Uint8List.fromList(image_lib.encodePng(resultFrame)),
+      editedSheetBytes: Uint8List.fromList(image_lib.encodePng(editedSheet)),
+      frameIndex: frameIndex,
+      frameWidth: frameWidth,
+      frameHeight: frameHeight,
+    );
   }
 
   static image_lib.Image _normalizePatch(

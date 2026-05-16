@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/image_library_item.dart';
 import '../models/ui_state.dart';
+import '../services/sprite_sheet_service.dart';
 import '../theme/layout_constants.dart';
 import '../widgets/image_library_widgets.dart';
 import '../widgets/layout_navigation_widgets.dart';
@@ -271,4 +272,165 @@ Future<bool> confirmResetToDefaultsDialog(BuildContext context) async {
   );
 
   return confirmed == true;
+}
+
+Future<bool> confirmSpriteSheetFrameReplacementDialog(
+  BuildContext context, {
+  required SpriteSheetFrameReplacementPreview preview,
+  required int columns,
+  required String fitLabel,
+}) async {
+  final frameNumber = preview.frameIndex + 1;
+  final safeColumns = columns.clamp(1, 9999).toInt();
+  final row = preview.frameIndex ~/ safeColumns + 1;
+  final column = preview.frameIndex % safeColumns + 1;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      final theme = Theme.of(context);
+      return AlertDialog(
+        title: Text('确认替换第 $frameNumber 帧'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '目标位置：第 $row 行 · 第 $column 列 · '
+                  '${preview.frameWidth} x ${preview.frameHeight} · $fitLabel',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: fieldGap),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 700) {
+                      return Column(
+                        children: [
+                          _ReplacementPreviewTile(
+                            title: '原帧',
+                            imageBytes: preview.originalFrameBytes,
+                          ),
+                          const SizedBox(height: fieldGap),
+                          _ReplacementPreviewTile(
+                            title: '单帧图片',
+                            imageBytes: preview.patchBytes,
+                          ),
+                          const SizedBox(height: fieldGap),
+                          _ReplacementPreviewTile(
+                            title: '替换后',
+                            imageBytes: preview.resultFrameBytes,
+                            emphasized: true,
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _ReplacementPreviewTile(
+                            title: '原帧',
+                            imageBytes: preview.originalFrameBytes,
+                          ),
+                        ),
+                        const SizedBox(width: fieldGap),
+                        Expanded(
+                          child: _ReplacementPreviewTile(
+                            title: '单帧图片',
+                            imageBytes: preview.patchBytes,
+                          ),
+                        ),
+                        const SizedBox(width: fieldGap),
+                        Expanded(
+                          child: _ReplacementPreviewTile(
+                            title: '替换后',
+                            imageBytes: preview.resultFrameBytes,
+                            emphasized: true,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.published_with_changes_outlined),
+            label: const Text('确认替换'),
+          ),
+        ],
+      );
+    },
+  );
+
+  return confirmed == true;
+}
+
+class _ReplacementPreviewTile extends StatelessWidget {
+  const _ReplacementPreviewTile({
+    required this.title,
+    required this.imageBytes,
+    this.emphasized = false,
+  });
+
+  final String title;
+  final Uint8List imageBytes;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final borderColor = emphasized
+        ? colorScheme.primary
+        : colorScheme.outlineVariant;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: emphasized ? 2 : 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+            child: Text(title, style: theme.textTheme.labelLarge),
+          ),
+          const SizedBox(height: 8),
+          AspectRatio(
+            aspectRatio: 1,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(8),
+              ),
+              child: ColoredBox(
+                color: colorScheme.surfaceContainerHighest,
+                child: Image.memory(
+                  imageBytes,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.none,
+                  gaplessPlayback: true,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

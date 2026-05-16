@@ -308,6 +308,50 @@ void main() {
     expect(edited.getPixel(2, 2).g.toInt(), 255);
   });
 
+  test('builds replacement preview frames before saving', () {
+    final spriteSheet = image_lib.Image(width: 4, height: 4)
+      ..clear(image_lib.ColorRgb8(0, 0, 0));
+    image_lib.fillRect(
+      spriteSheet,
+      x1: 0,
+      y1: 0,
+      x2: 1,
+      y2: 1,
+      color: image_lib.ColorRgb8(255, 0, 0),
+    );
+    image_lib.fillRect(
+      spriteSheet,
+      x1: 2,
+      y1: 0,
+      x2: 3,
+      y2: 1,
+      color: image_lib.ColorRgb8(0, 255, 0),
+    );
+
+    final preview = SpriteSheetEditorComposer.buildReplacementPreview(
+      sheetBytes: Uint8List.fromList(image_lib.encodePng(spriteSheet)),
+      patchBytes: _pngOfColor(128, 64, 32),
+      rows: 2,
+      columns: 2,
+      frameIndex: 1,
+      fit: SpriteSheetFrameFit.stretch,
+    );
+
+    final originalFrame = image_lib.decodeImage(preview.originalFrameBytes)!;
+    final resultFrame = image_lib.decodeImage(preview.resultFrameBytes)!;
+    final editedSheet = image_lib.decodeImage(preview.editedSheetBytes)!;
+
+    expect(preview.frameIndex, 1);
+    expect(preview.frameWidth, 2);
+    expect(preview.frameHeight, 2);
+    expect(originalFrame.getPixel(0, 0).g.toInt(), 255);
+    expect(resultFrame.getPixel(0, 0).r.toInt(), 128);
+    expect(resultFrame.getPixel(0, 0).g.toInt(), 64);
+    expect(resultFrame.getPixel(0, 0).b.toInt(), 32);
+    expect(editedSheet.getPixel(0, 0).r.toInt(), 255);
+    expect(editedSheet.getPixel(2, 0).r.toInt(), 128);
+  });
+
   test('supports contain and cover replacement sizing', () {
     final sheetBytes = _pngOfColorWithSize(0, 0, 0, width: 6, height: 6);
     final widePatchBytes = _pngOfColorWithSize(
