@@ -102,6 +102,7 @@ mixin _HomeShellStateMixin
         _ImageLibraryStateMixin,
         _EditorGifStateMixin,
         _ImageGenerationStateMixin,
+        _BatchGenerationStateMixin,
         _HistoryStateMixin {
   @override
   AppLocalStore get _store;
@@ -249,6 +250,7 @@ mixin _HomeShellStateMixin
     final storedSelectedApiConfigId = await _store.loadSelectedApiConfigId();
     final imageLibrary = await _store.loadImageLibrary();
     final appPresets = await _store.loadPresets();
+    final onboardingCompleted = await _store.loadOnboardingCompleted();
 
     if (!mounted) {
       return;
@@ -286,7 +288,7 @@ mixin _HomeShellStateMixin
         model: selectedApiConfig.model,
         capabilityOverride: selectedApiConfig.imageSizeCapabilityOverride,
       );
-      _imageCount = settings.imageCount;
+      _imageCount = normalizeImageGenerationTargetCount(settings.imageCount);
       _advancedSettings = settings.advancedSettings;
       _imageLibrary = imageLibrary;
       _appPresets = appPresets;
@@ -295,6 +297,29 @@ mixin _HomeShellStateMixin
     _isRestoringState = false;
     await _store.saveApiConfigs(apiConfigs);
     await _store.saveSelectedApiConfigId(selectedApiConfig.id);
+    if (!onboardingCompleted && _shouldShowFirstRunSetup(selectedApiConfig)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_showFirstRunSetup());
+      });
+    }
+  }
+
+  bool _shouldShowFirstRunSetup(ApiConfig config) {
+    return config.apiKey.trim().isEmpty || config.model.trim().isEmpty;
+  }
+
+  Future<void> _showFirstRunSetup() async {
+    if (!mounted) {
+      return;
+    }
+    final action = await showFirstRunSetupDialog(context);
+    await _store.saveOnboardingCompleted(true);
+    if (!mounted) {
+      return;
+    }
+    if (action == FirstRunSetupAction.openApiSettings) {
+      await _selectFeature(WorkspaceFeature.apiSettings);
+    }
   }
 
   @override
@@ -471,7 +496,7 @@ mixin _HomeShellStateMixin
         model: snapshot.model,
         capabilityOverride: snapshot.imageSizeCapabilityOverride,
       );
-      _imageCount = snapshot.imageCount;
+      _imageCount = normalizeImageGenerationTargetCount(snapshot.imageCount);
       _advancedSettings = snapshot.advancedSettings;
       _animationRows = snapshot.animationRows;
       _animationColumns = snapshot.animationColumns;
@@ -812,6 +837,7 @@ mixin _HomeShellStateMixin
   Widget _buildSelectedWorkspace() {
     return switch (_selectedFeature) {
       WorkspaceFeature.imageGeneration => _buildImageGenerationWorkspace(),
+      WorkspaceFeature.batchGeneration => _buildBatchGenerationWorkspace(),
       WorkspaceFeature.frameAnimation => _buildFrameAnimationWorkspace(),
       WorkspaceFeature.imageEditor => _buildImageEditorWorkspace(),
       WorkspaceFeature.gifComposer => _buildGifComposerWorkspace(),

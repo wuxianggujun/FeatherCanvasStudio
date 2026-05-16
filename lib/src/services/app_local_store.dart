@@ -9,6 +9,7 @@ import '../models/app_config.dart';
 import '../models/app_preset.dart';
 import '../models/image_advanced_settings.dart';
 import '../models/image_library_item.dart';
+import '../utils/generation_limits.dart';
 import 'secure_value_store.dart';
 
 class AppLocalStore {
@@ -32,6 +33,7 @@ class AppLocalStore {
   static const String _selectedApiConfigIdKey = 'apiConfigs.selectedId';
   static const String _imageLibraryKey = 'imageLibrary.entries';
   static const String _appPresetsKey = 'appPresets.entries';
+  static const String _onboardingCompletedKey = 'onboarding.completed';
   static const int _maxImageLibraryEntries = 200;
   static const String _apiConfigSecretPrefix = 'apiConfigs.apiKey.';
 
@@ -52,7 +54,9 @@ class AppLocalStore {
       negativePrompt:
           prefs.getString(_negativePromptKey) ?? defaults.negativePrompt,
       size: prefs.getString(_sizeKey) ?? defaults.size,
-      imageCount: prefs.getInt(_imageCountKey) ?? defaults.imageCount,
+      imageCount: normalizeImageGenerationTargetCount(
+        prefs.getInt(_imageCountKey) ?? defaults.imageCount,
+      ),
       advancedSettings: ImageAdvancedSettings(
         quality:
             prefs.getString('settings.quality') ??
@@ -181,6 +185,16 @@ class AppLocalStore {
     await prefs.setString(_selectedApiConfigIdKey, id);
   }
 
+  Future<bool> loadOnboardingCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onboardingCompletedKey) ?? false;
+  }
+
+  Future<void> saveOnboardingCompleted(bool completed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingCompletedKey, completed);
+  }
+
   Future<List<AppPreset>> loadPresets() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_appPresetsKey);
@@ -294,7 +308,8 @@ class AppLocalStore {
   }) async {
     final directory = await ensureGeneratedImagesDirectory();
     final file = File(
-      '${directory.path}${Platform.pathSeparator}${groupId}_${(index + 1).toString().padLeft(2, '0')}.png',
+      '${directory.path}${Platform.pathSeparator}'
+      '${groupId}_${(index + 1).toString().padLeft(2, '0')}.png',
     );
     await file.writeAsBytes(bytes, flush: true);
     return file;
@@ -362,7 +377,12 @@ class AppLocalStore {
   }) async {
     final generatedDirectory = await ensureGeneratedImagesDirectory();
     final ephemeralDirectory = await ensureEphemeralDirectory();
-    final referencedPaths = libraryItems.map((item) => item.path).toSet();
+    final referencedPaths = {
+      for (final item in libraryItems) ...[
+        item.path,
+        '${item.path}.metadata.json',
+      ],
+    };
     final generatedResult = await _cleanupUnreferencedFiles(
       directory: generatedDirectory,
       referencedPaths: referencedPaths,

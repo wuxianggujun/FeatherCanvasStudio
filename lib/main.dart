@@ -10,6 +10,7 @@ import 'src/history/history_stack.dart';
 import 'src/models/api_provider.dart';
 import 'src/models/app_config.dart';
 import 'src/models/app_preset.dart';
+import 'src/models/batch_generation_job.dart';
 import 'src/models/exceptions.dart';
 import 'src/models/image_asset_kind.dart';
 import 'src/models/generated_image.dart';
@@ -21,10 +22,12 @@ import 'src/models/workspace_feature.dart';
 import 'src/models/ui_state.dart';
 import 'src/services/api_config_service.dart';
 import 'src/services/app_local_store.dart';
+import 'src/services/batch_image_generation_service.dart';
 import 'src/services/background_transparency_service.dart';
 import 'src/services/gif_composer_service.dart';
 import 'src/services/image_api_client.dart';
 import 'src/services/image_generation_service.dart';
+import 'src/services/image_library_archive_service.dart';
 import 'src/services/image_library_file_service.dart';
 import 'src/services/image_library_service.dart';
 import 'src/services/patch_image_framing_service.dart';
@@ -33,6 +36,7 @@ import 'src/utils/api_config_logic.dart';
 import 'src/utils/app_defaults.dart';
 import 'src/utils/display_labels.dart';
 import 'src/utils/file_type_groups.dart';
+import 'src/utils/generation_limits.dart';
 import 'src/utils/generation_snapshot_summary.dart';
 import 'src/utils/image_library_deletion.dart';
 import 'src/utils/image_library_generation_reuse.dart';
@@ -46,6 +50,7 @@ import 'src/widgets/layout_navigation_widgets.dart';
 import 'src/widgets/patch_image_framing_dialog.dart';
 import 'src/widgets/workspaces.dart';
 part 'src/home/api_config_state.dart';
+part 'src/home/batch_generation_state.dart';
 part 'src/home/editor_gif_state.dart';
 part 'src/home/history_state.dart';
 part 'src/home/home_shell_state.dart';
@@ -106,6 +111,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
         _ImageLibraryStateMixin,
         _EditorGifStateMixin,
         _ImageGenerationStateMixin,
+        _BatchGenerationStateMixin,
         _HistoryStateMixin,
         _HomeShellStateMixin {
   @override
@@ -217,6 +223,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     _disposeApiConfigState();
     _disposeLocalSettingsState();
     _disposeImageLibraryState();
+    _disposeBatchGenerationState();
     _disposeHistoryState();
     _client.close();
     _scrollController.dispose();

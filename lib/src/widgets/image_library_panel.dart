@@ -33,11 +33,14 @@ class ImageLibraryPanel extends StatelessWidget {
     required this.onSelectVisible,
     required this.onClearSelection,
     required this.onDeleteSelected,
+    required this.onExportSelected,
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
     required this.onMakeBackgroundTransparent,
     required this.onEditMetadata,
+    required this.onCopyImage,
+    required this.onExportImage,
     required this.onCopyPath,
     required this.onOpenLocation,
     required this.onDelete,
@@ -70,11 +73,14 @@ class ImageLibraryPanel extends StatelessWidget {
   final VoidCallback onSelectVisible;
   final VoidCallback onClearSelection;
   final VoidCallback onDeleteSelected;
+  final VoidCallback onExportSelected;
   final ValueChanged<ImageLibraryItem> onUseInEditor;
   final ValueChanged<ImageLibraryItem> onReuseGeneration;
   final ValueChanged<ImageLibraryItem> onCopyGeneration;
   final ValueChanged<ImageLibraryItem> onMakeBackgroundTransparent;
   final ValueChanged<ImageLibraryItem> onEditMetadata;
+  final ValueChanged<ImageLibraryItem> onCopyImage;
+  final ValueChanged<ImageLibraryItem> onExportImage;
   final ValueChanged<ImageLibraryItem> onCopyPath;
   final ValueChanged<ImageLibraryItem> onOpenLocation;
   final ValueChanged<String> onDelete;
@@ -208,6 +214,11 @@ class ImageLibraryPanel extends StatelessWidget {
                   icon: const Icon(Icons.close),
                   label: Text('已选 $selectedCount'),
                 ),
+                OutlinedButton.icon(
+                  onPressed: onExportSelected,
+                  icon: const Icon(Icons.file_download_outlined),
+                  label: const Text('导出已选'),
+                ),
                 FilledButton.icon(
                   onPressed: onDeleteSelected,
                   icon: const Icon(Icons.delete_outline),
@@ -233,38 +244,149 @@ class ImageLibraryPanel extends StatelessWidget {
               ),
             )
           else
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 280,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.69,
-              ),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return _ImageLibraryTile(
-                  item: item,
-                  selected: selectedItemIds.contains(item.id),
-                  onSelectionChanged: (selected) =>
-                      onSelectionChanged(item, selected),
-                  onUseInEditor: () => onUseInEditor(item),
-                  onReuseGeneration: () => onReuseGeneration(item),
-                  onCopyGeneration: () => onCopyGeneration(item),
-                  onMakeBackgroundTransparent: () =>
-                      onMakeBackgroundTransparent(item),
-                  onEditMetadata: () => onEditMetadata(item),
-                  onCopyPath: () => onCopyPath(item),
-                  onOpenLocation: () => onOpenLocation(item),
-                  onDelete: () => onDelete(item.id),
-                  onOpenSliceExplorer: () => onOpenSliceExplorer(item),
-                  savedFrameCount: savedFrameCountFor(item),
-                );
-              },
+            _SelectableImageLibraryGrid(
+              items: items,
+              selectedItemIds: selectedItemIds,
+              onSelectionChanged: onSelectionChanged,
+              onUseInEditor: onUseInEditor,
+              onReuseGeneration: onReuseGeneration,
+              onCopyGeneration: onCopyGeneration,
+              onMakeBackgroundTransparent: onMakeBackgroundTransparent,
+              onEditMetadata: onEditMetadata,
+              onCopyImage: onCopyImage,
+              onExportImage: onExportImage,
+              onCopyPath: onCopyPath,
+              onOpenLocation: onOpenLocation,
+              onDelete: onDelete,
+              onOpenSliceExplorer: onOpenSliceExplorer,
+              savedFrameCountFor: savedFrameCountFor,
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _SelectableImageLibraryGrid extends StatefulWidget {
+  const _SelectableImageLibraryGrid({
+    required this.items,
+    required this.selectedItemIds,
+    required this.onSelectionChanged,
+    required this.onUseInEditor,
+    required this.onReuseGeneration,
+    required this.onCopyGeneration,
+    required this.onMakeBackgroundTransparent,
+    required this.onEditMetadata,
+    required this.onCopyImage,
+    required this.onExportImage,
+    required this.onCopyPath,
+    required this.onOpenLocation,
+    required this.onDelete,
+    required this.onOpenSliceExplorer,
+    required this.savedFrameCountFor,
+  });
+
+  final List<ImageLibraryItem> items;
+  final Set<String> selectedItemIds;
+  final void Function(ImageLibraryItem item, bool selected) onSelectionChanged;
+  final ValueChanged<ImageLibraryItem> onUseInEditor;
+  final ValueChanged<ImageLibraryItem> onReuseGeneration;
+  final ValueChanged<ImageLibraryItem> onCopyGeneration;
+  final ValueChanged<ImageLibraryItem> onMakeBackgroundTransparent;
+  final ValueChanged<ImageLibraryItem> onEditMetadata;
+  final ValueChanged<ImageLibraryItem> onCopyImage;
+  final ValueChanged<ImageLibraryItem> onExportImage;
+  final ValueChanged<ImageLibraryItem> onCopyPath;
+  final ValueChanged<ImageLibraryItem> onOpenLocation;
+  final ValueChanged<String> onDelete;
+  final ValueChanged<ImageLibraryItem> onOpenSliceExplorer;
+  final int Function(ImageLibraryItem item) savedFrameCountFor;
+
+  @override
+  State<_SelectableImageLibraryGrid> createState() =>
+      _SelectableImageLibraryGridState();
+}
+
+class _SelectableImageLibraryGridState
+    extends State<_SelectableImageLibraryGrid> {
+  bool? _dragSelectionValue;
+  final Set<String> _dragTouchedIds = <String>{};
+
+  bool get _isDraggingSelection => _dragSelectionValue != null;
+  bool get _isSelectionMode => widget.selectedItemIds.isNotEmpty;
+
+  void _startDragSelection(ImageLibraryItem item) {
+    if (!_isSelectionMode) {
+      return;
+    }
+    final nextSelected = !widget.selectedItemIds.contains(item.id);
+    setState(() {
+      _dragSelectionValue = nextSelected;
+      _dragTouchedIds
+        ..clear()
+        ..add(item.id);
+    });
+    widget.onSelectionChanged(item, nextSelected);
+  }
+
+  void _applyDragSelection(ImageLibraryItem item) {
+    final nextSelected = _dragSelectionValue;
+    if (nextSelected == null || !_dragTouchedIds.add(item.id)) {
+      return;
+    }
+    widget.onSelectionChanged(item, nextSelected);
+  }
+
+  void _endDragSelection() {
+    if (!_isDraggingSelection) {
+      return;
+    }
+    setState(() {
+      _dragSelectionValue = null;
+      _dragTouchedIds.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerUp: (_) => _endDragSelection(),
+      onPointerCancel: (_) => _endDragSelection(),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: widget.items.length,
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 280,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.69,
+        ),
+        itemBuilder: (context, index) {
+          final item = widget.items[index];
+          return _ImageLibraryTile(
+            item: item,
+            selected: widget.selectedItemIds.contains(item.id),
+            selectionMode: _isSelectionMode,
+            onSelectionChanged: (selected) =>
+                widget.onSelectionChanged(item, selected),
+            onSelectionDragStart: () => _startDragSelection(item),
+            onSelectionDragEnter: () => _applyDragSelection(item),
+            onUseInEditor: () => widget.onUseInEditor(item),
+            onReuseGeneration: () => widget.onReuseGeneration(item),
+            onCopyGeneration: () => widget.onCopyGeneration(item),
+            onMakeBackgroundTransparent: () =>
+                widget.onMakeBackgroundTransparent(item),
+            onEditMetadata: () => widget.onEditMetadata(item),
+            onCopyImage: () => widget.onCopyImage(item),
+            onExportImage: () => widget.onExportImage(item),
+            onCopyPath: () => widget.onCopyPath(item),
+            onOpenLocation: () => widget.onOpenLocation(item),
+            onDelete: () => widget.onDelete(item.id),
+            onOpenSliceExplorer: () => widget.onOpenSliceExplorer(item),
+            savedFrameCount: widget.savedFrameCountFor(item),
+          );
+        },
       ),
     );
   }

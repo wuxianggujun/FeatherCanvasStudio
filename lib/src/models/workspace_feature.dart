@@ -1,5 +1,6 @@
 enum WorkspaceFeature {
   imageGeneration,
+  batchGeneration,
   frameAnimation,
   imageEditor,
   gifComposer,

@@ -486,6 +486,121 @@ mixin _ImageLibraryStateMixin
     _showMessage('作品路径已复制');
   }
 
+  Future<void> _copyImageLibraryItemImage(ImageLibraryItem item) async {
+    if (!await _fileService.fileExists(item.path)) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('作品文件不存在');
+      return;
+    }
+
+    try {
+      final result = await _fileService.copyImageFileToClipboard(item.path);
+      if (!mounted) {
+        return;
+      }
+      switch (result.status) {
+        case ImageClipboardCopyStatus.imageCopied:
+          _showMessage('图片已复制到剪贴板');
+        case ImageClipboardCopyStatus.pathCopied:
+          _showMessage('当前平台暂不支持直接复制图片，已复制图片路径');
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('复制图片失败：$error');
+    }
+  }
+
+  Future<void> _exportImageLibraryItemImage(ImageLibraryItem item) async {
+    if (!await _fileService.fileExists(item.path)) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('作品文件不存在');
+      return;
+    }
+
+    final location = await getSaveLocation(
+      acceptedTypeGroups: imageTypeGroups,
+      suggestedName: fileNameFromPath(item.path),
+    );
+    if (location == null || !mounted) {
+      return;
+    }
+
+    try {
+      final result = await _fileService.exportFileToPath(
+        sourcePath: item.path,
+        destinationPath: location.path,
+      );
+      if (!mounted) {
+        return;
+      }
+      _showMessage('图片已导出：${fileNameFromPath(result.destinationPath)}');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('导出图片失败：$error');
+    }
+  }
+
+  Future<void> _exportSelectedImageLibraryItems() async {
+    final selectedIds = _selectedImageLibraryItemIds;
+    final selectedItems = [
+      for (final item in _imageLibrary)
+        if (selectedIds.contains(item.id)) item,
+    ];
+    if (selectedItems.isEmpty) {
+      _showMessage('请先选择要导出的作品');
+      return;
+    }
+
+    if (selectedItems.length == 1) {
+      await _exportImageLibraryItemImage(selectedItems.single);
+      return;
+    }
+
+    final directoryPath = await getDirectoryPath(confirmButtonText: '导出到这里');
+    if (directoryPath == null || !mounted) {
+      return;
+    }
+
+    final existingItems = <ImageLibraryItem>[];
+    var missingCount = 0;
+    for (final item in selectedItems) {
+      if (await _fileService.fileExists(item.path)) {
+        existingItems.add(item);
+      } else {
+        missingCount += 1;
+      }
+    }
+    if (existingItems.isEmpty) {
+      _showMessage('选中的作品文件都不存在');
+      return;
+    }
+
+    try {
+      final results = await _fileService.exportFilesToDirectory(
+        sourcePaths: existingItems.map((item) => item.path),
+        directoryPath: directoryPath,
+      );
+      if (!mounted) {
+        return;
+      }
+      final skipped = missingCount == 0 ? '' : '，跳过 $missingCount 个缺失文件';
+      _showMessage('已导出 ${results.length} 个作品$skipped');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('导出已选作品失败：$error');
+    }
+  }
+
   Future<void> _openImageLibraryItemLocation(ImageLibraryItem item) async {
     final result = await _fileService.openFileLocation(item.path);
     if (!mounted) {
@@ -927,7 +1042,7 @@ mixin _ImageLibraryStateMixin
         _apiConfigSaveStatus = ApiConfigSaveStatus.saved;
         _apiConfigSaveErrorMessage = null;
         _size = snapshot.size;
-        _imageCount = snapshot.imageCount;
+        _imageCount = normalizeImageGenerationTargetCount(snapshot.imageCount);
         _advancedSettings = snapshot.advancedSettings;
         _errorMessage = snapshot.errorMessage;
       });
@@ -1014,7 +1129,7 @@ mixin _ImageLibraryStateMixin
                 ).imageSizeCapabilityOverride
               : _imageSizeCapabilityOverride,
         );
-        _imageCount = draft.imageCount;
+        _imageCount = normalizeImageGenerationTargetCount(draft.imageCount);
         _advancedSettings = draft.advancedSettings;
         _errorMessage = null;
       });
@@ -1079,12 +1194,15 @@ mixin _ImageLibraryStateMixin
           _selectVisibleImageLibraryItems(viewData.filteredItems),
       onClearSelection: _clearImageLibrarySelection,
       onDeleteSelected: _confirmDeleteSelectedImageLibraryItems,
+      onExportSelected: () => unawaited(_exportSelectedImageLibraryItems()),
       onUseInEditor: _useImageLibraryItemInEditor,
       onReuseGeneration: _reuseImageLibraryGeneration,
       onCopyGeneration: _copyImageLibraryGeneration,
       onMakeBackgroundTransparent: (item) =>
           unawaited(_makeImageLibraryItemBackgroundTransparent(item)),
       onEditMetadata: _showEditImageLibraryItemDialog,
+      onCopyImage: (item) => unawaited(_copyImageLibraryItemImage(item)),
+      onExportImage: (item) => unawaited(_exportImageLibraryItemImage(item)),
       onCopyPath: _copyImageLibraryItemPath,
       onOpenLocation: _openImageLibraryItemLocation,
       onDelete: _confirmDeleteImageLibraryItem,

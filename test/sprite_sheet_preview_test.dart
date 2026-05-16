@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:io';
 import 'dart:ui';
@@ -243,10 +244,27 @@ void main() {
     final editedImage = image_lib.decodeImage(
       await File(edited.path).readAsBytes(),
     )!;
+    final exportedMetadata = jsonDecode(
+      await File(exported.metadataPath).readAsString(),
+    ) as Map<String, dynamic>;
 
     expect(exported.directoryPath, contains('generated-images'));
     expect(await File(exported.path).exists(), isTrue);
+    expect(exported.metadataPath, '${exported.path}.metadata.json');
+    expect(await File(exported.metadataPath).exists(), isTrue);
+    expect(exportedMetadata['schemaVersion'], 1);
+    expect(
+      exportedMetadata['imageFile'],
+      exported.path.split(Platform.pathSeparator).last,
+    );
+    expect(exportedMetadata['rows'], 2);
+    expect(exportedMetadata['columns'], 2);
+    expect(exportedMetadata['totalFrames'], 4);
+    expect(exportedMetadata['frameWidth'], 1);
+    expect(exportedMetadata['frameHeight'], 1);
+    expect(exportedMetadata['gridSpec'], isA<Map<String, dynamic>>());
     expect(await File(edited.path).exists(), isTrue);
+    expect(await File(edited.metadataPath).exists(), isTrue);
     expect(editedImage.getPixel(2, 0).g.toInt(), 255);
   });
 

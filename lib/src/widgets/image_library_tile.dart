@@ -4,12 +4,17 @@ class _ImageLibraryTile extends StatelessWidget {
   const _ImageLibraryTile({
     required this.item,
     required this.selected,
+    required this.selectionMode,
     required this.onSelectionChanged,
+    required this.onSelectionDragStart,
+    required this.onSelectionDragEnter,
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
     required this.onMakeBackgroundTransparent,
     required this.onEditMetadata,
+    required this.onCopyImage,
+    required this.onExportImage,
     required this.onCopyPath,
     required this.onOpenLocation,
     required this.onDelete,
@@ -19,12 +24,17 @@ class _ImageLibraryTile extends StatelessWidget {
 
   final ImageLibraryItem item;
   final bool selected;
+  final bool selectionMode;
   final ValueChanged<bool> onSelectionChanged;
+  final VoidCallback onSelectionDragStart;
+  final VoidCallback onSelectionDragEnter;
   final VoidCallback onUseInEditor;
   final VoidCallback onReuseGeneration;
   final VoidCallback onCopyGeneration;
   final VoidCallback onMakeBackgroundTransparent;
   final VoidCallback onEditMetadata;
+  final VoidCallback onCopyImage;
+  final VoidCallback onExportImage;
   final VoidCallback onCopyPath;
   final VoidCallback onOpenLocation;
   final VoidCallback onDelete;
@@ -52,7 +62,9 @@ class _ImageLibraryTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: isSheetWithMeta
+          onTap: selectionMode
+              ? () => onSelectionChanged(!selected)
+              : isSheetWithMeta
               ? onOpenSliceExplorer
               : item.canUseAsSpriteSheet
               ? onUseInEditor
@@ -65,70 +77,82 @@ class _ImageLibraryTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            width: double.infinity,
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: ImageLibraryPreview(item: item),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 6,
-                        left: 6,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface.withValues(
-                              alpha: 0.88,
+                  child: MouseRegion(
+                    onEnter: (_) => onSelectionDragEnter(),
+                    child: Listener(
+                      onPointerDown: (_) => onSelectionDragStart(),
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                width: double.infinity,
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                                child: ImageLibraryPreview(item: item),
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Checkbox(
-                            value: selected,
-                            visualDensity: VisualDensity.compact,
-                            onChanged: (value) =>
-                                onSelectionChanged(value ?? false),
-                          ),
-                        ),
-                      ),
-                      if (isSheetWithMeta)
-                        Positioned(
-                          top: 6,
-                          right: 6,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer
-                                  .withValues(alpha: 0.92),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.dashboard_customize_outlined,
-                                  size: 14,
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '$savedFrameCount/$totalFrames 帧',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onPrimaryContainer,
+                          if (selectionMode || selected)
+                            Positioned(
+                              top: 6,
+                              left: 6,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surface.withValues(
+                                    alpha: 0.88,
                                   ),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
-                              ],
+                                child: Checkbox(
+                                  value: selected,
+                                  visualDensity: VisualDensity.compact,
+                                  onChanged: (value) =>
+                                      onSelectionChanged(value ?? false),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                    ],
+                          if (isSheetWithMeta)
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer
+                                      .withValues(alpha: 0.92),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.dashboard_customize_outlined,
+                                      size: 14,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$savedFrameCount/$totalFrames 帧',
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onPrimaryContainer,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -221,6 +245,11 @@ class _ImageLibraryTile extends StatelessWidget {
                       onPressed: onEditMetadata,
                       icon: const Icon(Icons.drive_file_rename_outline),
                     ),
+                    IconButton(
+                      tooltip: '复制图片',
+                      onPressed: onCopyImage,
+                      icon: const Icon(Icons.content_copy_outlined),
+                    ),
                     PopupMenuButton<ImageLibraryTileMenuAction>(
                       tooltip: '更多操作',
                       icon: const Icon(Icons.more_horiz),
@@ -235,6 +264,10 @@ class _ImageLibraryTile extends StatelessWidget {
                           case ImageLibraryTileMenuAction
                               .makeBackgroundTransparent:
                             onMakeBackgroundTransparent();
+                          case ImageLibraryTileMenuAction.copyImage:
+                            onCopyImage();
+                          case ImageLibraryTileMenuAction.exportImage:
+                            onExportImage();
                           case ImageLibraryTileMenuAction.copyPath:
                             onCopyPath();
                           case ImageLibraryTileMenuAction.openLocation:
@@ -277,6 +310,20 @@ class _ImageLibraryTile extends StatelessWidget {
                               title: Text('背景转透明'),
                             ),
                           ),
+                        const PopupMenuItem(
+                          value: ImageLibraryTileMenuAction.copyImage,
+                          child: ListTile(
+                            leading: Icon(Icons.content_copy_outlined),
+                            title: Text('复制图片'),
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: ImageLibraryTileMenuAction.exportImage,
+                          child: ListTile(
+                            leading: Icon(Icons.file_download_outlined),
+                            title: Text('导出图片'),
+                          ),
+                        ),
                         const PopupMenuItem(
                           value: ImageLibraryTileMenuAction.copyPath,
                           child: ListTile(

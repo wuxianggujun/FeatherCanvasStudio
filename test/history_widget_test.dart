@@ -38,6 +38,7 @@ Future<void> _pumpApp(
   FlutterSecureStorage.setMockInitialValues({});
 
   final store = AppLocalStore();
+  await store.saveOnboardingCompleted(true);
   await store.saveSettings(settings);
   if (presets.isNotEmpty) {
     await store.savePresets(presets);
@@ -161,21 +162,21 @@ void main() {
     expect(_textFieldValue(tester, '默认正向提示词'), 'preset prompt');
     expect(_textFieldValue(tester, '默认负向提示词'), 'preset negative');
     expect(find.text('1.5K 横图 · 请求尺寸 1536x1024'), findsOneWidget);
-    expect(find.text('3 张'), findsOneWidget);
+    expect(_textFieldValue(tester, '默认生成数量'), '3');
 
     await _pressUndo(tester);
 
     expect(_textFieldValue(tester, '默认正向提示词'), 'before prompt');
     expect(_textFieldValue(tester, '默认负向提示词'), 'before negative');
     expect(find.text('1K 方图 · 请求尺寸 1024x1024'), findsOneWidget);
-    expect(find.text('1 张'), findsOneWidget);
+    expect(_textFieldValue(tester, '默认生成数量'), '1');
 
     await _pressRedo(tester);
 
     expect(_textFieldValue(tester, '默认正向提示词'), 'preset prompt');
     expect(_textFieldValue(tester, '默认负向提示词'), 'preset negative');
     expect(find.text('1.5K 横图 · 请求尺寸 1536x1024'), findsOneWidget);
-    expect(find.text('3 张'), findsOneWidget);
+    expect(_textFieldValue(tester, '默认生成数量'), '3');
   });
 
   testWidgets('sprite sheet preset restores frame animation settings', (
@@ -348,19 +349,19 @@ void main() {
 
     expect(_textFieldValue(tester, '正向提示词'), 'library prompt');
     expect(_textFieldValue(tester, '负向提示词'), 'library negative');
-    expect(find.text('2 张'), findsOneWidget);
+    expect(_textFieldValue(tester, '目标数量'), '2');
 
     await _pressUndo(tester);
 
     expect(_textFieldValue(tester, '正向提示词'), 'before prompt');
     expect(_textFieldValue(tester, '负向提示词'), 'before negative');
-    expect(find.text('1 张'), findsOneWidget);
+    expect(_textFieldValue(tester, '目标数量'), '1');
 
     await _pressRedo(tester);
 
     expect(_textFieldValue(tester, '正向提示词'), 'library prompt');
     expect(_textFieldValue(tester, '负向提示词'), 'library negative');
-    expect(find.text('2 张'), findsOneWidget);
+    expect(_textFieldValue(tester, '目标数量'), '2');
   });
 
   testWidgets('reset to defaults is undoable and keeps saved presets', (
@@ -397,7 +398,7 @@ void main() {
     expect(_textFieldValue(tester, '默认正向提示词'), 'custom prompt');
     expect(_textFieldValue(tester, '默认负向提示词'), 'custom negative');
     expect(find.text('1.5K 竖图 · 请求尺寸 1024x1536'), findsOneWidget);
-    expect(find.text('4 张'), findsOneWidget);
+    expect(_textFieldValue(tester, '默认生成数量'), '4');
     expect(find.text(preset.name), findsOneWidget);
 
     await _pressRedo(tester);

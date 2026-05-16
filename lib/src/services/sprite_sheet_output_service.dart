@@ -58,10 +58,12 @@ class SpriteSheetSaveResult {
 class SpriteSheetFileOutput {
   const SpriteSheetFileOutput({
     required this.path,
+    required this.metadataPath,
     required this.directoryPath,
   });
 
   final String path;
+  final String metadataPath;
   final String directoryPath;
 }
 
@@ -80,9 +82,33 @@ class SpriteSheetFileService {
       columns: columns,
     );
     await outputFile.writeAsBytes(pngBytes, flush: true);
+    final previewData = SpriteSheetPreviewComposer.buildFromSheetBytes(
+      pngBytes,
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    );
+    final metadataFile = File('${outputFile.path}.metadata.json');
+    await metadataFile.writeAsString(
+      const JsonEncoder.withIndent('  ').convert({
+        'schemaVersion': 1,
+        'imageFile': outputFile.uri.pathSegments.last,
+        'rows': previewData.rows,
+        'columns': previewData.columns,
+        'totalFrames': previewData.rows * previewData.columns,
+        'gridSpec': previewData.gridSpec.toJson(),
+        'sheetWidth': previewData.sheetWidth,
+        'sheetHeight': previewData.sheetHeight,
+        'frameWidth': previewData.frameWidth,
+        'frameHeight': previewData.frameHeight,
+        'createdAt': DateTime.now().toUtc().toIso8601String(),
+      }),
+      flush: true,
+    );
 
     return SpriteSheetFileOutput(
       path: outputFile.path,
+      metadataPath: metadataFile.path,
       directoryPath: outputFile.parent.path,
     );
   }

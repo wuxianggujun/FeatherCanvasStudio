@@ -54,6 +54,18 @@ void main() {
     expect(restoredSettings.advancedSettings.inputFidelity, 'high');
   });
 
+  test('persists onboarding completion flag', () async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final store = AppLocalStore();
+
+    expect(await store.loadOnboardingCompleted(), isFalse);
+
+    await store.saveOnboardingCompleted(true);
+
+    expect(await store.loadOnboardingCompleted(), isTrue);
+  });
+
   test('persists API configurations and selected configuration id', () async {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
@@ -222,6 +234,72 @@ void main() {
     },
   );
 
+  test('persists app preset advanced metadata', () async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final store = AppLocalStore();
+    final createdAt = DateTime.parse('2026-05-16T10:00:00Z');
+    final updatedAt = DateTime.parse('2026-05-16T11:00:00Z');
+    final preset = AppPreset(
+      id: 'preset-sheet-rich',
+      name: 'Rich sprite preset',
+      kind: AppPresetKind.spriteSheet,
+      prompt: 'walk cycle',
+      negativePrompt: 'blur',
+      size: '1536x1024',
+      rows: 2,
+      columns: 3,
+      advancedSettings: const ImageAdvancedSettings(
+        quality: 'high',
+        background: 'transparent',
+        outputFormat: 'webp',
+        outputCompression: 82,
+        moderation: 'low',
+        user: 'preset-user',
+        inputFidelity: 'high',
+      ),
+      gridSpec: const SpriteSheetGridSpec(
+        rows: 2,
+        columns: 3,
+        marginLeft: 1,
+        marginTop: 2,
+        columnGap: 1,
+      ),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      tags: const ['Hero', 'walk'],
+      favorite: true,
+    );
+
+    await store.savePresets([preset]);
+
+    final restored = (await store.loadPresets()).single;
+    final rawPresets = (await SharedPreferences.getInstance()).getString(
+      'appPresets.entries',
+    )!;
+    final rawPreset = (jsonDecode(rawPresets) as List<dynamic>).single
+        as Map<String, dynamic>;
+
+    expect(restored.advancedSettings.quality, 'high');
+    expect(restored.advancedSettings.background, 'transparent');
+    expect(restored.advancedSettings.outputFormat, 'webp');
+    expect(restored.advancedSettings.outputCompression, 82);
+    expect(restored.advancedSettings.moderation, 'low');
+    expect(restored.advancedSettings.user, 'preset-user');
+    expect(restored.advancedSettings.inputFidelity, 'high');
+    expect(restored.gridSpec?.rows, 2);
+    expect(restored.gridSpec?.columns, 3);
+    expect(restored.gridSpec?.marginTop, 2);
+    expect(restored.gridSpec?.columnGap, 1);
+    expect(restored.createdAt, createdAt);
+    expect(restored.updatedAt, updatedAt);
+    expect(restored.tags, ['Hero', 'walk']);
+    expect(restored.favorite, isTrue);
+    expect(rawPreset['gridSpec'], isA<Map<String, dynamic>>());
+    expect(rawPreset['createdAt'], createdAt.toIso8601String());
+    expect(rawPreset['favorite'], isTrue);
+  });
+
   test('restores gif preset json fields', () async {
     SharedPreferences.setMockInitialValues({
       'appPresets.entries': jsonEncode([
@@ -332,10 +410,12 @@ void main() {
     final keptFile = File(
       '${generatedDirectory.path}${Platform.pathSeparator}kept.png',
     );
+    final keptMetadataFile = File('${keptFile.path}.metadata.json');
     final orphanFile = File(
       '${generatedDirectory.path}${Platform.pathSeparator}orphan.png',
     );
     await keptFile.writeAsBytes([1, 2, 3], flush: true);
+    await keptMetadataFile.writeAsString('{}', flush: true);
     await orphanFile.writeAsBytes([4, 5, 6, 7], flush: true);
     final ephemeralFile = await store.saveEphemeralBytes(
       prefix: 'template',
@@ -356,6 +436,7 @@ void main() {
     );
 
     expect(await keptFile.exists(), isTrue);
+    expect(await keptMetadataFile.exists(), isTrue);
     expect(await orphanFile.exists(), isFalse);
     expect(await ephemeralFile.exists(), isFalse);
     expect(summary.removedGeneratedFiles, 1);

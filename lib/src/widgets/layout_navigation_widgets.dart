@@ -243,10 +243,11 @@ class FeatureNavigationRail extends StatelessWidget {
   int? get _selectedDestinationIndex {
     return switch (selectedFeature) {
       WorkspaceFeature.imageGeneration => 0,
-      WorkspaceFeature.frameAnimation => 1,
-      WorkspaceFeature.imageEditor => 2,
-      WorkspaceFeature.gifComposer => 3,
-      WorkspaceFeature.imageLibrary => 4,
+      WorkspaceFeature.batchGeneration => 1,
+      WorkspaceFeature.frameAnimation => 2,
+      WorkspaceFeature.imageEditor => 3,
+      WorkspaceFeature.gifComposer => 4,
+      WorkspaceFeature.imageLibrary => 5,
       WorkspaceFeature.apiSettings => null,
       WorkspaceFeature.localSettings => null,
     };
@@ -279,6 +280,11 @@ class FeatureNavigationRail extends StatelessWidget {
           label: Text('文本生图'),
         ),
         NavigationRailDestination(
+          icon: Icon(Icons.auto_awesome_motion_outlined),
+          selectedIcon: Icon(Icons.auto_awesome_motion),
+          label: Text('批量生成'),
+        ),
+        NavigationRailDestination(
           icon: Icon(Icons.movie_creation_outlined),
           selectedIcon: Icon(Icons.movie_creation),
           label: Text('帧动画'),
@@ -302,9 +308,10 @@ class FeatureNavigationRail extends StatelessWidget {
       onDestinationSelected: (index) {
         final feature = switch (index) {
           0 => WorkspaceFeature.imageGeneration,
-          1 => WorkspaceFeature.frameAnimation,
-          2 => WorkspaceFeature.imageEditor,
-          3 => WorkspaceFeature.gifComposer,
+          1 => WorkspaceFeature.batchGeneration,
+          2 => WorkspaceFeature.frameAnimation,
+          3 => WorkspaceFeature.imageEditor,
+          4 => WorkspaceFeature.gifComposer,
           _ => WorkspaceFeature.imageLibrary,
         };
         onFeatureSelected(feature);
@@ -323,7 +330,7 @@ class FeatureNavigationRail extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Divider(height: 24),
+                  const Divider(height: 20),
                   _NavigationRailAction(
                     extended: railExtended,
                     compact: compact,
@@ -334,7 +341,7 @@ class FeatureNavigationRail extends StatelessWidget {
                     onPressed: () =>
                         onFeatureSelected(WorkspaceFeature.apiSettings),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   _NavigationRailAction(
                     extended: railExtended,
                     compact: compact,
@@ -447,7 +454,7 @@ class _NavigationRailAction extends StatelessWidget {
           onTap: onPressed,
           child: SizedBox(
             width: 64,
-            height: 56,
+            height: 48,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

@@ -1,6 +1,7 @@
 import '../models/app_config.dart';
 import '../models/image_advanced_settings.dart';
 import '../services/image_api_client.dart';
+import 'generation_limits.dart';
 
 OpenAIImageRequest buildImageGenerationRequest({
   required ApiConfig apiConfig,
@@ -12,6 +13,7 @@ OpenAIImageRequest buildImageGenerationRequest({
   required String user,
   String? templateImagePath,
 }) {
+  final normalizedImageCount = normalizeImageGenerationRequestCount(imageCount);
   return OpenAIImageRequest(
     baseUrl: apiConfig.baseUrl,
     apiKey: apiConfig.apiKey.trim(),
@@ -19,7 +21,7 @@ OpenAIImageRequest buildImageGenerationRequest({
     prompt: prompt,
     negativePrompt: negativePrompt,
     size: requestSize,
-    imageCount: imageCount,
+    imageCount: normalizedImageCount,
     providerKind: apiConfig.providerKind,
     imageSizeCapabilityOverride: apiConfig.imageSizeCapabilityOverride,
     advancedSettings: advancedSettings.copyWith(user: user.trim()),
@@ -40,6 +42,7 @@ GenerationSnapshot buildGenerationSnapshot({
   required String user,
   DateTime? createdAt,
 }) {
+  final normalizedImageCount = normalizeImageGenerationRequestCount(imageCount);
   return GenerationSnapshot(
     id: groupId,
     createdAt: createdAt ?? DateTime.now(),
@@ -50,7 +53,7 @@ GenerationSnapshot buildGenerationSnapshot({
     prompt: prompt,
     negativePrompt: negativePrompt,
     size: requestSize,
-    imageCount: imageCount,
+    imageCount: normalizedImageCount,
     advancedSettings: advancedSettings.copyWith(user: user.trim()),
     resultCount: resultCount,
   );

@@ -9,6 +9,8 @@ enum ImageLibraryTileMenuAction {
   reuseGeneration,
   copyGeneration,
   makeBackgroundTransparent,
+  copyImage,
+  exportImage,
   copyPath,
   openLocation,
   delete,

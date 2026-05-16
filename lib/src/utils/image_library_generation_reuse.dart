@@ -1,5 +1,6 @@
 import '../models/app_config.dart';
 import '../models/image_advanced_settings.dart';
+import 'generation_limits.dart';
 import 'image_dimensions.dart';
 
 class ImageLibraryGenerationReuseDraft {
@@ -40,7 +41,7 @@ ImageLibraryGenerationReuseDraft buildImageLibraryGenerationReuseDraft({
       model: generation.model,
       capabilityOverride: generation.imageSizeCapabilityOverride,
     ),
-    imageCount: generation.imageCount,
+    imageCount: normalizeImageGenerationTargetCount(generation.imageCount),
     advancedSettings: generation.advancedSettings,
   );
 }

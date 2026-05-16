@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('renders the OpenAI-compatible workspace shell', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({'onboarding.completed': true});
     FlutterSecureStorage.setMockInitialValues({});
     await tester.pumpWidget(const FeatherCanvasApp());
     await tester.pump();
@@ -13,6 +13,7 @@ void main() {
 
     expect(find.text('FeatherCanvas Studio'), findsNothing);
     expect(find.text('文本生图'), findsWidgets);
+    expect(find.text('批量生成'), findsOneWidget);
     expect(find.text('帧动画'), findsOneWidget);
     expect(find.text('图片编辑器'), findsOneWidget);
     expect(find.text('GIF 合成'), findsOneWidget);
@@ -32,6 +33,24 @@ void main() {
     expect(find.text('生成图片'), findsOneWidget);
 
     await tester.tap(find.byTooltip('展开侧栏'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('批量生成'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('批量生成'), findsWidgets);
+    expect(find.text('队列控制'), findsOneWidget);
+    expect(find.text('接口配置'), findsWidgets);
+    expect(find.text('批量提示词'), findsOneWidget);
+    expect(find.text('负向提示词'), findsOneWidget);
+    expect(find.text('分辨率档位'), findsOneWidget);
+    expect(find.text('高级输出参数'), findsOneWidget);
+    expect(find.text('目标数量'), findsOneWidget);
+    expect(find.text('每批张数'), findsOneWidget);
+    expect(find.text('当前会把每条提示词拆成 25 个串行任务'), findsOneWidget);
+    expect(find.text('任务队列'), findsOneWidget);
+
+    await tester.tap(find.text('文本生图').first);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('1K 方图 · 1024x1024'));

@@ -5,6 +5,7 @@ import '../models/image_advanced_settings.dart';
 import '../models/image_asset_kind.dart';
 import '../models/image_library_item.dart';
 import '../models/sprite_sheet_grid_spec.dart';
+import '../utils/generation_limits.dart';
 import '../utils/image_dimensions.dart';
 import '../utils/image_generation_builders.dart';
 import '../utils/sprite_sheet_text.dart';
@@ -69,12 +70,15 @@ class ImageGenerationService {
       model: apiConfig.model,
       capabilityOverride: apiConfig.imageSizeCapabilityOverride,
     );
+    final normalizedImageCount = normalizeImageGenerationRequestCount(
+      imageCount,
+    );
     final request = buildImageGenerationRequest(
       apiConfig: apiConfig,
       prompt: prompt,
       negativePrompt: negativePrompt,
       requestSize: requestSize,
-      imageCount: imageCount,
+      imageCount: normalizedImageCount,
       advancedSettings: advancedSettings,
       user: user,
     );
@@ -94,7 +98,7 @@ class ImageGenerationService {
       prompt: prompt,
       negativePrompt: negativePrompt,
       requestSize: requestSize,
-      imageCount: imageCount,
+      imageCount: normalizedImageCount,
       resultCount: cachedImages.length,
       advancedSettings: advancedSettings,
       user: user,

@@ -26,11 +26,14 @@ class ImageLibraryWorkspace extends StatelessWidget {
     required this.onSelectVisible,
     required this.onClearSelection,
     required this.onDeleteSelected,
+    required this.onExportSelected,
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
     required this.onMakeBackgroundTransparent,
     required this.onEditMetadata,
+    required this.onCopyImage,
+    required this.onExportImage,
     required this.onCopyPath,
     required this.onOpenLocation,
     required this.onDelete,
@@ -58,11 +61,14 @@ class ImageLibraryWorkspace extends StatelessWidget {
   final VoidCallback onSelectVisible;
   final VoidCallback onClearSelection;
   final VoidCallback onDeleteSelected;
+  final VoidCallback onExportSelected;
   final ValueChanged<ImageLibraryItem> onUseInEditor;
   final ValueChanged<ImageLibraryItem> onReuseGeneration;
   final ValueChanged<ImageLibraryItem> onCopyGeneration;
   final ValueChanged<ImageLibraryItem> onMakeBackgroundTransparent;
   final ValueChanged<ImageLibraryItem> onEditMetadata;
+  final ValueChanged<ImageLibraryItem> onCopyImage;
+  final ValueChanged<ImageLibraryItem> onExportImage;
   final ValueChanged<ImageLibraryItem> onCopyPath;
   final ValueChanged<ImageLibraryItem> onOpenLocation;
   final ValueChanged<String> onDelete;
@@ -98,11 +104,14 @@ class ImageLibraryWorkspace extends StatelessWidget {
           onSelectVisible: onSelectVisible,
           onClearSelection: onClearSelection,
           onDeleteSelected: onDeleteSelected,
+          onExportSelected: onExportSelected,
           onUseInEditor: onUseInEditor,
           onReuseGeneration: onReuseGeneration,
           onCopyGeneration: onCopyGeneration,
           onMakeBackgroundTransparent: onMakeBackgroundTransparent,
           onEditMetadata: onEditMetadata,
+          onCopyImage: onCopyImage,
+          onExportImage: onExportImage,
           onCopyPath: onCopyPath,
           onOpenLocation: onOpenLocation,
           onDelete: onDelete,

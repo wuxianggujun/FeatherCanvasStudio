@@ -22,10 +22,50 @@ class OpenFileLocationResult {
   final String directoryPath;
 }
 
+enum ImageClipboardCopyStatus { imageCopied, pathCopied }
+
+class ImageClipboardCopyResult {
+  const ImageClipboardCopyResult.image()
+    : status = ImageClipboardCopyStatus.imageCopied,
+      fallbackPath = null;
+
+  const ImageClipboardCopyResult.path(this.fallbackPath)
+    : status = ImageClipboardCopyStatus.pathCopied;
+
+  final ImageClipboardCopyStatus status;
+  final String? fallbackPath;
+}
+
+class ImageFileExportResult {
+  const ImageFileExportResult({
+    required this.sourcePath,
+    required this.destinationPath,
+  });
+
+  final String sourcePath;
+  final String destinationPath;
+}
+
 class ImageLibraryFileService {
   const ImageLibraryFileService();
 
   static String? _trashSessionId;
+  static const String _windowsClipboardImagePathEnvironmentKey =
+      'FEATHER_CANVAS_CLIPBOARD_IMAGE_PATH';
+  static const String _windowsCopyImageCommand = r'''
+$path = [Environment]::GetEnvironmentVariable('FEATHER_CANVAS_CLIPBOARD_IMAGE_PATH')
+if ([string]::IsNullOrWhiteSpace($path)) {
+  throw 'Missing image path.'
+}
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+$image = [System.Drawing.Image]::FromFile($path)
+try {
+  [System.Windows.Forms.Clipboard]::SetImage($image)
+} finally {
+  $image.Dispose()
+}
+''';
 
   Future<bool> fileExists(String path) {
     return File(path).exists();
@@ -37,6 +77,108 @@ class ImageLibraryFileService {
 
   Future<void> copyTextToClipboard(String text) {
     return Clipboard.setData(ClipboardData(text: text));
+  }
+
+  Future<ImageFileExportResult> exportFileToPath({
+    required String sourcePath,
+    required String destinationPath,
+  }) async {
+    final source = File(sourcePath);
+    if (!await source.exists()) {
+      throw FileSystemException('Image file does not exist.', sourcePath);
+    }
+    final destination = File(destinationPath);
+    final parent = destination.parent;
+    if (!await parent.exists()) {
+      await parent.create(recursive: true);
+    }
+    await source.copy(destination.path);
+    return ImageFileExportResult(
+      sourcePath: source.path,
+      destinationPath: destination.path,
+    );
+  }
+
+  Future<ImageFileExportResult> exportBytesToPath({
+    required Uint8List bytes,
+    required String destinationPath,
+  }) async {
+    final destination = File(destinationPath);
+    final parent = destination.parent;
+    if (!await parent.exists()) {
+      await parent.create(recursive: true);
+    }
+    await destination.writeAsBytes(bytes, flush: true);
+    return ImageFileExportResult(
+      sourcePath: '',
+      destinationPath: destination.path,
+    );
+  }
+
+  Future<List<ImageFileExportResult>> exportFilesToDirectory({
+    required Iterable<String> sourcePaths,
+    required String directoryPath,
+  }) async {
+    final directory = Directory(directoryPath);
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    final results = <ImageFileExportResult>[];
+    for (final sourcePath in sourcePaths) {
+      final destinationPath = await _uniqueDestinationPath(
+        directory: directory,
+        fileName: fileNameFromPath(sourcePath),
+      );
+      results.add(
+        await exportFileToPath(
+          sourcePath: sourcePath,
+          destinationPath: destinationPath,
+        ),
+      );
+    }
+    return results;
+  }
+
+  Future<ImageClipboardCopyResult> copyImageFileToClipboard(String path) async {
+    final file = File(path);
+    if (!await file.exists()) {
+      throw FileSystemException('Image file does not exist.', path);
+    }
+
+    if (!Platform.isWindows) {
+      await copyTextToClipboard(path);
+      return ImageClipboardCopyResult.path(path);
+    }
+
+    final result = await Process.run(
+      'powershell.exe',
+      const [
+        '-NoProfile',
+        '-STA',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        _windowsCopyImageCommand,
+      ],
+      environment: {_windowsClipboardImagePathEnvironmentKey: file.path},
+    );
+    if (result.exitCode != 0) {
+      final stderrText = result.stderr.toString().trim();
+      final stdoutText = result.stdout.toString().trim();
+      final detail = stderrText.isNotEmpty ? stderrText : stdoutText;
+      throw StateError(
+        detail.isEmpty ? 'Windows clipboard image copy failed.' : detail,
+      );
+    }
+
+    return const ImageClipboardCopyResult.image();
+  }
+
+  Future<ImageClipboardCopyResult> copyImageBytesToClipboard(
+    Uint8List bytes,
+  ) async {
+    final file = await _writeClipboardTempImage(bytes);
+    return copyImageFileToClipboard(file.path);
   }
 
   Future<void> safeDeleteFile(String path) async {
@@ -68,8 +210,7 @@ class ImageLibraryFileService {
       final fileName = fileNameFromPath(originalPath);
       final unique =
           '${DateTime.now().microsecondsSinceEpoch}_${_randomSuffix()}_$fileName';
-      final trashPath =
-          '${sessionDir.path}${Platform.pathSeparator}$unique';
+      final trashPath = '${sessionDir.path}${Platform.pathSeparator}$unique';
       await _moveFile(source, trashPath);
       return trashPath;
     } catch (_) {
@@ -152,11 +293,53 @@ class ImageLibraryFileService {
     } catch (_) {
       baseDirectory = Directory.systemTemp;
     }
-    final dir = Directory('${baseDirectory.path}${Platform.pathSeparator}trash');
+    final dir = Directory(
+      '${baseDirectory.path}${Platform.pathSeparator}trash',
+    );
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
     return dir;
+  }
+
+  Future<File> _writeClipboardTempImage(Uint8List bytes) async {
+    Directory directory;
+    try {
+      directory = await getTemporaryDirectory();
+    } catch (_) {
+      directory = Directory.systemTemp;
+    }
+    final file = File(
+      '${directory.path}${Platform.pathSeparator}'
+      'feather_canvas_clipboard_${DateTime.now().microsecondsSinceEpoch}.png',
+    );
+    return file.writeAsBytes(bytes, flush: true);
+  }
+
+  Future<String> _uniqueDestinationPath({
+    required Directory directory,
+    required String fileName,
+  }) async {
+    final normalizedName = fileName.trim().isEmpty ? 'image.png' : fileName;
+    var candidate = '${directory.path}${Platform.pathSeparator}$normalizedName';
+    if (!await File(candidate).exists()) {
+      return candidate;
+    }
+
+    final dotIndex = normalizedName.lastIndexOf('.');
+    final stem = dotIndex <= 0
+        ? normalizedName
+        : normalizedName.substring(0, dotIndex);
+    final extension = dotIndex <= 0 ? '' : normalizedName.substring(dotIndex);
+    for (var index = 1; index < 10000; index++) {
+      candidate =
+          '${directory.path}${Platform.pathSeparator}$stem ($index)$extension';
+      if (!await File(candidate).exists()) {
+        return candidate;
+      }
+    }
+    return '${directory.path}${Platform.pathSeparator}'
+        '${DateTime.now().microsecondsSinceEpoch}_$normalizedName';
   }
 
   Future<void> _moveFile(File source, String destinationPath) async {

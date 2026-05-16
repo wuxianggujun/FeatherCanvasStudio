@@ -6,6 +6,7 @@ import '../models/app_config.dart';
 import '../models/exceptions.dart';
 import '../models/generated_image.dart';
 import '../models/image_advanced_settings.dart';
+import '../utils/generation_limits.dart';
 import '../utils/image_dimensions.dart';
 
 class OpenAIImageRequest {
@@ -39,6 +40,10 @@ class OpenAIImageRequest {
 
   bool get hasTemplateImage =>
       templateImagePath != null && templateImagePath!.trim().isNotEmpty;
+
+  int get normalizedImageCount => normalizeImageGenerationRequestCount(
+    imageCount,
+  );
 
   void validateForGeneration() {
     if (model.trim().isEmpty) {
@@ -90,7 +95,7 @@ class OpenAIImageRequest {
       'model': _effectiveModel,
       'prompt': _mergedPrompt,
       'size': _effectiveRequestSize,
-      'n': imageCount,
+      'n': normalizedImageCount,
       ...advancedSettings.toRequestFields(
         hasTemplateImage: hasTemplateImage,
         providerKind: providerKind,
@@ -136,7 +141,7 @@ class OpenAIImageRequest {
       'model': _effectiveModel,
       'prompt': _mergedPrompt,
       'size': _effectiveRequestSize,
-      'n': imageCount.toString(),
+      'n': normalizedImageCount.toString(),
       ...advancedSettings.toMultipartFields(
         hasTemplateImage: hasTemplateImage,
         providerKind: providerKind,
@@ -229,7 +234,7 @@ class OpenAIImageRequest {
         'model': _effectiveModel,
         'prompt': _mergedPrompt,
         'size': size,
-        'n': imageCount,
+        'n': normalizedImageCount,
         'validation_error': error.message,
       };
     }
@@ -243,7 +248,7 @@ class OpenAIImageRequest {
         'model': _effectiveModel,
         'prompt': _mergedPrompt,
         'size': size,
-        'n': imageCount.toString(),
+        'n': normalizedImageCount.toString(),
         'validation_error': error.message,
       };
     }

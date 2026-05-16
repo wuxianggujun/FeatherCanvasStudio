@@ -1,5 +1,6 @@
 import 'api_provider.dart';
 import 'image_advanced_settings.dart';
+import '../utils/generation_limits.dart';
 
 enum ImageSizeCapabilityOverride {
   auto,
@@ -189,7 +190,9 @@ class AppSettings {
       negativePrompt:
           json['negativePrompt'] as String? ?? defaults.negativePrompt,
       size: json['size'] as String? ?? defaults.size,
-      imageCount: (json['imageCount'] as num?)?.toInt() ?? defaults.imageCount,
+      imageCount: normalizeImageGenerationTargetCount(
+        (json['imageCount'] as num?)?.toInt() ?? defaults.imageCount,
+      ),
       advancedSettings: ImageAdvancedSettings.fromJson(json),
     );
   }
@@ -251,7 +254,9 @@ class GenerationSnapshot {
       prompt: json['prompt'] as String? ?? '',
       negativePrompt: json['negativePrompt'] as String? ?? '',
       size: json['size'] as String? ?? '',
-      imageCount: (json['imageCount'] as num?)?.toInt() ?? 1,
+      imageCount: normalizeImageGenerationCount(
+        (json['imageCount'] as num?)?.toInt() ?? 1,
+      ),
       resultCount: (json['resultCount'] as num?)?.toInt() ?? 0,
       advancedSettings: ImageAdvancedSettings.fromJson(json),
     );

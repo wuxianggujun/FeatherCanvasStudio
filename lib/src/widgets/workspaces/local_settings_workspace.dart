@@ -13,6 +13,8 @@ class LocalSettingsWorkspace extends StatelessWidget {
     required this.imageLibraryCount,
     required this.generatedPreviewCount,
     required this.isCleaningStorage,
+    required this.isExportingLibrary,
+    required this.isImportingLibrary,
     required this.providerKind,
     required this.model,
     required this.imageSizeCapabilityOverride,
@@ -30,6 +32,8 @@ class LocalSettingsWorkspace extends StatelessWidget {
     required this.onApplyPreset,
     required this.onDeletePreset,
     required this.onOpenApiSettings,
+    required this.onExportLibrary,
+    required this.onImportLibrary,
     required this.onCleanupStorage,
     required this.onResetToDefaults,
     super.key,
@@ -39,6 +43,8 @@ class LocalSettingsWorkspace extends StatelessWidget {
   final int imageLibraryCount;
   final int generatedPreviewCount;
   final bool isCleaningStorage;
+  final bool isExportingLibrary;
+  final bool isImportingLibrary;
   final ApiProviderKind providerKind;
   final String model;
   final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
@@ -56,6 +62,8 @@ class LocalSettingsWorkspace extends StatelessWidget {
   final ValueChanged<AppPreset> onApplyPreset;
   final ValueChanged<AppPreset> onDeletePreset;
   final VoidCallback onOpenApiSettings;
+  final VoidCallback onExportLibrary;
+  final VoidCallback onImportLibrary;
   final VoidCallback onCleanupStorage;
   final VoidCallback onResetToDefaults;
 
@@ -70,6 +78,8 @@ class LocalSettingsWorkspace extends StatelessWidget {
           imageLibraryCount: imageLibraryCount,
           generatedPreviewCount: generatedPreviewCount,
           isCleaningStorage: isCleaningStorage,
+          isExportingLibrary: isExportingLibrary,
+          isImportingLibrary: isImportingLibrary,
           providerKind: providerKind,
           model: model,
           imageSizeCapabilityOverride: imageSizeCapabilityOverride,
@@ -87,6 +97,8 @@ class LocalSettingsWorkspace extends StatelessWidget {
           onApplyPreset: onApplyPreset,
           onDeletePreset: onDeletePreset,
           onOpenApiSettings: onOpenApiSettings,
+          onExportLibrary: onExportLibrary,
+          onImportLibrary: onImportLibrary,
           onCleanupStorage: onCleanupStorage,
           onResetToDefaults: onResetToDefaults,
         ),

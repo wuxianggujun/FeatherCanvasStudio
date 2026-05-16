@@ -482,6 +482,182 @@ class _GridSpecStepButton extends StatelessWidget {
   }
 }
 
+class IntegerStepperField extends StatefulWidget {
+  const IntegerStepperField({
+    required this.label,
+    required this.value,
+    required this.minValue,
+    required this.onChanged,
+    this.maxValue,
+    this.suffixText,
+    this.helperText,
+    this.enabled = true,
+    super.key,
+  });
+
+  final String label;
+  final int value;
+  final int minValue;
+  final int? maxValue;
+  final String? suffixText;
+  final String? helperText;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+
+  @override
+  State<IntegerStepperField> createState() => _IntegerStepperFieldState();
+}
+
+class _IntegerStepperFieldState extends State<IntegerStepperField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _normalizedValue.toString());
+    _focusNode = FocusNode()..addListener(_normalizeWhenUnfocused);
+  }
+
+  @override
+  void didUpdateWidget(covariant IntegerStepperField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value == oldWidget.value &&
+        widget.minValue == oldWidget.minValue &&
+        widget.maxValue == oldWidget.maxValue) {
+      return;
+    }
+
+    final currentValue = int.tryParse(_controller.text);
+    if (!_focusNode.hasFocus || currentValue != _normalizedValue) {
+      _setText(_normalizedValue);
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_normalizeWhenUnfocused)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  int get _minValue {
+    final maxValue = widget.maxValue;
+    if (maxValue == null || widget.minValue <= maxValue) {
+      return widget.minValue;
+    }
+    return maxValue;
+  }
+
+  int? get _maxValue {
+    final maxValue = widget.maxValue;
+    if (maxValue == null) {
+      return null;
+    }
+    return maxValue >= widget.minValue ? maxValue : widget.minValue;
+  }
+
+  int get _normalizedValue => _normalizeValue(widget.value);
+
+  void _normalizeWhenUnfocused() {
+    if (!_focusNode.hasFocus) {
+      _setText(_normalizedText(_controller.text));
+    }
+  }
+
+  void _handleTextChanged(String text) {
+    if (text.isEmpty) {
+      return;
+    }
+    final value = _normalizedText(text);
+    if (value != widget.value) {
+      widget.onChanged(value);
+    }
+  }
+
+  void _changeBy(int delta) {
+    final value = _normalizeValue(widget.value + delta);
+    _setText(value);
+    if (value != widget.value) {
+      widget.onChanged(value);
+    }
+  }
+
+  int _normalizedText(String text) {
+    final value = int.tryParse(text) ?? _normalizedValue;
+    return _normalizeValue(value);
+  }
+
+  int _normalizeValue(int value) {
+    final minValue = _minValue;
+    if (value < minValue) {
+      return minValue;
+    }
+    final maxValue = _maxValue;
+    if (maxValue != null && value > maxValue) {
+      return maxValue;
+    }
+    return value;
+  }
+
+  void _setText(int value) {
+    final text = value.toString();
+    if (_controller.text == text) {
+      return;
+    }
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.enabled;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            enabled: enabled,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: widget.label,
+              suffixText: widget.suffixText,
+              helperText: widget.helperText,
+            ),
+            onChanged: _handleTextChanged,
+            onSubmitted: (value) => _setText(_normalizedText(value)),
+          ),
+        ),
+        const SizedBox(width: 6),
+        _GridSpecStepButton(
+          tooltip: '${widget.label}减少 1',
+          icon: Icons.remove,
+          onPressed: enabled && _normalizedValue > _minValue
+              ? () => _changeBy(-1)
+              : null,
+        ),
+        _GridSpecStepButton(
+          tooltip: '${widget.label}增加 1',
+          icon: Icons.add,
+          onPressed:
+              enabled && (_maxValue == null || _normalizedValue < _maxValue!)
+              ? () => _changeBy(1)
+              : null,
+        ),
+      ],
+    );
+  }
+}
+
 String _gridSpecSummary(SpriteSheetGridSpec gridSpec) {
   final parts = <String>[
     if (gridSpec.marginLeft > 0) '左 ${gridSpec.marginLeft}px',

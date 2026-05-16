@@ -33,12 +33,14 @@ class _LocalGenerationPresetSnapshot {
     required this.negativePrompt,
     required this.size,
     required this.imageCount,
+    required this.advancedSettings,
   });
 
   final String prompt;
   final String negativePrompt;
   final String size;
   final int imageCount;
+  final ImageAdvancedSettings advancedSettings;
 
   @override
   bool operator ==(Object other) {
@@ -47,11 +49,13 @@ class _LocalGenerationPresetSnapshot {
             prompt == other.prompt &&
             negativePrompt == other.negativePrompt &&
             size == other.size &&
-            imageCount == other.imageCount;
+            imageCount == other.imageCount &&
+            advancedSettings == other.advancedSettings;
   }
 
   @override
-  int get hashCode => Object.hash(prompt, negativePrompt, size, imageCount);
+  int get hashCode =>
+      Object.hash(prompt, negativePrompt, size, imageCount, advancedSettings);
 }
 
 class _SpriteSheetPresetSnapshot {
@@ -62,6 +66,7 @@ class _SpriteSheetPresetSnapshot {
     required this.rows,
     required this.columns,
     required this.gridSpec,
+    required this.advancedSettings,
   });
 
   final String prompt;
@@ -70,6 +75,7 @@ class _SpriteSheetPresetSnapshot {
   final int rows;
   final int columns;
   final SpriteSheetGridSpec gridSpec;
+  final ImageAdvancedSettings advancedSettings;
 
   @override
   bool operator ==(Object other) {
@@ -80,12 +86,20 @@ class _SpriteSheetPresetSnapshot {
             size == other.size &&
             rows == other.rows &&
             columns == other.columns &&
-            gridSpec == other.gridSpec;
+            gridSpec == other.gridSpec &&
+            advancedSettings == other.advancedSettings;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(prompt, negativePrompt, size, rows, columns, gridSpec);
+  int get hashCode => Object.hash(
+    prompt,
+    negativePrompt,
+    size,
+    rows,
+    columns,
+    gridSpec,
+    advancedSettings,
+  );
 }
 
 class _GifPresetSnapshot {
@@ -124,6 +138,7 @@ mixin _LocalSettingsStateMixin
   set _isRestoringState(bool value);
   WorkspaceFeature get _selectedFeature;
   List<ImageLibraryItem> get _imageLibrary;
+  set _imageLibrary(List<ImageLibraryItem> value);
   List<GeneratedImage> get _generatedImages;
   List<GeneratedImage> get _animationFrames;
   List<AppPreset> get _appPresets;
@@ -164,6 +179,8 @@ mixin _LocalSettingsStateMixin
   int _imageCount = defaultAppSettings.imageCount;
   ImageAdvancedSettings _advancedSettings = defaultAppSettings.advancedSettings;
   bool _isCleaningStorage = false;
+  bool _isExportingLibrary = false;
+  bool _isImportingLibrary = false;
   Timer? _settingsSaveDebounce;
   Timer? _generationTextHistoryDebounceTimer;
   _PendingGenerationTextHistory? _pendingGenerationTextHistory;
@@ -272,12 +289,13 @@ mixin _LocalSettingsStateMixin
 
   void _setImageCount(int value) {
     _flushPendingGenerationTextHistory();
+    final normalized = normalizeImageGenerationTargetCount(value);
     final before = _imageCount;
-    if (before == value) {
+    if (before == normalized) {
       return;
     }
 
-    setState(() => _imageCount = value);
+    setState(() => _imageCount = normalized);
     _scheduleSettingsSave();
     final feature = _generationFormHistoryFeature(
       includeFrameAnimation: false,
@@ -289,9 +307,9 @@ mixin _LocalSettingsStateMixin
     _pushGenerationFormFieldHistory<int>(
       feature: feature,
       key: _imageCountHistoryKey,
-      label: '调整生成数量为 $value 张',
+      label: '调整生成数量为 $normalized 张',
       before: before,
-      after: value,
+      after: normalized,
       restore: _restoreImageCount,
     );
   }
@@ -614,7 +632,7 @@ mixin _LocalSettingsStateMixin
       return;
     }
 
-    setState(() => _imageCount = value);
+    setState(() => _imageCount = normalizeImageGenerationTargetCount(value));
     await _saveSettings();
   }
 
@@ -661,6 +679,7 @@ mixin _LocalSettingsStateMixin
   }
 
   Future<void> _savePreset(AppPresetKind kind) async {
+    final now = DateTime.now();
     final preset = switch (kind) {
       AppPresetKind.localGeneration => AppPreset(
         id: AppPreset.newId(),
@@ -670,6 +689,9 @@ mixin _LocalSettingsStateMixin
         negativePrompt: _negativePromptController.text,
         size: _size,
         imageCount: _imageCount,
+        advancedSettings: _advancedSettings,
+        createdAt: now,
+        updatedAt: now,
       ),
       AppPresetKind.spriteSheet => AppPreset(
         id: AppPreset.newId(),
@@ -680,6 +702,10 @@ mixin _LocalSettingsStateMixin
         size: _size,
         rows: _animationRows,
         columns: _animationColumns,
+        advancedSettings: _advancedSettings,
+        gridSpec: _animationGridSpec,
+        createdAt: now,
+        updatedAt: now,
       ),
       AppPresetKind.gif => AppPreset(
         id: AppPreset.newId(),
@@ -688,6 +714,8 @@ mixin _LocalSettingsStateMixin
         gifDelayMs: _gifDefaultFrameDelayMs,
         gifLoopCount: _gifLoopCount,
         playbackMode: _gifPlaybackMode,
+        createdAt: now,
+        updatedAt: now,
       ),
     };
 
@@ -715,7 +743,8 @@ mixin _LocalSettingsStateMixin
             model: _modelController.text,
             capabilityOverride: _imageSizeCapabilityOverride,
           ),
-          imageCount: preset.imageCount,
+          imageCount: normalizeImageGenerationTargetCount(preset.imageCount),
+          advancedSettings: preset.advancedSettings,
         );
         await _restoreLocalGenerationPresetSnapshot(after);
         _pushPresetHistory<_LocalGenerationPresetSnapshot>(
@@ -737,10 +766,13 @@ mixin _LocalSettingsStateMixin
           ),
           rows: preset.rows,
           columns: preset.columns,
-          gridSpec: before.gridSpec.copyWith(
-            rows: preset.rows,
-            columns: preset.columns,
-          ),
+          gridSpec:
+              preset.gridSpec ??
+              before.gridSpec.copyWith(
+                rows: preset.rows,
+                columns: preset.columns,
+              ),
+          advancedSettings: preset.advancedSettings,
         );
         await _restoreSpriteSheetPresetSnapshot(after);
         _pushPresetHistory<_SpriteSheetPresetSnapshot>(
@@ -773,6 +805,7 @@ mixin _LocalSettingsStateMixin
       negativePrompt: _negativePromptController.text,
       size: _size,
       imageCount: _imageCount,
+      advancedSettings: _advancedSettings,
     );
   }
 
@@ -784,6 +817,7 @@ mixin _LocalSettingsStateMixin
       rows: _animationRows,
       columns: _animationColumns,
       gridSpec: _animationGridSpec,
+      advancedSettings: _advancedSettings,
     );
   }
 
@@ -841,7 +875,11 @@ mixin _LocalSettingsStateMixin
           model: _modelController.text,
           capabilityOverride: _imageSizeCapabilityOverride,
         );
-        _imageCount = snapshot.imageCount;
+        _imageCount = normalizeImageGenerationTargetCount(snapshot.imageCount);
+        _advancedSettings = snapshot.advancedSettings;
+        if (_userController.text != snapshot.advancedSettings.user) {
+          _userController.text = snapshot.advancedSettings.user;
+        }
       });
     } finally {
       _isRestoringState = false;
@@ -878,6 +916,10 @@ mixin _LocalSettingsStateMixin
         _animationRows = snapshot.rows;
         _animationColumns = snapshot.columns;
         _animationGridSpec = snapshot.gridSpec;
+        _advancedSettings = snapshot.advancedSettings;
+        if (_userController.text != snapshot.advancedSettings.user) {
+          _userController.text = snapshot.advancedSettings.user;
+        }
       });
     } finally {
       _isRestoringState = false;
@@ -947,12 +989,134 @@ mixin _LocalSettingsStateMixin
     }
   }
 
+  Future<void> _exportImageLibraryArchive() async {
+    if (_isExportingLibrary) {
+      return;
+    }
+
+    final location = await getSaveLocation(
+      acceptedTypeGroups: imageLibraryArchiveTypeGroups,
+      suggestedName: ImageLibraryArchiveService.suggestedArchiveName(),
+    );
+    if (location == null || !mounted) {
+      return;
+    }
+
+    setState(() => _isExportingLibrary = true);
+    try {
+      final result = await const ImageLibraryArchiveService().exportArchive(
+        items: _imageLibrary,
+        outputPath: location.path,
+      );
+      if (!mounted) {
+        return;
+      }
+      final skipped = result.skippedMissingCount == 0
+          ? ''
+          : '，跳过 ${result.skippedMissingCount} 个缺失文件';
+      _showMessage(
+        '已导出 ${result.exportedCount} 个作品$skipped：'
+        '${fileNameFromPath(result.path)}',
+      );
+    } on ImageLibraryArchiveException catch (error) {
+      if (!mounted) return;
+      _showMessage('导出作品库失败：${error.message}');
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage('导出作品库失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isExportingLibrary = false);
+      }
+    }
+  }
+
+  Future<void> _importImageLibraryArchive() async {
+    if (_isImportingLibrary) {
+      return;
+    }
+
+    final archive = await openFile(
+      acceptedTypeGroups: imageLibraryArchiveTypeGroups,
+    );
+    if (archive == null || !mounted) {
+      return;
+    }
+
+    setState(() => _isImportingLibrary = true);
+    try {
+      final result = await const ImageLibraryArchiveService().importArchive(
+        store: _store,
+        archivePath: archive.path,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final nextLibrary = [...result.importedItems, ..._imageLibrary];
+      await _store.saveImageLibrary(nextLibrary);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _imageLibrary = nextLibrary);
+      _pushHistory(
+        WorkspaceFeature.localSettings,
+        HistoryAction(
+          label: '导入作品库',
+          apply: () async {
+            final importedIds = {
+              for (final item in result.importedItems) item.id,
+            };
+            final merged = [
+              ...result.importedItems,
+              for (final item in _imageLibrary)
+                if (!importedIds.contains(item.id)) item,
+            ];
+            await _store.saveImageLibrary(merged);
+            if (mounted) {
+              setState(() => _imageLibrary = merged);
+            }
+          },
+          revert: () async {
+            final importedIds = {
+              for (final item in result.importedItems) item.id,
+            };
+            final remaining = [
+              for (final item in _imageLibrary)
+                if (!importedIds.contains(item.id)) item,
+            ];
+            await _store.saveImageLibrary(remaining);
+            if (mounted) {
+              setState(() => _imageLibrary = remaining);
+            }
+          },
+        ),
+      );
+      final skipped = result.skippedItems == 0
+          ? ''
+          : '，跳过 ${result.skippedItems} 个无效条目';
+      _showMessage('已导入 ${result.importedCount} 个作品$skipped');
+    } on ImageLibraryArchiveException catch (error) {
+      if (!mounted) return;
+      _showMessage('导入作品库失败：${error.message}');
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage('导入作品库失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingLibrary = false);
+      }
+    }
+  }
+
   Widget _buildLocalSettingsWorkspace() {
     return LocalSettingsWorkspace(
       apiConfigCount: _apiConfigs.length,
       imageLibraryCount: _imageLibrary.length,
       generatedPreviewCount: _generatedImages.length + _animationFrames.length,
       isCleaningStorage: _isCleaningStorage,
+      isExportingLibrary: _isExportingLibrary,
+      isImportingLibrary: _isImportingLibrary,
       providerKind: _apiConfigProviderKind,
       model: _modelController.text,
       imageSizeCapabilityOverride: _imageSizeCapabilityOverride,
@@ -971,6 +1135,8 @@ mixin _LocalSettingsStateMixin
       onDeletePreset: (preset) => unawaited(_deletePreset(preset)),
       onOpenApiSettings: () =>
           unawaited(_selectFeature(WorkspaceFeature.apiSettings)),
+      onExportLibrary: () => unawaited(_exportImageLibraryArchive()),
+      onImportLibrary: () => unawaited(_importImageLibraryArchive()),
       onCleanupStorage: () => unawaited(_cleanupLocalStorage()),
       onResetToDefaults: () => unawaited(_confirmResetToDefaults()),
     );

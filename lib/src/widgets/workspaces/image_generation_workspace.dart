@@ -29,6 +29,8 @@ class ImageGenerationWorkspace extends StatelessWidget {
     required this.onImageCountChanged,
     required this.onAdvancedSettingsChanged,
     required this.onGenerate,
+    required this.onCopyImage,
+    required this.onExportImage,
     required this.onMakeBackgroundTransparent,
     super.key,
   });
@@ -52,6 +54,8 @@ class ImageGenerationWorkspace extends StatelessWidget {
   final ValueChanged<int> onImageCountChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final VoidCallback onGenerate;
+  final void Function(int index, GeneratedImage image) onCopyImage;
+  final void Function(int index, GeneratedImage image) onExportImage;
   final void Function(int index, GeneratedImage image)
   onMakeBackgroundTransparent;
 
@@ -88,8 +92,11 @@ class ImageGenerationWorkspace extends StatelessWidget {
             errorMessage: errorMessage,
             generatedImages: generatedImages,
             isGenerating: isGenerating,
+            targetImageCount: imageCount,
             debugRecord: debugRecord,
             onRetry: onGenerate,
+            onCopyImage: onCopyImage,
+            onExportImage: onExportImage,
             onMakeBackgroundTransparent: onMakeBackgroundTransparent,
           ),
         ),

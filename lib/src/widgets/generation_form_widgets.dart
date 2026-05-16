@@ -5,6 +5,7 @@ import '../models/app_config.dart';
 import '../models/image_advanced_settings.dart';
 import '../models/sprite_sheet_grid_spec.dart';
 import '../theme/layout_constants.dart';
+import '../utils/generation_limits.dart';
 import '../utils/image_dimensions.dart';
 import '../widgets/api_settings_widgets.dart';
 import '../widgets/common_form_widgets.dart';
@@ -111,11 +112,14 @@ class ControlPanel extends StatelessWidget {
             onChanged: onAdvancedSettingsChanged,
           ),
           const SizedBox(height: fieldGap),
-          OptionDropdown<int>(
-            label: '数量',
+          IntegerStepperField(
+            label: '目标数量',
             value: imageCount,
-            options: const [1, 2, 3, 4],
-            labelBuilder: (value) => '$value 张',
+            minValue: minImageGenerationCount,
+            maxValue: maxImageGenerationTargetCount,
+            suffixText: '张',
+            helperText: '超过 $maxImageGenerationRequestCount 张会自动拆成多次请求',
+            enabled: !isGenerating,
             onChanged: onImageCountChanged,
           ),
           const SizedBox(height: sectionGap),

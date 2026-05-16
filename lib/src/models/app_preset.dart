@@ -1,4 +1,7 @@
 import '../services/gif_composer_service.dart';
+import '../utils/generation_limits.dart';
+import 'image_advanced_settings.dart';
+import 'sprite_sheet_grid_spec.dart';
 
 enum AppPresetKind { localGeneration, gif, spriteSheet }
 
@@ -16,6 +19,12 @@ class AppPreset {
     this.gifDelayMs = 120,
     this.gifLoopCount = 0,
     this.playbackMode = GifPlaybackMode.normal,
+    this.advancedSettings = const ImageAdvancedSettings(),
+    this.gridSpec,
+    this.createdAt,
+    this.updatedAt,
+    this.tags = const <String>[],
+    this.favorite = false,
   });
 
   factory AppPreset.fromJson(Map<String, dynamic> json) {
@@ -26,12 +35,20 @@ class AppPreset {
       prompt: json['prompt'] as String? ?? '',
       negativePrompt: json['negativePrompt'] as String? ?? '',
       size: json['size'] as String? ?? '1024x1024',
-      imageCount: _readPositiveInt(json['imageCount'], fallback: 1),
+      imageCount: normalizeImageGenerationTargetCount(
+        _readPositiveInt(json['imageCount'], fallback: 1),
+      ),
       rows: _readPositiveInt(json['rows'], fallback: 4),
       columns: _readPositiveInt(json['columns'], fallback: 4),
       gifDelayMs: _readPositiveInt(json['gifDelayMs'], fallback: 120),
       gifLoopCount: _readNonNegativeInt(json['gifLoopCount'], fallback: 0),
       playbackMode: parseGifPlaybackMode(json['playbackMode']),
+      advancedSettings: ImageAdvancedSettings.fromJson(json),
+      gridSpec: _gridSpecFromJson(json['gridSpec']),
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+      tags: _readStringList(json['tags']),
+      favorite: json['favorite'] == true,
     );
   }
 
@@ -49,6 +66,12 @@ class AppPreset {
   final int gifDelayMs;
   final int gifLoopCount;
   final GifPlaybackMode playbackMode;
+  final ImageAdvancedSettings advancedSettings;
+  final SpriteSheetGridSpec? gridSpec;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final List<String> tags;
+  final bool favorite;
 
   AppPreset copyWith({
     String? id,
@@ -63,6 +86,12 @@ class AppPreset {
     int? gifDelayMs,
     int? gifLoopCount,
     GifPlaybackMode? playbackMode,
+    ImageAdvancedSettings? advancedSettings,
+    SpriteSheetGridSpec? gridSpec,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<String>? tags,
+    bool? favorite,
   }) {
     return AppPreset(
       id: id ?? this.id,
@@ -71,12 +100,20 @@ class AppPreset {
       prompt: prompt ?? this.prompt,
       negativePrompt: negativePrompt ?? this.negativePrompt,
       size: size ?? this.size,
-      imageCount: imageCount ?? this.imageCount,
+      imageCount: normalizeImageGenerationTargetCount(
+        imageCount ?? this.imageCount,
+      ),
       rows: rows ?? this.rows,
       columns: columns ?? this.columns,
       gifDelayMs: gifDelayMs ?? this.gifDelayMs,
       gifLoopCount: gifLoopCount ?? this.gifLoopCount,
       playbackMode: playbackMode ?? this.playbackMode,
+      advancedSettings: advancedSettings ?? this.advancedSettings,
+      gridSpec: gridSpec ?? this.gridSpec,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      tags: tags ?? this.tags,
+      favorite: favorite ?? this.favorite,
     );
   }
 
@@ -94,6 +131,12 @@ class AppPreset {
       'gifDelayMs': gifDelayMs,
       'gifLoopCount': gifLoopCount,
       'playbackMode': serializeGifPlaybackMode(playbackMode),
+      ...advancedSettings.toJson(),
+      if (gridSpec != null) 'gridSpec': gridSpec!.toJson(),
+      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+      if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+      'tags': tags,
+      'favorite': favorite,
     };
   }
 
@@ -111,6 +154,36 @@ class AppPreset {
       return fallback;
     }
     return parsed;
+  }
+
+  static SpriteSheetGridSpec? _gridSpecFromJson(Object? value) {
+    if (value is! Map) {
+      return null;
+    }
+    try {
+      return SpriteSheetGridSpec.fromJson(Map<String, dynamic>.from(value));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static List<String> _readStringList(Object? value) {
+    if (value is! List) {
+      return const <String>[];
+    }
+    final tags = <String>[];
+    final seen = <String>{};
+    for (final raw in value) {
+      if (raw is! String) {
+        continue;
+      }
+      final normalized = raw.trim();
+      final key = normalized.toLowerCase();
+      if (normalized.isNotEmpty && seen.add(key)) {
+        tags.add(normalized);
+      }
+    }
+    return List.unmodifiable(tags);
   }
 }
 

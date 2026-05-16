@@ -286,37 +286,49 @@ mixin _ImageGenerationStateMixin
     try {
       final negativePrompt = _negativePromptController.text.trim();
       final user = _userController.text.trim();
-      final result = await _imageGenerationService.generateTextImages(
-        client: _client,
-        store: _store,
-        imageLibraryService: _imageLibraryService,
-        apiConfig: apiConfig,
-        prompt: prompt,
-        negativePrompt: negativePrompt,
-        size: _size,
-        imageCount: _imageCount,
-        advancedSettings: _advancedSettings,
-        user: user,
-        onDebugRecord: (record) => _imageRequestDebugRecord = record,
+      final targetImageCount = normalizeImageGenerationTargetCount(_imageCount);
+      final batches = splitImageGenerationBatches(
+        targetCount: targetImageCount,
+        requestCount: maxImageGenerationRequestCount,
       );
+      final allImages = <GeneratedImage>[];
+      final allLibraryItems = <ImageLibraryItem>[];
 
-      if (!mounted) {
-        return;
+      for (final batchCount in batches) {
+        final result = await _imageGenerationService.generateTextImages(
+          client: _client,
+          store: _store,
+          imageLibraryService: _imageLibraryService,
+          apiConfig: apiConfig,
+          prompt: prompt,
+          negativePrompt: negativePrompt,
+          size: _size,
+          imageCount: batchCount,
+          advancedSettings: _advancedSettings,
+          user: user,
+          onDebugRecord: (record) => _imageRequestDebugRecord = record,
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        allImages.addAll(result.cachedImages);
+        allLibraryItems.addAll(result.libraryItems);
+        setState(() {
+          _generatedImages = List<GeneratedImage>.unmodifiable(allImages);
+          _imageLibrary = [...result.libraryItems, ..._imageLibrary];
+        });
       }
-
-      setState(() {
-        _generatedImages = result.cachedImages;
-        _imageLibrary = [...result.libraryItems, ..._imageLibrary];
-      });
       _pushTextGenerationHistory(
-        label: '生成 ${result.cachedImages.length} 张图片',
+        label: '生成 ${allImages.length} 张图片',
         beforeImages: beforeImages,
         beforeDebugRecord: beforeDebugRecord,
-        afterImages: result.cachedImages,
+        afterImages: List<GeneratedImage>.unmodifiable(allImages),
         afterDebugRecord: _imageRequestDebugRecord,
-        appendedItems: result.libraryItems,
+        appendedItems: List<ImageLibraryItem>.unmodifiable(allLibraryItems),
       );
-      _showMessage('图片生成完成');
+      _showMessage('图片生成完成，共 ${allImages.length} 张');
     } on ImageGenerationException catch (error) {
       if (!mounted) {
         return;
@@ -364,6 +376,85 @@ mixin _ImageGenerationStateMixin
     }
 
     return _client.resolveImageBytes(image);
+  }
+
+  Future<ImageClipboardCopyResult> _copyGeneratedImageToClipboard(
+    GeneratedImage image,
+  ) async {
+    final filePath = image.filePath;
+    if (filePath != null) {
+      return _fileService.copyImageFileToClipboard(filePath);
+    }
+
+    final bytes = await _resolveGeneratedPreviewBytes(image);
+    return _fileService.copyImageBytesToClipboard(bytes);
+  }
+
+  void _showImageClipboardCopyResult(ImageClipboardCopyResult result) {
+    switch (result.status) {
+      case ImageClipboardCopyStatus.imageCopied:
+        _showMessage('图片已复制到剪贴板');
+      case ImageClipboardCopyStatus.pathCopied:
+        _showMessage('当前平台暂不支持直接复制图片，已复制图片路径');
+    }
+  }
+
+  Future<void> _copyGeneratedPreviewImage(GeneratedImage image) async {
+    try {
+      final result = await _copyGeneratedImageToClipboard(image);
+      if (!mounted) {
+        return;
+      }
+      _showImageClipboardCopyResult(result);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('复制图片失败：$error');
+    }
+  }
+
+  Future<void> _exportGeneratedPreviewImage(
+    int index,
+    GeneratedImage image,
+  ) async {
+    final location = await getSaveLocation(
+      acceptedTypeGroups: imageTypeGroups,
+      suggestedName: _suggestedGeneratedExportFileName(index, image),
+    );
+    if (location == null || !mounted) {
+      return;
+    }
+
+    try {
+      final filePath = image.filePath;
+      final result = filePath == null
+          ? await _fileService.exportBytesToPath(
+              bytes: await _resolveGeneratedPreviewBytes(image),
+              destinationPath: location.path,
+            )
+          : await _fileService.exportFileToPath(
+              sourcePath: filePath,
+              destinationPath: location.path,
+            );
+      if (!mounted) {
+        return;
+      }
+      _showMessage('图片已导出：${fileNameFromPath(result.destinationPath)}');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('导出图片失败：$error');
+    }
+  }
+
+  String _suggestedGeneratedExportFileName(int index, GeneratedImage image) {
+    final filePath = image.filePath;
+    if (filePath != null) {
+      return fileNameFromPath(filePath);
+    }
+    return 'generated-image-${index + 1}.png';
   }
 
   Future<void> _makeGeneratedImageBackgroundTransparent(
@@ -681,6 +772,10 @@ mixin _ImageGenerationStateMixin
       onImageCountChanged: _setImageCount,
       onAdvancedSettingsChanged: _setAdvancedSettings,
       onGenerate: _generateImage,
+      onCopyImage: (index, image) =>
+          unawaited(_copyGeneratedPreviewImage(image)),
+      onExportImage: (index, image) =>
+          unawaited(_exportGeneratedPreviewImage(index, image)),
       onMakeBackgroundTransparent: (index, image) =>
           unawaited(_makeGeneratedImageBackgroundTransparent(index, image)),
     );

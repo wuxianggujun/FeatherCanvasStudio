@@ -5,6 +5,7 @@ import '../models/app_preset.dart';
 import '../models/app_config.dart';
 import '../models/image_advanced_settings.dart';
 import '../theme/layout_constants.dart';
+import '../utils/generation_limits.dart';
 import '../widgets/image_advanced_settings_widgets.dart';
 import '../widgets/image_size_widgets.dart';
 import '../widgets/common_form_widgets.dart';
@@ -16,6 +17,8 @@ class LocalSettingsPanel extends StatelessWidget {
     required this.imageLibraryCount,
     required this.generatedPreviewCount,
     required this.isCleaningStorage,
+    required this.isExportingLibrary,
+    required this.isImportingLibrary,
     required this.providerKind,
     required this.model,
     required this.imageSizeCapabilityOverride,
@@ -33,6 +36,8 @@ class LocalSettingsPanel extends StatelessWidget {
     required this.onApplyPreset,
     required this.onDeletePreset,
     required this.onOpenApiSettings,
+    required this.onExportLibrary,
+    required this.onImportLibrary,
     required this.onCleanupStorage,
     required this.onResetToDefaults,
     super.key,
@@ -42,6 +47,8 @@ class LocalSettingsPanel extends StatelessWidget {
   final int imageLibraryCount;
   final int generatedPreviewCount;
   final bool isCleaningStorage;
+  final bool isExportingLibrary;
+  final bool isImportingLibrary;
   final ApiProviderKind providerKind;
   final String model;
   final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
@@ -59,6 +66,8 @@ class LocalSettingsPanel extends StatelessWidget {
   final ValueChanged<AppPreset> onApplyPreset;
   final ValueChanged<AppPreset> onDeletePreset;
   final VoidCallback onOpenApiSettings;
+  final VoidCallback onExportLibrary;
+  final VoidCallback onImportLibrary;
   final VoidCallback onCleanupStorage;
   final VoidCallback onResetToDefaults;
 
@@ -136,11 +145,13 @@ class LocalSettingsPanel extends StatelessWidget {
                 onChanged: onSizeChanged,
               ),
               const SizedBox(height: fieldGap),
-              OptionDropdown<int>(
+              IntegerStepperField(
                 label: '默认生成数量',
                 value: imageCount,
-                options: const [1, 2, 3, 4],
-                labelBuilder: (value) => '$value 张',
+                minValue: minImageGenerationCount,
+                maxValue: maxImageGenerationTargetCount,
+                suffixText: '张',
+                helperText: '超过 $maxImageGenerationRequestCount 张会自动拆成多次请求',
                 onChanged: onImageCountChanged,
               ),
               const SizedBox(height: fieldGap),
@@ -190,6 +201,46 @@ class LocalSettingsPanel extends StatelessWidget {
                     onDelete: () => onDeletePreset(preset),
                   ),
               ],
+            ],
+          ),
+        ),
+        const SizedBox(height: sectionGap),
+        AppPanel(
+          title: '作品库迁移',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '把作品库元数据和本地图片打包为 ZIP，或从 ZIP 导入到当前作品库。',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: fieldGap),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: isExportingLibrary || imageLibraryCount == 0
+                        ? null
+                        : onExportLibrary,
+                    icon: ButtonProgressIcon(
+                      isBusy: isExportingLibrary,
+                      icon: Icons.archive_outlined,
+                    ),
+                    label: Text(isExportingLibrary ? '导出中' : '导出作品库'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: isImportingLibrary ? null : onImportLibrary,
+                    icon: ButtonProgressIcon(
+                      isBusy: isImportingLibrary,
+                      icon: Icons.unarchive_outlined,
+                    ),
+                    label: Text(isImportingLibrary ? '导入中' : '导入作品库'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -380,7 +431,13 @@ String _presetSummary(AppPreset preset) {
     AppPresetKind.localGeneration => '${preset.size} · ${preset.imageCount} 张',
     AppPresetKind.spriteSheet =>
       '${preset.size} · ${preset.rows} x ${preset.columns}',
-    AppPresetKind.gif =>
-      '${preset.gifDelayMs} ms · ${preset.gifLoopCount == 0 ? '无限循环' : '播放 ${preset.gifLoopCount} 次'}',
+    AppPresetKind.gif => _gifPresetSummary(preset),
   };
+}
+
+String _gifPresetSummary(AppPreset preset) {
+  final loopLabel = preset.gifLoopCount == 0
+      ? '无限循环'
+      : '播放 ${preset.gifLoopCount} 次';
+  return '${preset.gifDelayMs} ms · $loopLabel';
 }

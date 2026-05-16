@@ -16,6 +16,41 @@ typedef ImageLibraryMetadataEdit = ({
   List<String> tags,
 });
 
+enum FirstRunSetupAction { openApiSettings, later }
+
+Future<FirstRunSetupAction?> showFirstRunSetupDialog(BuildContext context) {
+  return showDialog<FirstRunSetupAction>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('完成首次接口配置'),
+        content: const SizedBox(
+          width: 520,
+          child: Text(
+            '开始生成前需要先配置供应商、Base URL、API Key 和模型。'
+            '你可以现在打开接口配置页，也可以稍后从侧边栏的设置入口进入。',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop(FirstRunSetupAction.later),
+            child: const Text('稍后配置'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(
+              context,
+            ).pop(FirstRunSetupAction.openApiSettings),
+            icon: const Icon(Icons.tune_outlined),
+            label: const Text('打开接口配置'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 Future<ImagePickSource?> showImagePickSourceDialog(
   BuildContext context, {
   required String title,

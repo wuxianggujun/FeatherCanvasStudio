@@ -5,12 +5,16 @@ import '../models/image_asset_kind.dart';
 const List<XTypeGroup> imageTypeGroups = <XTypeGroup>[
   XTypeGroup(
     label: 'Images',
-    extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp'],
+    extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'],
   ),
 ];
 
 const List<XTypeGroup> templateImageTypeGroups = <XTypeGroup>[
   XTypeGroup(label: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp']),
+];
+
+const List<XTypeGroup> imageLibraryArchiveTypeGroups = <XTypeGroup>[
+  XTypeGroup(label: 'FeatherCanvas Library Archive', extensions: ['zip']),
 ];
 
 const List<ImageAssetKind> spriteSheetLibraryKinds = <ImageAssetKind>[

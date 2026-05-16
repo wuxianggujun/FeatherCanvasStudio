@@ -1,3 +1,4 @@
+export 'workspaces/batch_generation_workspace.dart';
 export 'workspaces/api_settings_workspace.dart';
 export 'workspaces/frame_animation_workspace.dart';
 export 'workspaces/gif_composer_workspace.dart';
