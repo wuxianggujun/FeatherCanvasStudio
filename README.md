@@ -60,21 +60,21 @@ flutter run -d windows
 正式发布使用 `Release` workflow。它由 `v*` tag 自动触发，构建完成后会把
 Android APK、Windows 安装包和 Windows 便携包上传到 GitHub Release。
 
-Flutter 的完整版本号仍写在 `pubspec.yaml` 中。例如：
+发布版本采用语义化版本号，写在 `pubspec.yaml` 中。例如：
 
 ```yaml
-version: 0.2.0+2
+version: 0.2.1
 ```
 
-这里的 `0.2.0` 是公开发布版本，`+2` 是 Flutter 内部构建号。
-GitHub Release 和 tag 只使用公开发布版本，不带 `+1`。
+GitHub Release 和 tag 使用同一个公开版本号，例如 `v0.2.1`，不追加
+Flutter build metadata。
 
-推送 `v0.2.0` tag 后会自动生成：
+推送 `v0.2.1` tag 后会自动生成：
 
-- GitHub Release：`FeatherCanvas Studio v0.2.0`
-- Android 产物：`feather-canvas-studio-v0.2.0-android.apk`
-- Windows 安装包：`feather-canvas-studio-v0.2.0-windows-setup.exe`
-- Windows 便携包：`feather-canvas-studio-v0.2.0-windows-portable.zip`
+- GitHub Release：`FeatherCanvas Studio v0.2.1`
+- Android 产物：`feather-canvas-studio-v0.2.1-android.apk`
+- Windows 安装包：`feather-canvas-studio-v0.2.1-windows-setup.exe`
+- Windows 便携包：`feather-canvas-studio-v0.2.1-windows-portable.zip`
 
 Windows 不能只发布裸 `exe`。Flutter Windows 产物需要同时带上
 `flutter_windows.dll`、`data/` 和插件 DLL 等运行文件，所以发布页会同时提供：
