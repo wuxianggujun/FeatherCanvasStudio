@@ -8,6 +8,7 @@ import '../theme/layout_constants.dart';
 import '../utils/api_config_logic.dart';
 import '../utils/date_formatting.dart';
 import '../utils/display_labels.dart';
+import '../utils/image_dimensions.dart';
 import '../widgets/common_form_widgets.dart';
 import '../widgets/layout_navigation_widgets.dart';
 
@@ -141,6 +142,7 @@ class ApiSettingsPanel extends StatelessWidget {
     required this.modelController,
     required this.timeoutController,
     required this.providerKind,
+    required this.imageSizeCapabilityOverride,
     required this.showApiKey,
     required this.availableModels,
     required this.isFetchingModels,
@@ -155,6 +157,7 @@ class ApiSettingsPanel extends StatelessWidget {
     required this.onFetchModels,
     required this.onModelSelected,
     required this.onProviderKindChanged,
+    required this.onImageSizeCapabilityOverrideChanged,
     required this.onToggleApiKeyVisibility,
     super.key,
   });
@@ -171,6 +174,7 @@ class ApiSettingsPanel extends StatelessWidget {
   final TextEditingController modelController;
   final TextEditingController timeoutController;
   final ApiProviderKind providerKind;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final bool showApiKey;
   final List<ApiModelInfo> availableModels;
   final bool isFetchingModels;
@@ -185,6 +189,8 @@ class ApiSettingsPanel extends StatelessWidget {
   final VoidCallback onFetchModels;
   final ValueChanged<String> onModelSelected;
   final ValueChanged<ApiProviderKind> onProviderKindChanged;
+  final ValueChanged<ImageSizeCapabilityOverride>
+  onImageSizeCapabilityOverrideChanged;
   final VoidCallback onToggleApiKeyVisibility;
 
   @override
@@ -238,6 +244,13 @@ class ApiSettingsPanel extends StatelessWidget {
             onFetchModels: onFetchModels,
             onModelSelected: onModelSelected,
             onToggleApiKeyVisibility: onToggleApiKeyVisibility,
+          ),
+          const SizedBox(height: fieldGap),
+          _ImageSizeCapabilityOverrideDropdown(
+            providerKind: providerKind,
+            model: modelController.text,
+            value: imageSizeCapabilityOverride,
+            onChanged: onImageSizeCapabilityOverrideChanged,
           ),
           const SizedBox(height: fieldGap),
           _GenerationTimeoutField(controller: timeoutController),

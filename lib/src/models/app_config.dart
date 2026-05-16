@@ -1,6 +1,43 @@
 import 'api_provider.dart';
 import 'image_advanced_settings.dart';
 
+enum ImageSizeCapabilityOverride {
+  auto,
+  fixedPresets,
+  customPixels,
+  aspectRatio,
+}
+
+String serializeImageSizeCapabilityOverride(
+  ImageSizeCapabilityOverride override,
+) {
+  return switch (override) {
+    ImageSizeCapabilityOverride.auto => 'auto',
+    ImageSizeCapabilityOverride.fixedPresets => 'fixedPresets',
+    ImageSizeCapabilityOverride.customPixels => 'customPixels',
+    ImageSizeCapabilityOverride.aspectRatio => 'aspectRatio',
+  };
+}
+
+ImageSizeCapabilityOverride parseImageSizeCapabilityOverride(
+  Object? value, {
+  ImageSizeCapabilityOverride fallback = ImageSizeCapabilityOverride.auto,
+}) {
+  if (value is String) {
+    switch (value.trim()) {
+      case 'auto':
+        return ImageSizeCapabilityOverride.auto;
+      case 'fixedPresets':
+        return ImageSizeCapabilityOverride.fixedPresets;
+      case 'customPixels':
+        return ImageSizeCapabilityOverride.customPixels;
+      case 'aspectRatio':
+        return ImageSizeCapabilityOverride.aspectRatio;
+    }
+  }
+  return fallback;
+}
+
 class ApiConfig {
   const ApiConfig({
     required this.id,
@@ -9,6 +46,7 @@ class ApiConfig {
     required this.apiKey,
     required this.model,
     this.providerKind = ApiProviderKind.compatible,
+    this.imageSizeCapabilityOverride = ImageSizeCapabilityOverride.auto,
     this.generationTimeoutSeconds = defaultGenerationTimeoutSeconds,
   });
 
@@ -40,6 +78,9 @@ class ApiConfig {
         json['providerKind'],
         fallback: defaults.providerKind,
       ),
+      imageSizeCapabilityOverride: parseImageSizeCapabilityOverride(
+        json['imageSizeCapabilityOverride'],
+      ),
       generationTimeoutSeconds: clampGenerationTimeoutSeconds(
         (json['generationTimeoutSeconds'] as num?)?.toInt(),
       ),
@@ -67,10 +108,10 @@ class ApiConfig {
   final String apiKey;
   final String model;
   final ApiProviderKind providerKind;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final int generationTimeoutSeconds;
 
-  Duration get generationTimeout =>
-      Duration(seconds: generationTimeoutSeconds);
+  Duration get generationTimeout => Duration(seconds: generationTimeoutSeconds);
 
   ApiConfig copyWith({
     String? id,
@@ -79,6 +120,7 @@ class ApiConfig {
     String? apiKey,
     String? model,
     ApiProviderKind? providerKind,
+    ImageSizeCapabilityOverride? imageSizeCapabilityOverride,
     int? generationTimeoutSeconds,
   }) {
     return ApiConfig(
@@ -88,6 +130,8 @@ class ApiConfig {
       apiKey: apiKey ?? this.apiKey,
       model: model ?? this.model,
       providerKind: providerKind ?? this.providerKind,
+      imageSizeCapabilityOverride:
+          imageSizeCapabilityOverride ?? this.imageSizeCapabilityOverride,
       generationTimeoutSeconds:
           generationTimeoutSeconds ?? this.generationTimeoutSeconds,
     );
@@ -101,6 +145,9 @@ class ApiConfig {
       'apiKey': apiKey,
       'model': model,
       'providerKind': serializeApiProviderKind(providerKind),
+      'imageSizeCapabilityOverride': serializeImageSizeCapabilityOverride(
+        imageSizeCapabilityOverride,
+      ),
       'generationTimeoutSeconds': generationTimeoutSeconds,
     };
   }
@@ -182,6 +229,7 @@ class GenerationSnapshot {
     required this.size,
     required this.imageCount,
     required this.resultCount,
+    this.imageSizeCapabilityOverride = ImageSizeCapabilityOverride.auto,
     this.advancedSettings = const ImageAdvancedSettings(),
   });
 
@@ -197,6 +245,9 @@ class GenerationSnapshot {
         json['providerKind'],
         fallback: ApiProviderKind.official,
       ),
+      imageSizeCapabilityOverride: parseImageSizeCapabilityOverride(
+        json['imageSizeCapabilityOverride'],
+      ),
       prompt: json['prompt'] as String? ?? '',
       negativePrompt: json['negativePrompt'] as String? ?? '',
       size: json['size'] as String? ?? '',
@@ -211,6 +262,7 @@ class GenerationSnapshot {
   final String baseUrl;
   final String model;
   final ApiProviderKind providerKind;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final String prompt;
   final String negativePrompt;
   final String size;
@@ -225,6 +277,9 @@ class GenerationSnapshot {
       'baseUrl': baseUrl,
       'model': model,
       'providerKind': serializeApiProviderKind(providerKind),
+      'imageSizeCapabilityOverride': serializeImageSizeCapabilityOverride(
+        imageSizeCapabilityOverride,
+      ),
       'prompt': prompt,
       'negativePrompt': negativePrompt,
       'size': size,

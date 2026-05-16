@@ -107,18 +107,9 @@ class GifComposerPanel extends StatelessWidget {
                             child: SizedBox(
                               width: 56,
                               height: 56,
-                              child: Image.file(
-                                File(frame.path),
+                              child: _GifFrameImage(
+                                frame: frame,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return ColoredBox(
-                                    color: theme.colorScheme.errorContainer,
-                                    child: Icon(
-                                      Icons.broken_image_outlined,
-                                      color: theme.colorScheme.onErrorContainer,
-                                    ),
-                                  );
-                                },
                               ),
                             ),
                           ),
@@ -128,23 +119,17 @@ class GifComposerPanel extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '${index + 1}. ${fileNameFromPath(frame.path)}',
+                                  '${index + 1}. ${frame.displayLabel}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 6),
-                                OptionDropdown<int>(
+                                _GifDelayField(
                                   label: '帧时长',
                                   value: frame.delayMs,
-                                  options: gifFrameDelayOptions,
-                                  labelBuilder: (value) => '$value ms',
-                                  isDense: true,
-                                  onChanged: isComposing
-                                      ? null
-                                      : (value) => onFrameDelayForImageChanged(
-                                          index,
-                                          value,
-                                        ),
+                                  enabled: !isComposing,
+                                  onChanged: (value) =>
+                                      onFrameDelayForImageChanged(index, value),
                                 ),
                               ],
                             ),
@@ -184,12 +169,11 @@ class GifComposerPanel extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: OptionDropdown<int>(
+                child: _GifDelayField(
                   label: '默认帧时长',
                   value: defaultFrameDelayMs,
-                  options: gifFrameDelayOptions,
-                  labelBuilder: (value) => '$value ms',
-                  onChanged: isComposing ? null : onFrameDelayChanged,
+                  enabled: !isComposing,
+                  onChanged: onFrameDelayChanged,
                 ),
               ),
               const SizedBox(width: 8),
@@ -292,7 +276,7 @@ class GifSourcePreviewPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${index + 1}. ${fileNameFromPath(frame.path)}',
+                      '${index + 1}. ${frame.displayLabel}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelLarge,
@@ -306,26 +290,10 @@ class GifSourcePreviewPanel extends StatelessWidget {
                     Expanded(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          File(frame.path),
+                        child: _GifFrameImage(
+                          frame: frame,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return ColoredBox(
-                              color: theme.colorScheme.errorContainer,
-                              child: Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Text(
-                                    '加载失败',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onErrorContainer,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
                         ),
                       ),
                     ),
@@ -333,6 +301,221 @@ class GifSourcePreviewPanel extends StatelessWidget {
                 );
               },
             ),
+    );
+  }
+}
+
+class _GifFrameImage extends StatelessWidget {
+  const _GifFrameImage({required this.frame, required this.fit, this.width});
+
+  final GifSourceFrame frame;
+  final BoxFit fit;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    final inlineBytes = frame.inlineBytes;
+    if (inlineBytes != null) {
+      return Image.memory(
+        inlineBytes,
+        width: width,
+        fit: fit,
+        gaplessPlayback: true,
+        errorBuilder: _buildError,
+      );
+    }
+
+    return Image.file(
+      File(frame.path),
+      width: width,
+      fit: fit,
+      gaplessPlayback: true,
+      errorBuilder: _buildError,
+    );
+  }
+
+  Widget _buildError(
+    BuildContext context,
+    Object error,
+    StackTrace? stackTrace,
+  ) {
+    final theme = Theme.of(context);
+    return ColoredBox(
+      color: theme.colorScheme.errorContainer,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            '加载失败',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onErrorContainer,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GifDelayField extends StatefulWidget {
+  const _GifDelayField({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+
+  @override
+  State<_GifDelayField> createState() => _GifDelayFieldState();
+}
+
+class _GifDelayFieldState extends State<_GifDelayField> {
+  static const int _minValue = 10;
+  static const int _maxValue = 60000;
+  static const int _step = 10;
+
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value.toString());
+    _focusNode = FocusNode()..addListener(_normalizeWhenUnfocused);
+  }
+
+  @override
+  void didUpdateWidget(covariant _GifDelayField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value == oldWidget.value) {
+      return;
+    }
+
+    final currentValue = int.tryParse(_controller.text);
+    if (!_focusNode.hasFocus || currentValue != widget.value) {
+      _setText(widget.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_normalizeWhenUnfocused)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _normalizeWhenUnfocused() {
+    if (!_focusNode.hasFocus) {
+      _setText(_normalizedValue(_controller.text));
+    }
+  }
+
+  void _handleTextChanged(String text) {
+    if (text.isEmpty) {
+      return;
+    }
+    final value = _normalizedValue(text);
+    if (value != widget.value) {
+      widget.onChanged(value);
+    }
+  }
+
+  void _changeBy(int delta) {
+    final value = (widget.value + delta).clamp(_minValue, _maxValue).toInt();
+    _setText(value);
+    if (value != widget.value) {
+      widget.onChanged(value);
+    }
+  }
+
+  int _normalizedValue(String text) {
+    final value = int.tryParse(text) ?? widget.value;
+    return value.clamp(_minValue, _maxValue).toInt();
+  }
+
+  void _setText(int value) {
+    final text = value.toString();
+    if (_controller.text == text) {
+      return;
+    }
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            enabled: widget.enabled,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: widget.label,
+              suffixText: 'ms',
+              isDense: true,
+            ),
+            onChanged: _handleTextChanged,
+            onSubmitted: (value) => _setText(_normalizedValue(value)),
+          ),
+        ),
+        const SizedBox(width: 6),
+        _GifDelayStepButton(
+          tooltip: '${widget.label}减少 10ms',
+          icon: Icons.remove,
+          onPressed: !widget.enabled || widget.value <= _minValue
+              ? null
+              : () => _changeBy(-_step),
+        ),
+        _GifDelayStepButton(
+          tooltip: '${widget.label}增加 10ms',
+          icon: Icons.add,
+          onPressed: !widget.enabled || widget.value >= _maxValue
+              ? null
+              : () => _changeBy(_step),
+        ),
+      ],
+    );
+  }
+}
+
+class _GifDelayStepButton extends StatelessWidget {
+  const _GifDelayStepButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 40,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ),
     );
   }
 }

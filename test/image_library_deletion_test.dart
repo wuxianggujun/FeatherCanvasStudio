@@ -134,7 +134,7 @@ void main() {
     );
 
     expect(draft.matchingConfigId, 'matching');
-    expect(draft.size, '683x1024');
+    expect(draft.size, '1024x1536');
     expect(draft.imageCount, 2);
     expect(draft.advancedSettings.user, 'user-1');
   });

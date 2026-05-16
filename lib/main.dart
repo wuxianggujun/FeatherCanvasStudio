@@ -1,26 +1,33 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import 'src/history/history_action.dart';
+import 'src/history/history_intents.dart';
+import 'src/history/history_stack.dart';
 import 'src/models/api_provider.dart';
 import 'src/models/app_config.dart';
+import 'src/models/app_preset.dart';
 import 'src/models/exceptions.dart';
 import 'src/models/image_asset_kind.dart';
 import 'src/models/generated_image.dart';
 import 'src/models/image_library_item.dart';
 import 'src/models/image_advanced_settings.dart';
 import 'src/models/sprite_sheet_frame_fit.dart';
+import 'src/models/sprite_sheet_grid_spec.dart';
 import 'src/models/workspace_feature.dart';
 import 'src/models/ui_state.dart';
 import 'src/services/api_config_service.dart';
 import 'src/services/app_local_store.dart';
+import 'src/services/background_transparency_service.dart';
 import 'src/services/gif_composer_service.dart';
 import 'src/services/image_api_client.dart';
 import 'src/services/image_generation_service.dart';
 import 'src/services/image_library_file_service.dart';
 import 'src/services/image_library_service.dart';
+import 'src/services/patch_image_framing_service.dart';
 import 'src/services/sprite_sheet_service.dart';
 import 'src/utils/api_config_logic.dart';
 import 'src/utils/app_defaults.dart';
@@ -34,10 +41,13 @@ import 'src/utils/image_selection_logic.dart';
 import 'src/utils/image_dimensions.dart';
 import 'src/utils/list_reorder.dart';
 import 'src/widgets/app_dialogs.dart';
+import 'src/widgets/background_transparency_dialog.dart';
 import 'src/widgets/layout_navigation_widgets.dart';
+import 'src/widgets/patch_image_framing_dialog.dart';
 import 'src/widgets/workspaces.dart';
 part 'src/home/api_config_state.dart';
 part 'src/home/editor_gif_state.dart';
+part 'src/home/history_state.dart';
 part 'src/home/home_shell_state.dart';
 part 'src/home/image_generation_state.dart';
 part 'src/home/image_library_state.dart';
@@ -96,6 +106,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
         _ImageLibraryStateMixin,
         _EditorGifStateMixin,
         _ImageGenerationStateMixin,
+        _HistoryStateMixin,
         _HomeShellStateMixin {
   @override
   final TextEditingController _animationPromptController =
@@ -118,9 +129,19 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   @override
   int _animationColumns = defaultAnimationColumns;
   @override
+  SpriteSheetGridSpec _animationGridSpec = const SpriteSheetGridSpec(
+    rows: defaultAnimationRows,
+    columns: defaultAnimationColumns,
+  );
+  @override
   int _editorRows = defaultEditorRows;
   @override
   int _editorColumns = defaultEditorColumns;
+  @override
+  SpriteSheetGridSpec _editorGridSpec = const SpriteSheetGridSpec(
+    rows: defaultEditorRows,
+    columns: defaultEditorColumns,
+  );
   @override
   int _editorTargetFrameIndex = defaultEditorTargetFrameIndex;
   @override
@@ -137,6 +158,8 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   bool _isBootstrapping = true;
   @override
   bool _isRestoringState = false;
+  @override
+  List<AppPreset> _appPresets = const [];
   @override
   String? _errorMessage;
   @override
@@ -159,6 +182,8 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   String? _editorPatchImagePath;
   @override
   String? _editorErrorMessage;
+  @override
+  bool _isImageEditorFocusMode = false;
   @override
   List<GifSourceFrame> _gifSourceFrames = const [];
   @override
@@ -192,6 +217,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     _disposeApiConfigState();
     _disposeLocalSettingsState();
     _disposeImageLibraryState();
+    _disposeHistoryState();
     _client.close();
     _scrollController.dispose();
     _animationPromptController.dispose();
@@ -199,6 +225,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
       unawaited(_fileService.safeDeleteFile(path));
     }
     _ephemeralTemplatePaths.clear();
+    unawaited(_fileService.purgeCurrentTrashSession());
     super.dispose();
   }
 }

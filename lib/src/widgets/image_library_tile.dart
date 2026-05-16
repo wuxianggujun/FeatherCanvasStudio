@@ -8,6 +8,7 @@ class _ImageLibraryTile extends StatelessWidget {
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
+    required this.onMakeBackgroundTransparent,
     required this.onEditMetadata,
     required this.onCopyPath,
     required this.onOpenLocation,
@@ -22,6 +23,7 @@ class _ImageLibraryTile extends StatelessWidget {
   final VoidCallback onUseInEditor;
   final VoidCallback onReuseGeneration;
   final VoidCallback onCopyGeneration;
+  final VoidCallback onMakeBackgroundTransparent;
   final VoidCallback onEditMetadata;
   final VoidCallback onCopyPath;
   final VoidCallback onOpenLocation;
@@ -230,6 +232,9 @@ class _ImageLibraryTile extends StatelessWidget {
                             onReuseGeneration();
                           case ImageLibraryTileMenuAction.copyGeneration:
                             onCopyGeneration();
+                          case ImageLibraryTileMenuAction
+                              .makeBackgroundTransparent:
+                            onMakeBackgroundTransparent();
                           case ImageLibraryTileMenuAction.copyPath:
                             onCopyPath();
                           case ImageLibraryTileMenuAction.openLocation:
@@ -263,6 +268,15 @@ class _ImageLibraryTile extends StatelessWidget {
                             ),
                           ),
                         ],
+                        if (item.canMakeBackgroundTransparent)
+                          const PopupMenuItem(
+                            value: ImageLibraryTileMenuAction
+                                .makeBackgroundTransparent,
+                            child: ListTile(
+                              leading: Icon(Icons.auto_fix_high_outlined),
+                              title: Text('背景转透明'),
+                            ),
+                          ),
                         const PopupMenuItem(
                           value: ImageLibraryTileMenuAction.copyPath,
                           child: ListTile(

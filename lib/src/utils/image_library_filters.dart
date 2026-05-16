@@ -12,6 +12,8 @@ bool imageLibraryItemMatchesSearch(ImageLibraryItem item, String query) {
     item.displayTitle,
     item.source,
     item.note,
+    item.project,
+    ...item.tags,
     item.prompt ?? '',
     item.generation?.prompt ?? '',
     item.generation?.negativePrompt ?? '',
@@ -28,6 +30,25 @@ bool imageLibraryItemMatchesSearch(ImageLibraryItem item, String query) {
       .split(RegExp(r'\s+'))
       .where((part) => part.isNotEmpty)
       .every(searchableText.contains);
+}
+
+bool imageLibraryItemMatchesProject(
+  ImageLibraryItem item,
+  String selectedProject,
+) {
+  final normalizedProject = selectedProject.trim().toLowerCase();
+  if (normalizedProject.isEmpty) {
+    return true;
+  }
+  return item.project.trim().toLowerCase() == normalizedProject;
+}
+
+bool imageLibraryItemMatchesTag(ImageLibraryItem item, String selectedTag) {
+  final normalizedTag = selectedTag.trim().toLowerCase();
+  if (normalizedTag.isEmpty) {
+    return true;
+  }
+  return item.tags.any((tag) => tag.trim().toLowerCase() == normalizedTag);
 }
 
 int compareImageLibraryItems(

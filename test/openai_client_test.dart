@@ -34,7 +34,7 @@ void main() {
 
         final body = jsonDecode(request.body) as Map<String, dynamic>;
         expect(body['prompt'], contains('Avoid: blurry'));
-        expect(body['size'], '4096x4096');
+        expect(body['size'], '2048x2048');
         expect(body['quality'], 'high');
         expect(body['background'], 'transparent');
         expect(body['output_format'], 'webp');
@@ -63,7 +63,7 @@ void main() {
         model: 'gpt-image-2',
         prompt: 'hello',
         negativePrompt: 'blurry',
-        size: '4096x4096',
+        size: '2048x2048',
         imageCount: 1,
         advancedSettings: ImageAdvancedSettings(
           quality: 'high',
@@ -111,7 +111,51 @@ void main() {
     expect(response.images.single.url, 'https://example.com/image.png');
   });
 
-  test('OpenAI image request normalizes size to 16-pixel steps', () {
+  test('gpt-image-2 request allows valid custom sizes', () {
+    const request = OpenAIImageRequest(
+      baseUrl: 'https://api.openai.com/v1',
+      apiKey: 'token',
+      model: 'gpt-image-2',
+      prompt: 'hello',
+      negativePrompt: '',
+      size: '688x1024',
+      imageCount: 1,
+    );
+
+    expect(request.toJson()['size'], '688x1024');
+  });
+
+  test('gpt-image-2 custom capabilities expose 2K and 4K presets', () {
+    final capabilities = imageModelCapabilitiesFor(
+      providerKind: ApiProviderKind.official,
+      model: 'gpt-image-2',
+    );
+
+    expect(
+      capabilities.presets.map((preset) => preset.size),
+      containsAll(<String>[
+        '2048x2048',
+        '2048x1152',
+        '1152x2048',
+        '3840x2160',
+        '2160x3840',
+      ]),
+    );
+  });
+
+  test('compatible gpt-image-2 auto capabilities expose 4K presets', () {
+    final capabilities = imageModelCapabilitiesFor(
+      providerKind: ApiProviderKind.compatible,
+      model: 'gpt-image-2',
+    );
+
+    expect(
+      capabilities.presets.map((preset) => preset.size),
+      containsAll(<String>['3840x2160', '2160x3840']),
+    );
+  });
+
+  test('gpt-image-2 request rejects non-step custom sizes', () {
     const request = OpenAIImageRequest(
       baseUrl: 'https://api.openai.com/v1',
       apiKey: 'token',
@@ -122,21 +166,81 @@ void main() {
       imageCount: 1,
     );
 
-    expect(request.toJson()['size'], '688x1024');
+    expect(request.toJson, throwsA(isA<ImageGenerationException>()));
   });
 
-  test('OpenAI image request clamps extreme custom sizes', () {
+  test('gpt-image-2 request rejects low-pixel custom sizes', () {
     const request = OpenAIImageRequest(
       baseUrl: 'https://api.openai.com/v1',
       apiKey: 'token',
       model: 'gpt-image-2',
       prompt: 'hello',
       negativePrompt: '',
-      size: '25x2049',
+      size: '256x1024',
       imageCount: 1,
     );
 
-    expect(request.toJson()['size'], '512x2048');
+    expect(request.toJson, throwsA(isA<ImageGenerationException>()));
+  });
+
+  test('gpt-image-2 request rejects oversized custom sizes', () {
+    const request = OpenAIImageRequest(
+      baseUrl: 'https://api.openai.com/v1',
+      apiKey: 'token',
+      model: 'gpt-image-2',
+      prompt: 'hello',
+      negativePrompt: '',
+      size: '3840x3840',
+      imageCount: 1,
+    );
+
+    expect(request.toJson, throwsA(isA<ImageGenerationException>()));
+  });
+
+  test('manual custom size capability allows custom compatible models', () {
+    const request = OpenAIImageRequest(
+      baseUrl: 'https://proxy.example.com/v1',
+      apiKey: 'token',
+      model: 'custom-image-model',
+      prompt: 'hello',
+      negativePrompt: '',
+      size: '688x1024',
+      imageCount: 1,
+      providerKind: ApiProviderKind.compatible,
+      imageSizeCapabilityOverride: ImageSizeCapabilityOverride.customPixels,
+    );
+
+    expect(request.toJson()['size'], '688x1024');
+  });
+
+  test('compatible gpt-image-2 defaults to custom pixel capability', () {
+    const request = OpenAIImageRequest(
+      baseUrl: 'https://proxy.example.com/v1',
+      apiKey: 'token',
+      model: 'gpt-image-2',
+      prompt: 'hello',
+      negativePrompt: '',
+      size: '688x1024',
+      imageCount: 1,
+      providerKind: ApiProviderKind.compatible,
+    );
+
+    expect(request.toJson()['size'], '688x1024');
+  });
+
+  test('manual fixed size capability rejects custom gpt-image-2 sizes', () {
+    const request = OpenAIImageRequest(
+      baseUrl: 'https://api.openai.com/v1',
+      apiKey: 'token',
+      model: 'gpt-image-2',
+      prompt: 'hello',
+      negativePrompt: '',
+      size: '688x1024',
+      imageCount: 1,
+      imageSizeCapabilityOverride: ImageSizeCapabilityOverride.fixedPresets,
+    );
+
+    expect(request.toJson, throwsA(isA<ImageGenerationException>()));
   });
 
   test('requests one image when generating a sprite sheet', () async {
@@ -307,6 +411,46 @@ void main() {
     expect(debugRecord?.toJson()['response']['error'], contains('生图请求超时'));
     expect(debugRecord?.toJson()['durationMs'], isA<int>());
   });
+
+  test(
+    'records request-stage stack overflow failures in debug details',
+    () async {
+      ImageRequestDebugRecord? debugRecord;
+      final client = OpenAICompatibleImageClient(
+        httpClient: MockClient((request) {
+          throw StackOverflowError();
+        }),
+      );
+
+      await expectLater(
+        () => client.generate(
+          const OpenAIImageRequest(
+            baseUrl: 'https://api.openai.com/v1',
+            apiKey: 'token',
+            model: 'gpt-image-2',
+            prompt: 'hello',
+            negativePrompt: '',
+            size: '2160x3840',
+            imageCount: 1,
+          ),
+          onDebugRecord: (record) => debugRecord = record,
+        ),
+        throwsA(
+          isA<ImageGenerationException>().having(
+            (error) => error.message,
+            'message',
+            allOf(contains('发送阶段'), contains('Stack Overflow')),
+          ),
+        ),
+      );
+
+      final response =
+          debugRecord?.toJson()['response'] as Map<String, dynamic>?;
+      expect(response?['statusCode'], isNull);
+      expect(response?['error'], contains('发送阶段'));
+      expect(response?['stackTrace'], isA<String>());
+    },
+  );
 
   test('rejects generation when model is empty', () async {
     var requestSent = false;
@@ -809,6 +953,49 @@ void main() {
     expect(rawBody, contains('<base64 elided: 4096 chars>'));
     expect(debugRecord!.formattedJson, isNot(contains(largeBase64)));
   });
+
+  test(
+    'sanitizes very large image response bodies without regex overflow',
+    () async {
+      final largeBase64 = 'A' * 2000000;
+      ImageRequestDebugRecord? debugRecord;
+      final client = OpenAICompatibleImageClient(
+        httpClient: MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'data': [
+                {'b64_json': largeBase64},
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      await client.generate(
+        const OpenAIImageRequest(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'token',
+          model: 'gpt-image-2',
+          prompt: 'hello',
+          negativePrompt: '',
+          size: '2160x3840',
+          imageCount: 1,
+        ),
+        onDebugRecord: (record) => debugRecord = record,
+      );
+
+      final json = debugRecord!.toJson();
+      final rawBody = json['response']['body'] as String;
+      final decoded = json['response']['json'] as Map<String, dynamic>;
+      final first = (decoded['data'] as List).first as Map<String, dynamic>;
+
+      expect(first['b64_json'], '<base64 elided: 2000000 chars>');
+      expect(rawBody, contains('<base64 elided: 2000000 chars>'));
+      expect(rawBody, isNot(contains(largeBase64)));
+      expect(debugRecord!.formattedJson, isNot(contains(largeBase64)));
+    },
+  );
 
   test('honors per-request generation timeout', () async {
     var requestStarted = false;

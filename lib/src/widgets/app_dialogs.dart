@@ -8,7 +8,12 @@ import '../theme/layout_constants.dart';
 import '../widgets/image_library_widgets.dart';
 import '../widgets/layout_navigation_widgets.dart';
 
-typedef ImageLibraryMetadataEdit = ({String title, String note});
+typedef ImageLibraryMetadataEdit = ({
+  String title,
+  String note,
+  String project,
+  List<String> tags,
+});
 
 Future<ImagePickSource?> showImagePickSourceDialog(
   BuildContext context, {
@@ -125,6 +130,8 @@ Future<ImageLibraryMetadataEdit?> showImageLibraryMetadataDialog(
 ) async {
   final titleController = TextEditingController(text: item.displayTitle);
   final noteController = TextEditingController(text: item.note);
+  final projectController = TextEditingController(text: item.project);
+  final tagsController = TextEditingController(text: item.tags.join(', '));
   try {
     return await showDialog<ImageLibraryMetadataEdit>(
       context: context,
@@ -151,6 +158,23 @@ Future<ImageLibraryMetadataEdit?> showImageLibraryMetadataDialog(
                   minLines: 3,
                   maxLines: 5,
                 ),
+                const SizedBox(height: fieldGap),
+                TextField(
+                  controller: projectController,
+                  decoration: const InputDecoration(
+                    labelText: '项目',
+                    hintText: '例如：角色 A、Demo 游戏、UI 图标集',
+                  ),
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: fieldGap),
+                TextField(
+                  controller: tagsController,
+                  decoration: const InputDecoration(
+                    labelText: '标签',
+                    hintText: '用逗号分隔，例如：idle, run, pixel',
+                  ),
+                ),
               ],
             ),
           ),
@@ -160,9 +184,16 @@ Future<ImageLibraryMetadataEdit?> showImageLibraryMetadataDialog(
               child: const Text('取消'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(
-                context,
-              ).pop((title: titleController.text, note: noteController.text)),
+              onPressed: () => Navigator.of(context).pop((
+                title: titleController.text,
+                note: noteController.text,
+                project: projectController.text,
+                tags: tagsController.text
+                    .split(RegExp(r'[,，]'))
+                    .map((tag) => tag.trim())
+                    .where((tag) => tag.isNotEmpty)
+                    .toList(),
+              )),
               child: const Text('保存'),
             ),
           ],
@@ -172,6 +203,8 @@ Future<ImageLibraryMetadataEdit?> showImageLibraryMetadataDialog(
   } finally {
     titleController.dispose();
     noteController.dispose();
+    projectController.dispose();
+    tagsController.dispose();
   }
 }
 

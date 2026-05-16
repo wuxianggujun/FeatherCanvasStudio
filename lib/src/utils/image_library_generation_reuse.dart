@@ -24,7 +24,9 @@ ImageLibraryGenerationReuseDraft buildImageLibraryGenerationReuseDraft({
   for (final config in apiConfigs) {
     if (config.baseUrl == generation.baseUrl &&
         config.model == generation.model &&
-        config.providerKind == generation.providerKind) {
+        config.providerKind == generation.providerKind &&
+        config.imageSizeCapabilityOverride ==
+            generation.imageSizeCapabilityOverride) {
       matchingConfigId = config.id;
       break;
     }
@@ -32,7 +34,12 @@ ImageLibraryGenerationReuseDraft buildImageLibraryGenerationReuseDraft({
 
   return ImageLibraryGenerationReuseDraft(
     matchingConfigId: matchingConfigId,
-    size: imageDimensionsFromSize(generation.size).size,
+    size: safeImageSizeForModel(
+      size: generation.size,
+      providerKind: generation.providerKind,
+      model: generation.model,
+      capabilityOverride: generation.imageSizeCapabilityOverride,
+    ),
     imageCount: generation.imageCount,
     advancedSettings: generation.advancedSettings,
   );

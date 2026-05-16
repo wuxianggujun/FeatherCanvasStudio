@@ -8,6 +8,7 @@ import 'package:image/image.dart' as image_lib;
 import '../models/exceptions.dart';
 import '../models/generated_image.dart';
 import '../models/sprite_sheet_frame_fit.dart';
+import '../models/sprite_sheet_grid_spec.dart';
 import 'app_local_store.dart';
 
 part 'sprite_sheet_preview_service.dart';

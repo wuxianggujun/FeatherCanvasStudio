@@ -1,4 +1,98 @@
+// ignore_for_file: annotate_overrides
+
 part of 'package:feather_canvas_studio/main.dart';
+
+const int _historyMenuMaxItems = 8;
+
+class _ResetDefaultsSnapshot {
+  const _ResetDefaultsSnapshot({
+    required this.apiConfigs,
+    required this.selectedApiConfigId,
+    required this.apiConfigProviderKind,
+    required this.imageSizeCapabilityOverride,
+    required this.apiConfigName,
+    required this.baseUrl,
+    required this.apiKey,
+    required this.model,
+    required this.generationTimeout,
+    required this.prompt,
+    required this.negativePrompt,
+    required this.animationPrompt,
+    required this.user,
+    required this.size,
+    required this.imageCount,
+    required this.advancedSettings,
+    required this.animationRows,
+    required this.animationColumns,
+    required this.animationGridSpec,
+    required this.editorRows,
+    required this.editorColumns,
+    required this.editorGridSpec,
+    required this.editorTargetFrameIndex,
+    required this.editorFrameFit,
+    required this.errorMessage,
+    required this.animationErrorMessage,
+    required this.imageRequestDebugRecord,
+    required this.animationRequestDebugRecord,
+    required this.generatedImages,
+    required this.animationFrames,
+    required this.animationTemplateImagePath,
+    required this.editorImagePath,
+    required this.editorPatchImagePath,
+    required this.editorErrorMessage,
+    required this.gifSourceFrames,
+    required this.gifOutputPath,
+    required this.gifErrorMessage,
+    required this.gifDefaultFrameDelayMs,
+    required this.gifLoopCount,
+    required this.gifPlaybackMode,
+    required this.apiTestDebugRecord,
+    required this.isTestingApiConfig,
+  });
+
+  final List<ApiConfig> apiConfigs;
+  final String selectedApiConfigId;
+  final ApiProviderKind apiConfigProviderKind;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
+  final String apiConfigName;
+  final String baseUrl;
+  final String apiKey;
+  final String model;
+  final String generationTimeout;
+  final String prompt;
+  final String negativePrompt;
+  final String animationPrompt;
+  final String user;
+  final String size;
+  final int imageCount;
+  final ImageAdvancedSettings advancedSettings;
+  final int animationRows;
+  final int animationColumns;
+  final SpriteSheetGridSpec animationGridSpec;
+  final int editorRows;
+  final int editorColumns;
+  final SpriteSheetGridSpec editorGridSpec;
+  final int editorTargetFrameIndex;
+  final SpriteSheetFrameFit editorFrameFit;
+  final String? errorMessage;
+  final String? animationErrorMessage;
+  final ImageRequestDebugRecord? imageRequestDebugRecord;
+  final ImageRequestDebugRecord? animationRequestDebugRecord;
+  final List<GeneratedImage> generatedImages;
+  final List<GeneratedImage> animationFrames;
+  final String? animationTemplateImagePath;
+  final String? editorImagePath;
+  final String? editorPatchImagePath;
+  final String? editorErrorMessage;
+  final List<GifSourceFrame> gifSourceFrames;
+  final String? gifOutputPath;
+  final String? gifErrorMessage;
+  final int gifDefaultFrameDelayMs;
+  final int gifLoopCount;
+  final GifPlaybackMode gifPlaybackMode;
+  final ImageRequestDebugRecord? apiTestDebugRecord;
+  final bool isTestingApiConfig;
+}
 
 mixin _HomeShellStateMixin
     on
@@ -7,7 +101,8 @@ mixin _HomeShellStateMixin
         _LocalSettingsStateMixin,
         _ImageLibraryStateMixin,
         _EditorGifStateMixin,
-        _ImageGenerationStateMixin {
+        _ImageGenerationStateMixin,
+        _HistoryStateMixin {
   @override
   AppLocalStore get _store;
   @override
@@ -19,6 +114,7 @@ mixin _HomeShellStateMixin
   set _isRestoringState(bool value);
   @override
   WorkspaceFeature get _selectedFeature;
+  @override
   set _selectedFeature(WorkspaceFeature value);
   @override
   set _errorMessage(String? value);
@@ -30,6 +126,10 @@ mixin _HomeShellStateMixin
   set _editorPatchImagePath(String? value);
   @override
   set _editorErrorMessage(String? value);
+  @override
+  bool get _isImageEditorFocusMode;
+  @override
+  set _isImageEditorFocusMode(bool value);
   @override
   List<GifSourceFrame> get _gifSourceFrames;
   @override
@@ -49,9 +149,13 @@ mixin _HomeShellStateMixin
   @override
   set _animationColumns(int value);
   @override
+  set _animationGridSpec(SpriteSheetGridSpec value);
+  @override
   set _editorRows(int value);
   @override
   set _editorColumns(int value);
+  @override
+  set _editorGridSpec(SpriteSheetGridSpec value);
   @override
   set _editorTargetFrameIndex(int value);
   @override
@@ -87,9 +191,15 @@ mixin _HomeShellStateMixin
   @override
   set _apiConfigProviderKind(ApiProviderKind value);
   @override
+  ImageSizeCapabilityOverride get _imageSizeCapabilityOverride;
+  @override
+  set _imageSizeCapabilityOverride(ImageSizeCapabilityOverride value);
+  @override
   ImageAdvancedSettings get _advancedSettings;
   @override
   set _advancedSettings(ImageAdvancedSettings value);
+  @override
+  set _appPresets(List<AppPreset> value);
   @override
   String get _size;
   @override
@@ -119,6 +229,8 @@ mixin _HomeShellStateMixin
   @override
   TextEditingController get _modelController;
   @override
+  TextEditingController get _generationTimeoutController;
+  @override
   TextEditingController get _promptController;
   @override
   TextEditingController get _negativePromptController;
@@ -129,11 +241,14 @@ mixin _HomeShellStateMixin
   @override
   Future<void> _saveSettings();
 
+  bool _navigationRailCompact = true;
+
   Future<void> _bootstrap() async {
     final settings = await _store.loadSettings();
     final storedApiConfigs = await _store.loadApiConfigs();
     final storedSelectedApiConfigId = await _store.loadSelectedApiConfigId();
     final imageLibrary = await _store.loadImageLibrary();
+    final appPresets = await _store.loadPresets();
 
     if (!mounted) {
       return;
@@ -152,6 +267,9 @@ mixin _HomeShellStateMixin
     _baseUrlController.text = selectedApiConfig.baseUrl;
     _apiKeyController.text = selectedApiConfig.apiKey;
     _modelController.text = selectedApiConfig.model;
+    _generationTimeoutController.text = selectedApiConfig
+        .generationTimeoutSeconds
+        .toString();
     _promptController.text = settings.prompt;
     _negativePromptController.text = settings.negativePrompt;
     _userController.text = settings.advancedSettings.user;
@@ -160,10 +278,18 @@ mixin _HomeShellStateMixin
       _apiConfigs = apiConfigs;
       _selectedApiConfigId = selectedApiConfig.id;
       _apiConfigProviderKind = selectedApiConfig.providerKind;
-      _size = imageDimensionsFromSize(settings.size).size;
+      _imageSizeCapabilityOverride =
+          selectedApiConfig.imageSizeCapabilityOverride;
+      _size = safeImageSizeForModel(
+        size: settings.size,
+        providerKind: selectedApiConfig.providerKind,
+        model: selectedApiConfig.model,
+        capabilityOverride: selectedApiConfig.imageSizeCapabilityOverride,
+      );
       _imageCount = settings.imageCount;
       _advancedSettings = settings.advancedSettings;
       _imageLibrary = imageLibrary;
+      _appPresets = appPresets;
       _isBootstrapping = false;
     });
     _isRestoringState = false;
@@ -185,60 +311,202 @@ mixin _HomeShellStateMixin
   }
 
   Future<void> _resetToDefaults() async {
+    _flushPendingGenerationTextHistory();
+
+    final before = _captureResetDefaultsSnapshot(includeCurrentApiDraft: true);
+    final after = _defaultResetDefaultsSnapshot();
+    await _restoreResetDefaultsSnapshot(after);
+
+    _pushHistory(
+      WorkspaceFeature.localSettings,
+      HistoryAction(
+        label: '恢复默认表单',
+        apply: () => _restoreResetDefaultsSnapshot(after),
+        revert: () => _restoreResetDefaultsSnapshot(before),
+      ),
+    );
+    if (mounted) {
+      _showMessage('表单已重置，可用 Ctrl+Z 撤销');
+    }
+  }
+
+  _ResetDefaultsSnapshot _captureResetDefaultsSnapshot({
+    required bool includeCurrentApiDraft,
+  }) {
+    final draft = _currentApiConfigDraft;
+    final apiConfigs = includeCurrentApiDraft
+        ? upsertApiConfig(_apiConfigs, draft)
+        : _apiConfigs;
+
+    return _ResetDefaultsSnapshot(
+      apiConfigs: List<ApiConfig>.unmodifiable(apiConfigs),
+      selectedApiConfigId: includeCurrentApiDraft
+          ? draft.id
+          : (_selectedApiConfigId ?? _selectedApiConfig.id),
+      apiConfigProviderKind: _apiConfigProviderKind,
+      imageSizeCapabilityOverride: _imageSizeCapabilityOverride,
+      apiConfigName: _apiConfigNameController.text,
+      baseUrl: _baseUrlController.text,
+      apiKey: _apiKeyController.text,
+      model: _modelController.text,
+      generationTimeout: _generationTimeoutController.text,
+      prompt: _promptController.text,
+      negativePrompt: _negativePromptController.text,
+      animationPrompt: _animationPromptController.text,
+      user: _userController.text,
+      size: _size,
+      imageCount: _imageCount,
+      advancedSettings: _advancedSettings,
+      animationRows: _animationRows,
+      animationColumns: _animationColumns,
+      animationGridSpec: _animationGridSpec,
+      editorRows: _editorRows,
+      editorColumns: _editorColumns,
+      editorGridSpec: _editorGridSpec,
+      editorTargetFrameIndex: _editorTargetFrameIndex,
+      editorFrameFit: _editorFrameFit,
+      errorMessage: _errorMessage,
+      animationErrorMessage: _animationErrorMessage,
+      imageRequestDebugRecord: _imageRequestDebugRecord,
+      animationRequestDebugRecord: _animationRequestDebugRecord,
+      generatedImages: List<GeneratedImage>.unmodifiable(_generatedImages),
+      animationFrames: List<GeneratedImage>.unmodifiable(_animationFrames),
+      animationTemplateImagePath: _animationTemplateImagePath,
+      editorImagePath: _editorImagePath,
+      editorPatchImagePath: _editorPatchImagePath,
+      editorErrorMessage: _editorErrorMessage,
+      gifSourceFrames: List<GifSourceFrame>.unmodifiable(_gifSourceFrames),
+      gifOutputPath: _gifOutputPath,
+      gifErrorMessage: _gifErrorMessage,
+      gifDefaultFrameDelayMs: _gifDefaultFrameDelayMs,
+      gifLoopCount: _gifLoopCount,
+      gifPlaybackMode: _gifPlaybackMode,
+      apiTestDebugRecord: _apiTestDebugRecord,
+      isTestingApiConfig: _isTestingApiConfig,
+    );
+  }
+
+  _ResetDefaultsSnapshot _defaultResetDefaultsSnapshot() {
+    final defaultApiConfig = ApiConfig.defaults();
+    return _ResetDefaultsSnapshot(
+      apiConfigs: [defaultApiConfig],
+      selectedApiConfigId: defaultApiConfig.id,
+      apiConfigProviderKind: defaultApiConfig.providerKind,
+      imageSizeCapabilityOverride: defaultApiConfig.imageSizeCapabilityOverride,
+      apiConfigName: defaultApiConfig.name,
+      baseUrl: defaultApiConfig.baseUrl,
+      apiKey: defaultApiConfig.apiKey,
+      model: defaultApiConfig.model,
+      generationTimeout: defaultApiConfig.generationTimeoutSeconds.toString(),
+      prompt: defaultAppSettings.prompt,
+      negativePrompt: defaultAppSettings.negativePrompt,
+      animationPrompt: defaultAnimationPrompt,
+      user: '',
+      size: defaultAppSettings.size,
+      imageCount: defaultAppSettings.imageCount,
+      advancedSettings: defaultAppSettings.advancedSettings,
+      animationRows: defaultAnimationRows,
+      animationColumns: defaultAnimationColumns,
+      animationGridSpec: const SpriteSheetGridSpec(
+        rows: defaultAnimationRows,
+        columns: defaultAnimationColumns,
+      ),
+      editorRows: defaultEditorRows,
+      editorColumns: defaultEditorColumns,
+      editorGridSpec: const SpriteSheetGridSpec(
+        rows: defaultEditorRows,
+        columns: defaultEditorColumns,
+      ),
+      editorTargetFrameIndex: defaultEditorTargetFrameIndex,
+      editorFrameFit: defaultEditorFrameFit,
+      errorMessage: null,
+      animationErrorMessage: null,
+      imageRequestDebugRecord: null,
+      animationRequestDebugRecord: null,
+      generatedImages: const [],
+      animationFrames: const [],
+      animationTemplateImagePath: null,
+      editorImagePath: null,
+      editorPatchImagePath: null,
+      editorErrorMessage: null,
+      gifSourceFrames: const [],
+      gifOutputPath: null,
+      gifErrorMessage: null,
+      gifDefaultFrameDelayMs: defaultGifFrameDelayMs,
+      gifLoopCount: defaultGifLoopCount,
+      gifPlaybackMode: defaultGifPlaybackMode,
+      apiTestDebugRecord: null,
+      isTestingApiConfig: false,
+    );
+  }
+
+  Future<void> _restoreResetDefaultsSnapshot(
+    _ResetDefaultsSnapshot snapshot,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+
     _settingsSaveDebounce?.cancel();
     _apiConfigSaveDebounce?.cancel();
     _isRestoringState = true;
-
-    final defaultApiConfig = ApiConfig.defaults();
-    _apiConfigNameController.text = defaultApiConfig.name;
-    _baseUrlController.text = defaultApiConfig.baseUrl;
-    _apiKeyController.clear();
-    _modelController.text = defaultApiConfig.model;
-    _promptController.text = defaultAppSettings.prompt;
-    _negativePromptController.clear();
-    _animationPromptController.text = defaultAnimationPrompt;
-    _userController.clear();
+    _apiConfigNameController.text = snapshot.apiConfigName;
+    _baseUrlController.text = snapshot.baseUrl;
+    _apiKeyController.text = snapshot.apiKey;
+    _modelController.text = snapshot.model;
+    _generationTimeoutController.text = snapshot.generationTimeout;
+    _promptController.text = snapshot.prompt;
+    _negativePromptController.text = snapshot.negativePrompt;
+    _animationPromptController.text = snapshot.animationPrompt;
+    _userController.text = snapshot.user;
 
     setState(() {
-      _apiConfigs = [defaultApiConfig];
-      _selectedApiConfigId = defaultApiConfig.id;
-      _apiConfigProviderKind = defaultApiConfig.providerKind;
-      _size = defaultAppSettings.size;
-      _imageCount = defaultAppSettings.imageCount;
-      _advancedSettings = defaultAppSettings.advancedSettings;
-      _animationRows = defaultAnimationRows;
-      _animationColumns = defaultAnimationColumns;
-      _editorRows = defaultEditorRows;
-      _editorColumns = defaultEditorColumns;
-      _editorTargetFrameIndex = defaultEditorTargetFrameIndex;
-      _editorFrameFit = defaultEditorFrameFit;
-      _errorMessage = null;
-      _animationErrorMessage = null;
-      _imageRequestDebugRecord = null;
-      _animationRequestDebugRecord = null;
-      _generatedImages = const [];
-      _animationFrames = const [];
-      _animationTemplateImagePath = null;
-      _editorImagePath = null;
-      _editorPatchImagePath = null;
-      _editorErrorMessage = null;
-      _gifSourceFrames = const [];
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-      _gifDefaultFrameDelayMs = defaultGifFrameDelayMs;
-      _gifLoopCount = defaultGifLoopCount;
-      _gifPlaybackMode = defaultGifPlaybackMode;
-      _apiTestDebugRecord = null;
-      _isTestingApiConfig = false;
+      _apiConfigs = snapshot.apiConfigs;
+      _selectedApiConfigId = snapshot.selectedApiConfigId;
+      _apiConfigProviderKind = snapshot.apiConfigProviderKind;
+      _imageSizeCapabilityOverride = snapshot.imageSizeCapabilityOverride;
+      _size = safeImageSizeForModel(
+        size: snapshot.size,
+        providerKind: snapshot.apiConfigProviderKind,
+        model: snapshot.model,
+        capabilityOverride: snapshot.imageSizeCapabilityOverride,
+      );
+      _imageCount = snapshot.imageCount;
+      _advancedSettings = snapshot.advancedSettings;
+      _animationRows = snapshot.animationRows;
+      _animationColumns = snapshot.animationColumns;
+      _animationGridSpec = snapshot.animationGridSpec;
+      _editorRows = snapshot.editorRows;
+      _editorColumns = snapshot.editorColumns;
+      _editorGridSpec = snapshot.editorGridSpec;
+      _editorTargetFrameIndex = snapshot.editorTargetFrameIndex;
+      _editorFrameFit = snapshot.editorFrameFit;
+      _errorMessage = snapshot.errorMessage;
+      _animationErrorMessage = snapshot.animationErrorMessage;
+      _imageRequestDebugRecord = snapshot.imageRequestDebugRecord;
+      _animationRequestDebugRecord = snapshot.animationRequestDebugRecord;
+      _generatedImages = snapshot.generatedImages;
+      _animationFrames = snapshot.animationFrames;
+      _animationTemplateImagePath = snapshot.animationTemplateImagePath;
+      _editorImagePath = snapshot.editorImagePath;
+      _editorPatchImagePath = snapshot.editorPatchImagePath;
+      _editorErrorMessage = snapshot.editorErrorMessage;
+      _gifSourceFrames = snapshot.gifSourceFrames;
+      _gifOutputPath = snapshot.gifOutputPath;
+      _gifErrorMessage = snapshot.gifErrorMessage;
+      _gifDefaultFrameDelayMs = snapshot.gifDefaultFrameDelayMs;
+      _gifLoopCount = snapshot.gifLoopCount;
+      _gifPlaybackMode = snapshot.gifPlaybackMode;
+      _apiTestDebugRecord = snapshot.apiTestDebugRecord;
+      _isTestingApiConfig = snapshot.isTestingApiConfig;
+      _apiConfigSaveStatus = ApiConfigSaveStatus.saved;
+      _apiConfigSaveErrorMessage = null;
     });
 
     _isRestoringState = false;
-    await _store.saveApiConfigs([defaultApiConfig]);
-    await _store.saveSelectedApiConfigId(defaultApiConfig.id);
+    await _store.saveApiConfigs(snapshot.apiConfigs);
+    await _store.saveSelectedApiConfigId(snapshot.selectedApiConfigId);
     await _saveSettings();
-    if (mounted) {
-      _showMessage('表单已重置');
-    }
   }
 
   @override
@@ -258,31 +526,287 @@ mixin _HomeShellStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final navigationExtended = MediaQuery.sizeOf(context).width >= 980;
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final imageEditorFocusMode =
+        _selectedFeature == WorkspaceFeature.imageEditor &&
+        _isImageEditorFocusMode;
+    final navigationCompact = _navigationRailCompact || viewportWidth < 720;
+    final navigationExtended = viewportWidth >= 980 && !navigationCompact;
 
     if (_isBootstrapping) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            FeatureNavigationRail(
-              selectedFeature: _selectedFeature,
-              extended: navigationExtended,
-              onFeatureSelected: (feature) =>
-                  unawaited(_selectFeature(feature)),
-              onOpenSettings: () =>
-                  unawaited(_selectFeature(WorkspaceFeature.localSettings)),
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.keyZ, control: true): UndoIntent(),
+        SingleActivator(LogicalKeyboardKey.keyZ, meta: true): UndoIntent(),
+        SingleActivator(LogicalKeyboardKey.keyY, control: true): RedoIntent(),
+        SingleActivator(LogicalKeyboardKey.keyY, meta: true): RedoIntent(),
+        SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true):
+            RedoIntent(),
+        SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
+            RedoIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          UndoIntent: CallbackAction<UndoIntent>(
+            onInvoke: (_) {
+              unawaited(_undoCurrentWorkspace());
+              return null;
+            },
+          ),
+          RedoIntent: CallbackAction<RedoIntent>(
+            onInvoke: (_) {
+              unawaited(_redoCurrentWorkspace());
+              return null;
+            },
+          ),
+        },
+        child: Scaffold(
+          body: SafeArea(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (!imageEditorFocusMode) ...[
+                  FeatureNavigationRail(
+                    selectedFeature: _selectedFeature,
+                    extended: navigationExtended,
+                    compact: navigationCompact,
+                    onFeatureSelected: (feature) =>
+                        unawaited(_selectFeature(feature)),
+                    onOpenSettings: () => unawaited(
+                      _selectFeature(WorkspaceFeature.localSettings),
+                    ),
+                    onToggleCompact: () => setState(
+                      () => _navigationRailCompact = !_navigationRailCompact,
+                    ),
+                  ),
+                  const VerticalDivider(width: 1),
+                ],
+                Expanded(
+                  child: Column(
+                    children: [
+                      if (!imageEditorFocusMode &&
+                          _selectedFeature != WorkspaceFeature.imageEditor)
+                        _buildHistoryToolbar(),
+                      Expanded(child: _buildSelectedWorkspace()),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const VerticalDivider(width: 1),
-            Expanded(child: _buildSelectedWorkspace()),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryToolbar() {
+    if (!_workspaceSupportsHistory(_selectedFeature)) {
+      return const SizedBox.shrink();
+    }
+    final stack = _peekHistoryStack(_selectedFeature);
+    if (stack == null) {
+      return _buildHistoryButtonRow(
+        isApplyingHistory: _isApplyingHistory,
+        canUndo: false,
+        canRedo: false,
+        undoLabel: null,
+        redoLabel: null,
+        undoActions: const [],
+        redoActions: const [],
+      );
+    }
+    return ListenableBuilder(
+      listenable: stack,
+      builder: (context, _) => _buildHistoryButtonRow(
+        isApplyingHistory: _isApplyingHistory,
+        canUndo: !_isApplyingHistory && stack.canUndo,
+        canRedo: !_isApplyingHistory && stack.canRedo,
+        undoLabel: stack.topUndo?.label,
+        redoLabel: stack.topRedo?.label,
+        undoActions: stack.recentUndoActions(limit: _historyMenuMaxItems),
+        redoActions: stack.recentRedoActions(limit: _historyMenuMaxItems),
+      ),
+    );
+  }
+
+  Widget _buildCompactHistoryControls() {
+    if (!_workspaceSupportsHistory(_selectedFeature)) {
+      return const SizedBox.shrink();
+    }
+    final stack = _peekHistoryStack(_selectedFeature);
+    if (stack == null) {
+      return _buildHistoryButtonRow(
+        isApplyingHistory: _isApplyingHistory,
+        canUndo: false,
+        canRedo: false,
+        undoLabel: null,
+        redoLabel: null,
+        undoActions: const [],
+        redoActions: const [],
+        compact: true,
+      );
+    }
+    return ListenableBuilder(
+      listenable: stack,
+      builder: (context, _) => _buildHistoryButtonRow(
+        isApplyingHistory: _isApplyingHistory,
+        canUndo: !_isApplyingHistory && stack.canUndo,
+        canRedo: !_isApplyingHistory && stack.canRedo,
+        undoLabel: stack.topUndo?.label,
+        redoLabel: stack.topRedo?.label,
+        undoActions: stack.recentUndoActions(limit: _historyMenuMaxItems),
+        redoActions: stack.recentRedoActions(limit: _historyMenuMaxItems),
+        compact: true,
+      ),
+    );
+  }
+
+  Widget _buildHistoryButtonRow({
+    required bool isApplyingHistory,
+    required bool canUndo,
+    required bool canRedo,
+    required String? undoLabel,
+    required String? redoLabel,
+    required List<HistoryAction> undoActions,
+    required List<HistoryAction> redoActions,
+    bool compact = false,
+  }) {
+    final hasHistory = undoActions.isNotEmpty || redoActions.isNotEmpty;
+    final buttons = [
+      IconButton(
+        icon: const Icon(Icons.undo, size: 20),
+        tooltip: isApplyingHistory
+            ? '历史操作执行中'
+            : canUndo
+            ? '撤销 (Ctrl+Z)：${undoLabel ?? ''}'
+            : '撤销 (Ctrl+Z)',
+        onPressed: canUndo ? () => unawaited(_undoCurrentWorkspace()) : null,
+        visualDensity: VisualDensity.compact,
+      ),
+      IconButton(
+        icon: const Icon(Icons.redo, size: 20),
+        tooltip: isApplyingHistory
+            ? '历史操作执行中'
+            : canRedo
+            ? '重做 (Ctrl+Y)：${redoLabel ?? ''}'
+            : '重做 (Ctrl+Y)',
+        onPressed: canRedo ? () => unawaited(_redoCurrentWorkspace()) : null,
+        visualDensity: VisualDensity.compact,
+      ),
+      PopupMenuButton<int>(
+        tooltip: '历史记录',
+        enabled: !isApplyingHistory && hasHistory,
+        icon: const Icon(Icons.history, size: 20),
+        iconSize: 20,
+        padding: EdgeInsets.zero,
+        onSelected: (steps) {
+          if (_isApplyingHistory) {
+            return;
+          }
+          if (steps > 0) {
+            unawaited(_undoCurrentWorkspace(steps: steps));
+          } else if (steps < 0) {
+            unawaited(_redoCurrentWorkspace(steps: -steps));
+          }
+        },
+        itemBuilder: (context) => _buildHistoryMenuItems(
+          undoActions: undoActions,
+          redoActions: redoActions,
+        ),
+      ),
+    ];
+
+    if (compact) {
+      return Row(mainAxisSize: MainAxisSize.min, children: buttons);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Row(mainAxisAlignment: MainAxisAlignment.end, children: buttons),
+    );
+  }
+
+  List<PopupMenuEntry<int>> _buildHistoryMenuItems({
+    required List<HistoryAction> undoActions,
+    required List<HistoryAction> redoActions,
+  }) {
+    final items = <PopupMenuEntry<int>>[];
+
+    if (undoActions.isNotEmpty) {
+      items.add(_historyMenuHeader('撤销到'));
+      for (var index = 0; index < undoActions.length; index++) {
+        items.add(
+          _historyMenuAction(
+            value: index + 1,
+            icon: Icons.undo,
+            label: undoActions[index].label,
+            stepLabel: index == 0 ? '下一步' : '${index + 1} 步',
+          ),
+        );
+      }
+    }
+
+    if (undoActions.isNotEmpty && redoActions.isNotEmpty) {
+      items.add(const PopupMenuDivider());
+    }
+
+    if (redoActions.isNotEmpty) {
+      items.add(_historyMenuHeader('重做到'));
+      for (var index = 0; index < redoActions.length; index++) {
+        items.add(
+          _historyMenuAction(
+            value: -(index + 1),
+            icon: Icons.redo,
+            label: redoActions[index].label,
+            stepLabel: index == 0 ? '下一步' : '${index + 1} 步',
+          ),
+        );
+      }
+    }
+
+    return items;
+  }
+
+  PopupMenuEntry<int> _historyMenuHeader(String label) {
+    return PopupMenuItem<int>(enabled: false, height: 32, child: Text(label));
+  }
+
+  PopupMenuEntry<int> _historyMenuAction({
+    required int value,
+    required IconData icon,
+    required String label,
+    required String stepLabel,
+  }) {
+    return PopupMenuItem<int>(
+      value: value,
+      height: 40,
+      child: SizedBox(
+        width: 260,
+        child: Row(
+          children: [
+            Icon(icon, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 12),
+            Text(stepLabel),
           ],
         ),
       ),
     );
+  }
+
+  bool _workspaceSupportsHistory(WorkspaceFeature feature) {
+    return feature == WorkspaceFeature.imageGeneration ||
+        feature == WorkspaceFeature.frameAnimation ||
+        feature == WorkspaceFeature.imageEditor ||
+        feature == WorkspaceFeature.gifComposer ||
+        feature == WorkspaceFeature.imageLibrary ||
+        feature == WorkspaceFeature.localSettings;
   }
 
   Widget _buildSelectedWorkspace() {

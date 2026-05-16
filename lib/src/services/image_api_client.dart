@@ -41,11 +41,13 @@ class OpenAICompatibleImageClient {
       http.Response? response,
       Map<String, dynamic>? decodedResponse,
       String? errorMessage,
+      StackTrace? stackTrace,
     }) {
       debugRecord = debugRecord.copyWith(
         response: response,
         decodedResponse: decodedResponse,
         errorMessage: errorMessage,
+        stackTrace: stackTrace,
       );
       onDebugRecord?.call(debugRecord);
     }
@@ -66,6 +68,10 @@ class OpenAICompatibleImageClient {
     } on ImageGenerationException catch (error) {
       publishDebugRecord(errorMessage: error.message);
       rethrow;
+    } catch (error, stackTrace) {
+      final message = _requestFailureMessage(error);
+      publishDebugRecord(errorMessage: message, stackTrace: stackTrace);
+      throw ImageGenerationException(message);
     }
 
     publishDebugRecord(response: response);
@@ -103,6 +109,15 @@ class OpenAICompatibleImageClient {
         errorMessage: error.message,
       );
       rethrow;
+    } catch (error, stackTrace) {
+      final message = _responseProcessingFailureMessage(error);
+      publishDebugRecord(
+        response: response,
+        decodedResponse: decoded,
+        errorMessage: message,
+        stackTrace: stackTrace,
+      );
+      throw ImageGenerationException(message);
     }
   }
 
@@ -224,4 +239,23 @@ class OpenAICompatibleImageClient {
   }
 
   void close() => _httpClient.close();
+}
+
+String _requestFailureMessage(Object error) {
+  if (error is StackOverflowError) {
+    return '生图请求发送失败：发送阶段发生 Stack Overflow，尚未收到 HTTP 响应。'
+        '这通常表示当前兼容网关或本机 HTTP 连接在处理本次请求时中断；'
+        '4K 竖图是最高像素档，如果只在 4K 偶发，先用 2K 验证接口稳定性。';
+  }
+  if (error is SocketException) {
+    return '生图请求发送失败：网络连接异常，尚未收到 HTTP 响应。${error.message}';
+  }
+  return '生图请求发送失败：$error';
+}
+
+String _responseProcessingFailureMessage(Object error) {
+  if (error is StackOverflowError) {
+    return '生图响应处理失败：解析响应时发生 Stack Overflow。';
+  }
+  return '生图响应处理失败：$error';
 }

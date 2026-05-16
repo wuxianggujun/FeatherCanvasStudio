@@ -49,15 +49,15 @@ class SpriteSheetSliceExplorerDialogState
   Future<void> _load() async {
     try {
       final bytes = await File(widget.sheet.path).readAsBytes();
-      final rows = widget.sheet.rows;
-      final columns = widget.sheet.columns;
-      if (rows == null || columns == null || rows <= 0 || columns <= 0) {
+      final gridSpec = widget.sheet.effectiveGridSpec;
+      if (gridSpec.rows <= 0 || gridSpec.columns <= 0) {
         throw const ImageGenerationException('该 Sprite Sheet 缺少行列元数据。');
       }
       final data = SpriteSheetPreviewComposer.buildFromSheetBytes(
         bytes,
-        rows: rows,
-        columns: columns,
+        rows: gridSpec.rows,
+        columns: gridSpec.columns,
+        gridSpec: gridSpec,
       );
       if (!mounted) return;
       setState(() => _previewData = data);
@@ -120,7 +120,7 @@ class SpriteSheetSliceExplorerDialogState
     final theme = Theme.of(context);
     final data = _previewData;
     final error = _errorMessage;
-    final totalCount = (widget.sheet.rows ?? 0) * (widget.sheet.columns ?? 0);
+    final totalCount = widget.sheet.effectiveGridSpec.totalFrameCount;
     final savedCount = data == null
         ? widget.savedFrameIndexes.length
         : List.generate(

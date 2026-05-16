@@ -1,4 +1,4 @@
-﻿import 'dart:typed_data';
+import 'dart:typed_data';
 import 'dart:io';
 import 'dart:ui';
 
@@ -346,6 +346,105 @@ void main() {
     expect(contained.getPixel(3, 3).r.toInt(), 200);
     expect(covered.getPixel(0, 0).r.toInt(), 200);
   });
+
+  test('supports sprite sheet grid spec model helpers', () {
+    final spec = SpriteSheetGridSpec.fromJson({
+      'rows': 2,
+      'columns': 3,
+      'marginLeft': 1,
+      'marginTop': 2,
+      'marginRight': 3,
+      'marginBottom': 4,
+      'columnGap': 5,
+      'rowGap': 6,
+    });
+    final copied = spec.copyWith(columns: 2, columnGap: 1);
+    final defaultSpec = const SpriteSheetGridSpec(rows: 1, columns: 1);
+
+    expect(spec.isDefault, isFalse);
+    expect(defaultSpec.isDefault, isTrue);
+    expect(spec.totalFrameCount, 6);
+    expect(spec.frameWidthForSheet(31), 5);
+    expect(spec.frameHeightForSheet(20), 4);
+    expect(
+      spec.cellRectForSheet(sheetWidth: 31, sheetHeight: 20, row: 1, column: 2),
+      const Rect.fromLTWH(21, 12, 5, 4),
+    );
+    expect(copied.columns, 2);
+    expect(copied.columnGap, 1);
+    expect(spec.toJson()['marginBottom'], 4);
+  });
+
+  test('splits a sprite sheet with margins and gaps', () {
+    const gridSpec = SpriteSheetGridSpec(
+      rows: 2,
+      columns: 2,
+      marginLeft: 1,
+      marginTop: 2,
+      marginRight: 3,
+      marginBottom: 4,
+      columnGap: 1,
+      rowGap: 2,
+    );
+    final spriteSheet = _spriteSheetWithGridSpec(gridSpec);
+
+    final preview = SpriteSheetPreviewComposer.buildFromSheetBytes(
+      Uint8List.fromList(image_lib.encodePng(spriteSheet)),
+      rows: 2,
+      columns: 2,
+      gridSpec: gridSpec,
+    );
+
+    final firstFrame = image_lib.decodeImage(preview.frameAt(0, 0))!;
+    final secondFrame = image_lib.decodeImage(preview.frameAt(0, 1))!;
+    final thirdFrame = image_lib.decodeImage(preview.frameAt(1, 0))!;
+    final fourthFrame = image_lib.decodeImage(preview.frameAt(1, 1))!;
+
+    expect(preview.frameWidth, 2);
+    expect(preview.frameHeight, 2);
+    expect(firstFrame.getPixel(0, 0).r.toInt(), 255);
+    expect(secondFrame.getPixel(0, 0).g.toInt(), 255);
+    expect(thirdFrame.getPixel(0, 0).b.toInt(), 255);
+    expect(fourthFrame.getPixel(0, 0).r.toInt(), 255);
+    expect(fourthFrame.getPixel(0, 0).g.toInt(), 255);
+  });
+
+  test('replaces a sprite sheet cell with margins and gaps', () {
+    const gridSpec = SpriteSheetGridSpec(
+      rows: 2,
+      columns: 2,
+      marginLeft: 1,
+      marginTop: 2,
+      marginRight: 3,
+      marginBottom: 4,
+      columnGap: 1,
+      rowGap: 2,
+    );
+    final spriteSheet = _spriteSheetWithGridSpec(gridSpec);
+
+    final editedBytes = SpriteSheetEditorComposer.replaceFrame(
+      sheetBytes: Uint8List.fromList(image_lib.encodePng(spriteSheet)),
+      patchBytes: _pngOfColor(128, 64, 32),
+      rows: 2,
+      columns: 2,
+      frameIndex: 3,
+      fit: SpriteSheetFrameFit.stretch,
+      gridSpec: gridSpec,
+    );
+
+    final edited = image_lib.decodeImage(editedBytes)!;
+
+    expect(edited.width, spriteSheet.width);
+    expect(edited.height, spriteSheet.height);
+    expect(edited.getPixel(0, 0).r.toInt(), 0);
+    expect(edited.getPixel(1, 2).r.toInt(), 255);
+    expect(edited.getPixel(4, 2).g.toInt(), 255);
+    expect(edited.getPixel(1, 6).b.toInt(), 255);
+    expect(edited.getPixel(4, 6).r.toInt(), 128);
+    expect(edited.getPixel(4, 6).g.toInt(), 64);
+    expect(edited.getPixel(4, 6).b.toInt(), 32);
+    expect(edited.getPixel(3, 6).r.toInt(), 0);
+  });
 }
 
 Uint8List _pngOfColor(int red, int green, int blue) {
@@ -362,4 +461,49 @@ Uint8List _pngOfColorWithSize(
   final image = image_lib.Image(width: width, height: height)
     ..clear(image_lib.ColorRgb8(red, green, blue));
   return Uint8List.fromList(image_lib.encodePng(image));
+}
+
+image_lib.Image _spriteSheetWithGridSpec(SpriteSheetGridSpec gridSpec) {
+  const frameWidth = 2;
+  const frameHeight = 2;
+  final image = image_lib.Image(
+    width:
+        gridSpec.marginLeft +
+        gridSpec.marginRight +
+        frameWidth * gridSpec.columns +
+        gridSpec.columnGap * (gridSpec.columns - 1),
+    height:
+        gridSpec.marginTop +
+        gridSpec.marginBottom +
+        frameHeight * gridSpec.rows +
+        gridSpec.rowGap * (gridSpec.rows - 1),
+  )..clear(image_lib.ColorRgb8(0, 0, 0));
+  final colors = [
+    image_lib.ColorRgb8(255, 0, 0),
+    image_lib.ColorRgb8(0, 255, 0),
+    image_lib.ColorRgb8(0, 0, 255),
+    image_lib.ColorRgb8(255, 255, 0),
+  ];
+
+  for (var row = 0; row < gridSpec.rows; row++) {
+    for (var column = 0; column < gridSpec.columns; column++) {
+      final index = row * gridSpec.columns + column;
+      final cellRect = gridSpec.cellRectForSheet(
+        sheetWidth: image.width,
+        sheetHeight: image.height,
+        row: row,
+        column: column,
+      );
+      image_lib.fillRect(
+        image,
+        x1: cellRect.left.toInt(),
+        y1: cellRect.top.toInt(),
+        x2: cellRect.right.toInt() - 1,
+        y2: cellRect.bottom.toInt() - 1,
+        color: colors[index],
+      );
+    }
+  }
+
+  return image;
 }

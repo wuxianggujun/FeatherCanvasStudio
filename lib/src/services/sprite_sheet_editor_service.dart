@@ -3,6 +3,83 @@ part of 'sprite_sheet_service.dart';
 class SpriteSheetEditorComposer {
   const SpriteSheetEditorComposer._();
 
+  static Uint8List copyFrame({
+    required Uint8List sheetBytes,
+    required int rows,
+    required int columns,
+    required int sourceFrameIndex,
+    required int targetFrameIndex,
+    SpriteSheetGridSpec? gridSpec,
+  }) {
+    final spec = _resolveGridSpec(
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    )..validateForSheet(context: '复制帧');
+    _validateFrameIndex(sourceFrameIndex, spec.totalFrameCount);
+    _validateFrameIndex(targetFrameIndex, spec.totalFrameCount);
+
+    final sheet = image_lib.decodeImage(sheetBytes);
+    if (sheet == null) {
+      throw const ImageGenerationException('Sprite Sheet 无法解码。');
+    }
+    spec.validateForSheet(
+      sheetWidth: sheet.width,
+      sheetHeight: sheet.height,
+      context: 'Sprite Sheet',
+    );
+
+    final sourceRect = _cellRect(spec, sheet, sourceFrameIndex);
+    final targetRect = _cellRect(spec, sheet, targetFrameIndex);
+    final sourceFrame = image_lib.copyCrop(
+      sheet,
+      x: sourceRect.left.toInt(),
+      y: sourceRect.top.toInt(),
+      width: sourceRect.width.toInt(),
+      height: sourceRect.height.toInt(),
+    );
+    final editedSheet = sheet.convert(numChannels: 4);
+    image_lib.compositeImage(
+      editedSheet,
+      sourceFrame,
+      dstX: targetRect.left.toInt(),
+      dstY: targetRect.top.toInt(),
+    );
+
+    return Uint8List.fromList(image_lib.encodePng(editedSheet));
+  }
+
+  static Uint8List clearFrame({
+    required Uint8List sheetBytes,
+    required int rows,
+    required int columns,
+    required int frameIndex,
+    SpriteSheetGridSpec? gridSpec,
+  }) {
+    final spec = _resolveGridSpec(
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    )..validateForSheet(context: '清空帧');
+    _validateFrameIndex(frameIndex, spec.totalFrameCount);
+
+    final sheet = image_lib.decodeImage(sheetBytes);
+    if (sheet == null) {
+      throw const ImageGenerationException('Sprite Sheet 无法解码。');
+    }
+    spec.validateForSheet(
+      sheetWidth: sheet.width,
+      sheetHeight: sheet.height,
+      context: 'Sprite Sheet',
+    );
+
+    final rect = _cellRect(spec, sheet, frameIndex);
+    final editedSheet = sheet.convert(numChannels: 4);
+    _clearRectTransparent(editedSheet, rect);
+
+    return Uint8List.fromList(image_lib.encodePng(editedSheet));
+  }
+
   static Uint8List replaceFrame({
     required Uint8List sheetBytes,
     required Uint8List patchBytes,
@@ -10,12 +87,15 @@ class SpriteSheetEditorComposer {
     required int columns,
     required int frameIndex,
     required SpriteSheetFrameFit fit,
+    SpriteSheetGridSpec? gridSpec,
   }) {
-    if (rows <= 0 || columns <= 0) {
-      throw const ImageGenerationException('替换帧需要有效的行列数。');
-    }
+    final spec = _resolveGridSpec(
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    )..validateForSheet(context: '替换帧');
 
-    final totalFrames = rows * columns;
+    final totalFrames = spec.totalFrameCount;
     if (frameIndex < 0 || frameIndex >= totalFrames) {
       throw ImageGenerationException('目标帧超出范围：当前只有 $totalFrames 帧。');
     }
@@ -30,27 +110,36 @@ class SpriteSheetEditorComposer {
       throw const ImageGenerationException('单帧图片无法解码。');
     }
 
-    final frameWidth = (sheet.width / columns).floor();
-    final frameHeight = (sheet.height / rows).floor();
-    if (frameWidth <= 0 || frameHeight <= 0) {
-      throw const ImageGenerationException('Sprite Sheet 尺寸不足，无法替换帧。');
-    }
+    spec.validateForSheet(
+      sheetWidth: sheet.width,
+      sheetHeight: sheet.height,
+      context: 'Sprite Sheet',
+    );
+    final frameWidth = spec.frameWidthForSheet(sheet.width);
+    final frameHeight = spec.frameHeightForSheet(sheet.height);
 
-    final editedSheet = sheet.clone(noAnimation: true);
+    final editedSheet = sheet.convert(numChannels: 4);
     final normalizedPatch = _normalizePatch(
       patch,
       width: frameWidth,
       height: frameHeight,
       fit: fit,
     );
-    final row = frameIndex ~/ columns;
-    final column = frameIndex % columns;
+    final row = frameIndex ~/ spec.columns;
+    final column = frameIndex % spec.columns;
+    final cellRect = spec.cellRectForSheet(
+      sheetWidth: sheet.width,
+      sheetHeight: sheet.height,
+      row: row,
+      column: column,
+    );
 
+    _clearRectTransparent(editedSheet, cellRect);
     image_lib.compositeImage(
       editedSheet,
       normalizedPatch,
-      dstX: column * frameWidth,
-      dstY: row * frameHeight,
+      dstX: cellRect.left.toInt(),
+      dstY: cellRect.top.toInt(),
     );
 
     return Uint8List.fromList(image_lib.encodePng(editedSheet));
@@ -127,6 +216,39 @@ class SpriteSheetEditorComposer {
       width: width,
       height: height,
     );
+  }
+
+  static Rect _cellRect(
+    SpriteSheetGridSpec spec,
+    image_lib.Image sheet,
+    int frameIndex,
+  ) {
+    final row = frameIndex ~/ spec.columns;
+    final column = frameIndex % spec.columns;
+    return spec.cellRectForSheet(
+      sheetWidth: sheet.width,
+      sheetHeight: sheet.height,
+      row: row,
+      column: column,
+    );
+  }
+
+  static void _validateFrameIndex(int frameIndex, int totalFrames) {
+    if (frameIndex < 0 || frameIndex >= totalFrames) {
+      throw ImageGenerationException('目标帧超出范围：当前只有 $totalFrames 帧。');
+    }
+  }
+
+  static void _clearRectTransparent(image_lib.Image image, Rect rect) {
+    final left = rect.left.toInt().clamp(0, image.width);
+    final top = rect.top.toInt().clamp(0, image.height);
+    final right = rect.right.toInt().clamp(0, image.width);
+    final bottom = rect.bottom.toInt().clamp(0, image.height);
+    for (var y = top; y < bottom; y++) {
+      for (var x = left; x < right; x++) {
+        image.setPixelRgba(x, y, 0, 0, 0, 0);
+      }
+    }
   }
 }
 

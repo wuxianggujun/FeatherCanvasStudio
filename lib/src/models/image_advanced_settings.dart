@@ -108,6 +108,30 @@ class ImageAdvancedSettings {
     };
   }
 
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ImageAdvancedSettings &&
+            quality == other.quality &&
+            background == other.background &&
+            outputFormat == other.outputFormat &&
+            outputCompression == other.outputCompression &&
+            moderation == other.moderation &&
+            user == other.user &&
+            inputFidelity == other.inputFidelity;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    quality,
+    background,
+    outputFormat,
+    outputCompression,
+    moderation,
+    user,
+    inputFidelity,
+  );
+
   Map<String, dynamic> toRequestFields({
     required bool hasTemplateImage,
     ApiProviderKind providerKind = ApiProviderKind.official,

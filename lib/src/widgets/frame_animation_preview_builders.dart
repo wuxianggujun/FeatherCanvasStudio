@@ -138,6 +138,12 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
               icon: const Icon(Icons.download_outlined),
               label: const Text('导出 PNG'),
             ),
+            if (widget.onSendToGif != null)
+              FilledButton.tonalIcon(
+                onPressed: () => widget.onSendToGif!(previewData),
+                icon: const Icon(Icons.gif_box_outlined),
+                label: const Text('转 GIF'),
+              ),
             Tooltip(
               message: '上一帧',
               child: IconButton(
@@ -171,12 +177,7 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
             final frameCard = _PreviewSurfaceCard(
               title: '播放帧',
               aspectRatio: previewData.frameAspectRatio,
-              child: Image.memory(
-                currentFrame,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.none,
-                gaplessPlayback: true,
-              ),
+              child: _ZoomableFramePreview(frameBytes: currentFrame),
             );
             final sheetCard = _PreviewSurfaceCard(
               title: 'Sprite Sheet',

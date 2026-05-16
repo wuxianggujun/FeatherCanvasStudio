@@ -52,6 +52,8 @@ class GifSourceFrame {
   final Uint8List? inlineBytes;
   final String? label;
 
+  String get displayLabel => label ?? _fileNameFromPath(path);
+
   GifSourceFrame copyWith({
     String? id,
     String? path,

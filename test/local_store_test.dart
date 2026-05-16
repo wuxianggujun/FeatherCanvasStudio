@@ -75,6 +75,7 @@ void main() {
         apiKey: 'proxy-key',
         model: 'gpt-image-2',
         providerKind: ApiProviderKind.compatible,
+        imageSizeCapabilityOverride: ImageSizeCapabilityOverride.customPixels,
       ),
       ApiConfig(
         id: 'gemini',
@@ -83,6 +84,7 @@ void main() {
         apiKey: 'gemini-key',
         model: 'gemini-2.5-flash-image',
         providerKind: ApiProviderKind.gemini,
+        imageSizeCapabilityOverride: ImageSizeCapabilityOverride.aspectRatio,
       ),
     ];
 
@@ -103,8 +105,16 @@ void main() {
     expect(restoredConfigs[1].baseUrl, 'http://127.0.0.1:8080/v1');
     expect(restoredConfigs[1].apiKey, 'proxy-key');
     expect(restoredConfigs[1].providerKind, ApiProviderKind.compatible);
+    expect(
+      restoredConfigs[1].imageSizeCapabilityOverride,
+      ImageSizeCapabilityOverride.customPixels,
+    );
     expect(restoredConfigs.last.model, 'gemini-2.5-flash-image');
     expect(restoredConfigs.last.providerKind, ApiProviderKind.gemini);
+    expect(
+      restoredConfigs.last.imageSizeCapabilityOverride,
+      ImageSizeCapabilityOverride.aspectRatio,
+    );
     expect(selectedId, 'proxy');
   });
 
@@ -132,8 +142,117 @@ void main() {
 
     expect(settings.apiKey, 'legacy-settings-key');
     expect(configs.single.apiKey, 'legacy-config-key');
+    expect(
+      configs.single.imageSizeCapabilityOverride,
+      ImageSizeCapabilityOverride.auto,
+    );
     expect(prefs.getString('settings.apiKey'), isNull);
     expect(rawConfigs, isNot(contains('legacy-config-key')));
+  });
+
+  test(
+    'persists and mutates app presets without settings side effects',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      FlutterSecureStorage.setMockInitialValues({});
+      final store = AppLocalStore();
+      const settings = AppSettings(
+        baseUrl: 'https://example.com/v1',
+        apiKey: 'secret',
+        model: 'gpt-image-2',
+        prompt: 'current prompt',
+        negativePrompt: 'current negative',
+        size: '1024x1024',
+        imageCount: 1,
+      );
+      const generationPreset = AppPreset(
+        id: 'preset-generation',
+        name: 'Character sketch',
+        kind: AppPresetKind.localGeneration,
+        prompt: 'character concept',
+        negativePrompt: 'blur',
+        size: '1536x1024',
+        imageCount: 2,
+      );
+      const gifPreset = AppPreset(
+        id: 'preset-gif',
+        name: 'Looping animation',
+        kind: AppPresetKind.gif,
+        gifDelayMs: 80,
+        gifLoopCount: 3,
+        playbackMode: GifPlaybackMode.pingPong,
+      );
+      const sheetPreset = AppPreset(
+        id: 'preset-sheet',
+        name: 'Four direction walk',
+        kind: AppPresetKind.spriteSheet,
+        rows: 4,
+        columns: 6,
+      );
+
+      await store.saveSettings(settings);
+      await store.savePresets([generationPreset, gifPreset]);
+      await store.addPreset(sheetPreset);
+      await store.deletePreset(gifPreset.id);
+
+      final restoredPresets = await store.loadPresets();
+      final restoredSettings = await store.loadSettings();
+      final prefs = await SharedPreferences.getInstance();
+      final rawPresets = prefs.getString('appPresets.entries') ?? '';
+      final decodedPresets = jsonDecode(rawPresets) as List<dynamic>;
+
+      expect(restoredPresets, hasLength(2));
+      expect(restoredPresets.first.id, generationPreset.id);
+      expect(restoredPresets.first.kind, AppPresetKind.localGeneration);
+      expect(restoredPresets.first.prompt, 'character concept');
+      expect(restoredPresets.first.negativePrompt, 'blur');
+      expect(restoredPresets.first.size, '1536x1024');
+      expect(restoredPresets.first.imageCount, 2);
+      expect(restoredPresets.last.kind, AppPresetKind.spriteSheet);
+      expect(restoredPresets.last.rows, 4);
+      expect(restoredPresets.last.columns, 6);
+      expect(
+        restoredPresets.any((preset) => preset.id == gifPreset.id),
+        isFalse,
+      );
+      expect(decodedPresets.first['kind'], 'localGeneration');
+      expect(restoredSettings.prompt, settings.prompt);
+      expect(restoredSettings.negativePrompt, settings.negativePrompt);
+      expect(restoredSettings.imageCount, settings.imageCount);
+    },
+  );
+
+  test('restores gif preset json fields', () async {
+    SharedPreferences.setMockInitialValues({
+      'appPresets.entries': jsonEncode([
+        {
+          'id': 'preset-gif',
+          'name': 'GIF',
+          'kind': 'gif',
+          'prompt': 'unused',
+          'negativePrompt': '',
+          'size': '1024x1024',
+          'imageCount': 1,
+          'rows': 3,
+          'columns': 5,
+          'gifDelayMs': 95,
+          'gifLoopCount': 2,
+          'playbackMode': 'reverse',
+        },
+      ]),
+    });
+    FlutterSecureStorage.setMockInitialValues({});
+    final store = AppLocalStore();
+
+    final presets = await store.loadPresets();
+
+    expect(presets, hasLength(1));
+    expect(presets.single.kind, AppPresetKind.gif);
+    expect(presets.single.rows, 3);
+    expect(presets.single.columns, 5);
+    expect(presets.single.gifDelayMs, 95);
+    expect(presets.single.gifLoopCount, 2);
+    expect(presets.single.playbackMode, GifPlaybackMode.reverse);
   });
 
   test('persists and restores image library items', () async {
@@ -156,6 +275,7 @@ void main() {
         baseUrl: 'https://api.openai.com/v1',
         model: 'gpt-image-2',
         providerKind: ApiProviderKind.official,
+        imageSizeCapabilityOverride: ImageSizeCapabilityOverride.customPixels,
         prompt: '主角行走动画',
         negativePrompt: 'blurry',
         size: '1024x1024',
@@ -185,6 +305,10 @@ void main() {
     expect(
       restoredItems.single.generation?.providerKind,
       ApiProviderKind.official,
+    );
+    expect(
+      restoredItems.single.generation?.imageSizeCapabilityOverride,
+      ImageSizeCapabilityOverride.customPixels,
     );
     expect(
       restoredItems.single.generation?.advancedSettings.outputFormat,

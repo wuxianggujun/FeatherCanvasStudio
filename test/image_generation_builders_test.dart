@@ -10,6 +10,7 @@ void main() {
       apiKey: ' key ',
       model: 'gpt-image-2',
       providerKind: ApiProviderKind.official,
+      imageSizeCapabilityOverride: ImageSizeCapabilityOverride.customPixels,
     );
 
     final request = buildImageGenerationRequest(
@@ -31,6 +32,10 @@ void main() {
     expect(request.size, '1024x1024');
     expect(request.imageCount, 2);
     expect(request.providerKind, ApiProviderKind.official);
+    expect(
+      request.imageSizeCapabilityOverride,
+      ImageSizeCapabilityOverride.customPixels,
+    );
     expect(request.advancedSettings.user, 'new-user');
     expect(request.templateImagePath, '/tmp/template.png');
   });
@@ -43,6 +48,7 @@ void main() {
       apiKey: 'key',
       model: 'gpt-image-2',
       providerKind: ApiProviderKind.compatible,
+      imageSizeCapabilityOverride: ImageSizeCapabilityOverride.fixedPresets,
     );
     final createdAt = DateTime.parse('2026-05-15T12:00:00Z');
 
@@ -64,6 +70,10 @@ void main() {
     expect(snapshot.baseUrl, 'https://example.com/v1');
     expect(snapshot.model, 'gpt-image-2');
     expect(snapshot.providerKind, ApiProviderKind.compatible);
+    expect(
+      snapshot.imageSizeCapabilityOverride,
+      ImageSizeCapabilityOverride.fixedPresets,
+    );
     expect(snapshot.prompt, 'prompt');
     expect(snapshot.negativePrompt, 'negative');
     expect(snapshot.size, '1024x1536');

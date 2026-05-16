@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_config.dart';
+import '../models/app_preset.dart';
 import '../models/image_advanced_settings.dart';
 import '../models/image_library_item.dart';
 import 'secure_value_store.dart';
@@ -30,6 +31,7 @@ class AppLocalStore {
   static const String _apiConfigsKey = 'apiConfigs.entries';
   static const String _selectedApiConfigIdKey = 'apiConfigs.selectedId';
   static const String _imageLibraryKey = 'imageLibrary.entries';
+  static const String _appPresetsKey = 'appPresets.entries';
   static const int _maxImageLibraryEntries = 200;
   static const String _apiConfigSecretPrefix = 'apiConfigs.apiKey.';
 
@@ -177,6 +179,47 @@ class AppLocalStore {
   Future<void> saveSelectedApiConfigId(String id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_selectedApiConfigIdKey, id);
+  }
+
+  Future<List<AppPreset>> loadPresets() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_appPresetsKey);
+    if (raw == null || raw.isEmpty) {
+      return const [];
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return const [];
+      }
+
+      return decoded
+          .whereType<Map>()
+          .map((entry) => AppPreset.fromJson(Map<String, dynamic>.from(entry)))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> savePresets(List<AppPreset> presets) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _appPresetsKey,
+      jsonEncode(presets.map((preset) => preset.toJson()).toList()),
+    );
+  }
+
+  Future<void> addPreset(AppPreset preset) async {
+    final presets = await loadPresets();
+    final filtered = presets.where((entry) => entry.id != preset.id).toList();
+    await savePresets([...filtered, preset]);
+  }
+
+  Future<void> deletePreset(String id) async {
+    final presets = await loadPresets();
+    await savePresets(presets.where((preset) => preset.id != id).toList());
   }
 
   Future<List<ImageLibraryItem>> loadImageLibrary() async {

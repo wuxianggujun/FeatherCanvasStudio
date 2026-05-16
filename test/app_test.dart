@@ -25,20 +25,23 @@ void main() {
     expect(find.text('模型'), findsNothing);
     expect(find.byTooltip('管理接口配置'), findsOneWidget);
     expect(find.text('正向提示词'), findsOneWidget);
-    expect(find.text('画幅'), findsOneWidget);
-    expect(find.text('宽度'), findsOneWidget);
-    expect(find.text('高度'), findsOneWidget);
-    expect(find.text('方图 · 请求尺寸 1024x1024'), findsOneWidget);
+    expect(find.text('分辨率档位'), findsOneWidget);
+    expect(find.text('宽度'), findsNothing);
+    expect(find.text('高度'), findsNothing);
+    expect(find.text('1K 方图 · 请求尺寸 1024x1024'), findsOneWidget);
     expect(find.text('生成图片'), findsOneWidget);
 
-    await tester.tap(find.text('方图'));
+    await tester.tap(find.byTooltip('展开侧栏'));
     await tester.pumpAndSettle();
-    expect(find.text('横图'), findsOneWidget);
-    expect(find.text('竖图'), findsOneWidget);
-    expect(find.text('自定义'), findsOneWidget);
-    await tester.tap(find.text('横图'));
+
+    await tester.tap(find.text('1K 方图 · 1024x1024'));
     await tester.pumpAndSettle();
-    expect(find.text('横图 · 请求尺寸 1536x1024'), findsOneWidget);
+    expect(find.text('1.5K 横图 · 1536x1024'), findsOneWidget);
+    expect(find.text('1.5K 竖图 · 1024x1536'), findsOneWidget);
+    expect(find.text('自定义'), findsNothing);
+    await tester.tap(find.text('1.5K 横图 · 1536x1024').last);
+    await tester.pumpAndSettle();
+    expect(find.text('1.5K 横图 · 请求尺寸 1536x1024'), findsOneWidget);
 
     await tester.tap(find.text('帧动画'));
     await tester.pumpAndSettle();
@@ -52,12 +55,12 @@ void main() {
     expect(find.text('运动变化'), findsNothing);
     expect(find.text('4 向'), findsNothing);
     expect(find.text('8 向'), findsNothing);
-    expect(find.text('画幅'), findsOneWidget);
-    expect(find.text('宽度'), findsOneWidget);
-    expect(find.text('高度'), findsOneWidget);
+    expect(find.text('分辨率档位'), findsOneWidget);
+    expect(find.text('宽度'), findsNothing);
+    expect(find.text('高度'), findsNothing);
     expect(find.text('行数'), findsOneWidget);
     expect(find.text('列数'), findsOneWidget);
-    expect(find.textContaining('K 方图'), findsNothing);
+    expect(find.textContaining('请求尺寸 1536x1024'), findsWidgets);
     expect(find.text('生成 Sprite Sheet'), findsOneWidget);
     expect(find.text('Base URL'), findsNothing);
     expect(find.text('API Key'), findsNothing);

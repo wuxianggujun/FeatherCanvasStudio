@@ -14,6 +14,7 @@ class PreviewPanel extends StatelessWidget {
     required this.isGenerating,
     required this.debugRecord,
     required this.onRetry,
+    required this.onMakeBackgroundTransparent,
     super.key,
   });
 
@@ -22,6 +23,8 @@ class PreviewPanel extends StatelessWidget {
   final bool isGenerating;
   final ImageRequestDebugRecord? debugRecord;
   final VoidCallback onRetry;
+  final void Function(int index, GeneratedImage image)
+  onMakeBackgroundTransparent;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +74,14 @@ class PreviewPanel extends StatelessWidget {
             for (var index = 0; index < generatedImages.length; index++)
               SizedBox(
                 width: width,
-                child: _GeneratedImageTile(image: generatedImages[index]),
+                child: _GeneratedImageTile(
+                  image: generatedImages[index],
+                  onMakeBackgroundTransparent: () =>
+                      onMakeBackgroundTransparent(
+                        index,
+                        generatedImages[index],
+                      ),
+                ),
               ),
           ],
         );
@@ -81,9 +91,13 @@ class PreviewPanel extends StatelessWidget {
 }
 
 class _GeneratedImageTile extends StatelessWidget {
-  const _GeneratedImageTile({required this.image});
+  const _GeneratedImageTile({
+    required this.image,
+    required this.onMakeBackgroundTransparent,
+  });
 
   final GeneratedImage image;
+  final VoidCallback onMakeBackgroundTransparent;
 
   @override
   Widget build(BuildContext context) {
@@ -92,14 +106,34 @@ class _GeneratedImageTile extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: ColoredBox(
-              color: theme.colorScheme.surfaceContainerHighest,
-              child: _buildImageContent(),
-            ),
+        AspectRatio(
+          aspectRatio: 1,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: ColoredBox(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: _buildImageContent(),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Material(
+                  color: theme.colorScheme.surface.withValues(alpha: 0.88),
+                  borderRadius: BorderRadius.circular(8),
+                  child: IconButton(
+                    tooltip: '背景转透明',
+                    onPressed: onMakeBackgroundTransparent,
+                    icon: const Icon(Icons.auto_fix_high_outlined),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         if (image.revisedPrompt != null && image.revisedPrompt!.isNotEmpty) ...[

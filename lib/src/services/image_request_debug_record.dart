@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'image_api_request.dart';
 
 const int _kBase64ElisionThreshold = 256;
+const int _kResponseBodyPreviewLimit = 32768;
 const Set<String> _kBase64FieldNames = {'b64_json', 'data'};
 
 class ImageRequestDebugRecord {
@@ -18,6 +19,7 @@ class ImageRequestDebugRecord {
     this.responseBody,
     this.decodedResponse,
     this.errorMessage,
+    this.errorStackTrace,
   });
 
   factory ImageRequestDebugRecord.fromRequest(OpenAIImageRequest request) {
@@ -36,11 +38,13 @@ class ImageRequestDebugRecord {
   final String? responseBody;
   final Map<String, dynamic>? decodedResponse;
   final String? errorMessage;
+  final String? errorStackTrace;
 
   ImageRequestDebugRecord copyWith({
     http.Response? response,
     Map<String, dynamic>? decodedResponse,
     String? errorMessage,
+    StackTrace? stackTrace,
     DateTime? completedAt,
   }) {
     final sanitizedDecoded = decodedResponse == null
@@ -65,6 +69,9 @@ class ImageRequestDebugRecord {
       responseBody: rawBody == null ? null : _sanitizeResponseBody(rawBody),
       decodedResponse: sanitizedDecoded,
       errorMessage: errorMessage ?? this.errorMessage,
+      errorStackTrace: stackTrace == null
+          ? errorStackTrace
+          : _formatStackTrace(stackTrace),
     );
   }
 
@@ -82,6 +89,7 @@ class ImageRequestDebugRecord {
         'body': responseBody,
         if (decodedResponse != null) 'json': decodedResponse,
         if (errorMessage != null) 'error': errorMessage,
+        if (errorStackTrace != null) 'stackTrace': errorStackTrace,
       },
     };
   }
@@ -89,6 +97,10 @@ class ImageRequestDebugRecord {
   String get formattedJson {
     return const JsonEncoder.withIndent('  ').convert(toJson());
   }
+}
+
+String _formatStackTrace(StackTrace stackTrace) {
+  return stackTrace.toString().split('\n').take(16).join('\n').trim();
 }
 
 dynamic _sanitizeDebugPayload(dynamic node) {
@@ -113,12 +125,20 @@ dynamic _sanitizeDebugPayload(dynamic node) {
 }
 
 String _sanitizeResponseBody(String body) {
-  final pattern = RegExp(
-    '"(b64_json|data)"\\s*:\\s*"([^"\\\\]{$_kBase64ElisionThreshold,})"',
-  );
-  return body.replaceAllMapped(pattern, (match) {
-    final field = match.group(1);
-    final length = match.group(2)?.length ?? 0;
-    return '"$field": "<base64 elided: $length chars>"';
-  });
+  try {
+    final decoded = jsonDecode(body);
+    final sanitized = jsonEncode(_sanitizeDebugPayload(decoded));
+    return _truncateResponseBody(sanitized);
+  } catch (_) {
+    return _truncateResponseBody(body);
+  }
+}
+
+String _truncateResponseBody(String body) {
+  if (body.length <= _kResponseBodyPreviewLimit) {
+    return body;
+  }
+  final omitted = body.length - _kResponseBodyPreviewLimit;
+  return '${body.substring(0, _kResponseBodyPreviewLimit)}'
+      '\n<response body truncated: $omitted chars omitted>';
 }

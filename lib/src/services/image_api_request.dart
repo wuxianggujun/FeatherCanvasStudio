@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../models/api_provider.dart';
+import '../models/app_config.dart';
 import '../models/exceptions.dart';
 import '../models/generated_image.dart';
 import '../models/image_advanced_settings.dart';
@@ -19,6 +20,7 @@ class OpenAIImageRequest {
     this.advancedSettings = const ImageAdvancedSettings(),
     this.templateImagePath,
     this.providerKind = ApiProviderKind.official,
+    this.imageSizeCapabilityOverride = ImageSizeCapabilityOverride.auto,
     this.generationTimeout,
   });
 
@@ -32,6 +34,7 @@ class OpenAIImageRequest {
   final ImageAdvancedSettings advancedSettings;
   final String? templateImagePath;
   final ApiProviderKind providerKind;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final Duration? generationTimeout;
 
   bool get hasTemplateImage =>
@@ -41,6 +44,12 @@ class OpenAIImageRequest {
     if (model.trim().isEmpty) {
       throw const ImageGenerationException('请先在接口配置页获取模型列表并选择模型，或手动填写模型名称。');
     }
+    requestSizeForModel(
+      size: size,
+      providerKind: providerKind,
+      model: model,
+      capabilityOverride: imageSizeCapabilityOverride,
+    );
   }
 
   Uri get endpoint {
@@ -95,6 +104,10 @@ class OpenAIImageRequest {
         'endpoint': endpoint.toString(),
         'method': 'POST JSON (Gemini generateContent)',
         'providerKind': serializeApiProviderKind(providerKind),
+        'imageSizeCapability': _debugImageSizeCapability,
+        'imageSizeCapabilityOverride': imageSizeCapabilityOverrideLabel(
+          imageSizeCapabilityOverride,
+        ),
         'apiKey': apiKey.trim().isEmpty ? '未填写' : '已填写（已隐藏）',
         if (hasTemplateImage) 'templateImagePath': templateImagePath,
         'jsonBody': toGeminiDebugJson(),
@@ -105,12 +118,16 @@ class OpenAIImageRequest {
       'endpoint': endpoint.toString(),
       'method': hasTemplateImage ? 'POST multipart/form-data' : 'POST JSON',
       'providerKind': serializeApiProviderKind(providerKind),
+      'imageSizeCapability': _debugImageSizeCapability,
+      'imageSizeCapabilityOverride': imageSizeCapabilityOverrideLabel(
+        imageSizeCapabilityOverride,
+      ),
       'apiKey': apiKey.trim().isEmpty ? '未填写' : '已填写（已隐藏）',
       if (hasTemplateImage) 'templateImagePath': templateImagePath,
       if (hasTemplateImage)
-        'multipartFields': toMultipartFields()
+        'multipartFields': _debugMultipartFields()
       else
-        'jsonBody': toJson(),
+        'jsonBody': _debugJsonBody(),
     };
   }
 
@@ -183,11 +200,53 @@ class OpenAIImageRequest {
 
   String get _effectiveModel => model.trim();
 
-  String get _effectiveRequestSize =>
-      requestSizeForProvider(size, providerKind);
+  String get _debugImageSizeCapability {
+    return imageSizeCapabilityLabel(
+      imageModelCapabilitiesFor(
+        providerKind: providerKind,
+        model: model,
+        capabilityOverride: imageSizeCapabilityOverride,
+      ),
+    );
+  }
+
+  String get _effectiveRequestSize => requestSizeForModel(
+    size: size,
+    providerKind: providerKind,
+    model: model,
+    capabilityOverride: imageSizeCapabilityOverride,
+  );
 
   String get _effectiveGeminiModel {
     return model.trim().replaceFirst(RegExp(r'^models/'), '');
+  }
+
+  Map<String, dynamic> _debugJsonBody() {
+    try {
+      return toJson();
+    } on ImageGenerationException catch (error) {
+      return {
+        'model': _effectiveModel,
+        'prompt': _mergedPrompt,
+        'size': size,
+        'n': imageCount,
+        'validation_error': error.message,
+      };
+    }
+  }
+
+  Map<String, String> _debugMultipartFields() {
+    try {
+      return toMultipartFields();
+    } on ImageGenerationException catch (error) {
+      return {
+        'model': _effectiveModel,
+        'prompt': _mergedPrompt,
+        'size': size,
+        'n': imageCount.toString(),
+        'validation_error': error.message,
+      };
+    }
   }
 
   String get _mergedPrompt {

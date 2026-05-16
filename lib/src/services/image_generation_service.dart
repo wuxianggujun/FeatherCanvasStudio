@@ -4,6 +4,7 @@ import '../models/generated_image.dart';
 import '../models/image_advanced_settings.dart';
 import '../models/image_asset_kind.dart';
 import '../models/image_library_item.dart';
+import '../models/sprite_sheet_grid_spec.dart';
 import '../utils/image_dimensions.dart';
 import '../utils/image_generation_builders.dart';
 import '../utils/sprite_sheet_text.dart';
@@ -62,7 +63,12 @@ class ImageGenerationService {
     void Function(ImageRequestDebugRecord record)? onDebugRecord,
   }) async {
     final groupId = DateTime.now().microsecondsSinceEpoch.toString();
-    final requestSize = requestSizeForProvider(size, apiConfig.providerKind);
+    final requestSize = requestSizeForModel(
+      size: size,
+      providerKind: apiConfig.providerKind,
+      model: apiConfig.model,
+      capabilityOverride: apiConfig.imageSizeCapabilityOverride,
+    );
     final request = buildImageGenerationRequest(
       apiConfig: apiConfig,
       prompt: prompt,
@@ -130,7 +136,12 @@ class ImageGenerationService {
     void Function(ImageRequestDebugRecord record)? onDebugRecord,
   }) async {
     final groupId = 'animation_${DateTime.now().microsecondsSinceEpoch}';
-    final requestSize = requestSizeForProvider(size, apiConfig.providerKind);
+    final requestSize = requestSizeForModel(
+      size: size,
+      providerKind: apiConfig.providerKind,
+      model: apiConfig.model,
+      capabilityOverride: apiConfig.imageSizeCapabilityOverride,
+    );
     final request = buildImageGenerationRequest(
       apiConfig: apiConfig,
       prompt: buildSpriteSheetPromptText(
@@ -188,6 +199,10 @@ class ImageGenerationService {
             groupId: groupId,
             rows: saveResult.rows,
             columns: saveResult.columns,
+            gridSpec: SpriteSheetGridSpec(
+              rows: saveResult.rows,
+              columns: saveResult.columns,
+            ),
             frameWidth: saveResult.frameWidth,
             frameHeight: saveResult.frameHeight,
           );

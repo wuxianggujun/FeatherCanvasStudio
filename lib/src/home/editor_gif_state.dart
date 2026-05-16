@@ -1,4 +1,121 @@
+// ignore_for_file: annotate_overrides
+
 part of 'package:feather_canvas_studio/main.dart';
+
+class _EditorConfigSnapshot {
+  const _EditorConfigSnapshot({
+    required this.rows,
+    required this.columns,
+    required this.gridSpec,
+    required this.targetFrameIndex,
+    required this.frameFit,
+  });
+
+  final int rows;
+  final int columns;
+  final SpriteSheetGridSpec gridSpec;
+  final int targetFrameIndex;
+  final SpriteSheetFrameFit frameFit;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _EditorConfigSnapshot &&
+            rows == other.rows &&
+            columns == other.columns &&
+            gridSpec == other.gridSpec &&
+            targetFrameIndex == other.targetFrameIndex &&
+            frameFit == other.frameFit;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(rows, columns, gridSpec, targetFrameIndex, frameFit);
+}
+
+class _EditorSourceSnapshot {
+  const _EditorSourceSnapshot({
+    required this.sheetPath,
+    required this.patchPath,
+    required this.rows,
+    required this.columns,
+    required this.gridSpec,
+    required this.targetFrameIndex,
+    required this.frameFit,
+    required this.errorMessage,
+  });
+
+  final String? sheetPath;
+  final String? patchPath;
+  final int rows;
+  final int columns;
+  final SpriteSheetGridSpec gridSpec;
+  final int targetFrameIndex;
+  final SpriteSheetFrameFit frameFit;
+  final String? errorMessage;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _EditorSourceSnapshot &&
+            sheetPath == other.sheetPath &&
+            patchPath == other.patchPath &&
+            rows == other.rows &&
+            columns == other.columns &&
+            gridSpec == other.gridSpec &&
+            targetFrameIndex == other.targetFrameIndex &&
+            frameFit == other.frameFit &&
+            errorMessage == other.errorMessage;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    sheetPath,
+    patchPath,
+    rows,
+    columns,
+    gridSpec,
+    targetFrameIndex,
+    frameFit,
+    errorMessage,
+  );
+}
+
+class _GifConfigSnapshot {
+  const _GifConfigSnapshot({
+    required this.defaultFrameDelayMs,
+    required this.loopCount,
+    required this.playbackMode,
+  });
+
+  final int defaultFrameDelayMs;
+  final int loopCount;
+  final GifPlaybackMode playbackMode;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _GifConfigSnapshot &&
+            defaultFrameDelayMs == other.defaultFrameDelayMs &&
+            loopCount == other.loopCount &&
+            playbackMode == other.playbackMode;
+  }
+
+  @override
+  int get hashCode => Object.hash(defaultFrameDelayMs, loopCount, playbackMode);
+}
+
+const Duration _editorConfigHistoryMergeWindow = Duration(milliseconds: 800);
+const String _editorGridConfigHistoryKey = 'editor-grid-config';
+const String _editorFrameFitHistoryKey = 'editor-frame-fit';
+const Duration _gifHistoryMergeWindow = Duration(milliseconds: 800);
+const String _gifDefaultDelayHistoryKey = 'gif-default-delay';
+const String _gifLoopCountHistoryKey = 'gif-loop-count';
+const String _gifPlaybackModeHistoryKey = 'gif-playback-mode';
+const String _gifApplyDelayToAllHistoryKey = 'gif-apply-delay-to-all';
+const String _gifClearFramesHistoryKey = 'gif-clear-frames';
+const String _gifLoadSourceFramesHistoryKey = 'gif-load-source-frames';
+const String _gifLoadPreviewFramesHistoryKey = 'gif-load-preview-frames';
 
 mixin _EditorGifStateMixin
     on
@@ -18,6 +135,8 @@ mixin _EditorGifStateMixin
   set _editorRows(int value);
   int get _editorColumns;
   set _editorColumns(int value);
+  SpriteSheetGridSpec get _editorGridSpec;
+  set _editorGridSpec(SpriteSheetGridSpec value);
   int get _editorTargetFrameIndex;
   set _editorTargetFrameIndex(int value);
   SpriteSheetFrameFit get _editorFrameFit;
@@ -26,6 +145,8 @@ mixin _EditorGifStateMixin
   String? get _editorErrorMessage;
   bool get _isReplacingEditorFrame;
   set _isReplacingEditorFrame(bool value);
+  bool get _isImageEditorFocusMode;
+  set _isImageEditorFocusMode(bool value);
   int get _gifDefaultFrameDelayMs;
   set _gifDefaultFrameDelayMs(int value);
   int get _gifLoopCount;
@@ -38,21 +159,72 @@ mixin _EditorGifStateMixin
   set _gifOutputPath(String? value);
   String? get _gifErrorMessage;
   set _gifErrorMessage(String? value);
+  WorkspaceFeature get _selectedFeature;
+  set _selectedFeature(WorkspaceFeature value);
   @override
   void _showMessage(String message);
+  Widget _buildCompactHistoryControls();
+  void _pushHistory(WorkspaceFeature feature, HistoryAction action);
+  bool _replaceTopHistory(
+    WorkspaceFeature feature, {
+    required HistoryAction current,
+    required HistoryAction replacement,
+  });
+
+  HistoryAction? _lastEditorConfigHistoryAction;
+  String? _lastEditorConfigHistoryKey;
+  DateTime? _lastEditorConfigHistoryAt;
+  _EditorConfigSnapshot? _lastEditorConfigHistoryBefore;
+  HistoryAction? _lastGifConfigHistoryAction;
+  String? _lastGifConfigHistoryKey;
+  DateTime? _lastGifConfigHistoryAt;
+  _GifConfigSnapshot? _lastGifConfigHistoryBefore;
+  HistoryAction? _lastGifFramesHistoryAction;
+  String? _lastGifFramesHistoryKey;
+  DateTime? _lastGifFramesHistoryAt;
+  List<GifSourceFrame>? _lastGifFramesHistoryBefore;
 
   void _setEditorRows(int value) {
+    final before = _captureEditorConfig();
     setState(() {
       _editorRows = value;
+      _editorGridSpec = _editorGridSpec.copyWith(rows: value);
       _normalizeEditorTargetFrameIndex();
     });
+    _pushEditorConfigHistory(
+      label: '调整行数为 $value 行',
+      before: before,
+      mergeKey: _editorGridConfigHistoryKey,
+    );
   }
 
   void _setEditorColumns(int value) {
+    final before = _captureEditorConfig();
     setState(() {
       _editorColumns = value;
+      _editorGridSpec = _editorGridSpec.copyWith(columns: value);
       _normalizeEditorTargetFrameIndex();
     });
+    _pushEditorConfigHistory(
+      label: '调整列数为 $value 列',
+      before: before,
+      mergeKey: _editorGridConfigHistoryKey,
+    );
+  }
+
+  void _setEditorGridSpec(SpriteSheetGridSpec value) {
+    final before = _captureEditorConfig();
+    setState(() {
+      _editorRows = value.rows;
+      _editorColumns = value.columns;
+      _editorGridSpec = value;
+      _normalizeEditorTargetFrameIndex();
+    });
+    _pushEditorConfigHistory(
+      label: '调整切片校准',
+      before: before,
+      mergeKey: _editorGridConfigHistoryKey,
+    );
   }
 
   void _setEditorTargetFrameIndex(int value) {
@@ -62,7 +234,171 @@ mixin _EditorGifStateMixin
   }
 
   void _setEditorFrameFit(SpriteSheetFrameFit value) {
+    final before = _captureEditorConfig();
+    if (before.frameFit == value) {
+      return;
+    }
     setState(() => _editorFrameFit = value);
+    _pushEditorConfigHistory(
+      label: '调整适配方式为 ${spriteSheetFrameFitLabel(value)}',
+      before: before,
+      mergeKey: _editorFrameFitHistoryKey,
+    );
+  }
+
+  _EditorConfigSnapshot _captureEditorConfig() {
+    return _EditorConfigSnapshot(
+      rows: _editorRows,
+      columns: _editorColumns,
+      gridSpec: _editorGridSpec,
+      targetFrameIndex: _editorTargetFrameIndex,
+      frameFit: _editorFrameFit,
+    );
+  }
+
+  void _restoreEditorConfig(_EditorConfigSnapshot snapshot) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _editorRows = snapshot.rows;
+      _editorColumns = snapshot.columns;
+      _editorGridSpec = snapshot.gridSpec;
+      _editorTargetFrameIndex = snapshot.targetFrameIndex;
+      _editorFrameFit = snapshot.frameFit;
+      _normalizeEditorTargetFrameIndex();
+    });
+  }
+
+  void _pushEditorConfigHistory({
+    required String label,
+    required _EditorConfigSnapshot before,
+    required String mergeKey,
+  }) {
+    final after = _captureEditorConfig();
+    if (before == after) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final previousAction = _lastEditorConfigHistoryAction;
+    final previousAt = _lastEditorConfigHistoryAt;
+    final shouldMerge =
+        previousAction != null &&
+        previousAt != null &&
+        _lastEditorConfigHistoryKey == mergeKey &&
+        now.difference(previousAt) <= _editorConfigHistoryMergeWindow;
+
+    if (shouldMerge) {
+      final mergedBefore = _lastEditorConfigHistoryBefore ?? before;
+      final replacement = _editorConfigHistoryAction(
+        label: label,
+        before: mergedBefore,
+        after: after,
+      );
+      final replaced = _replaceTopHistory(
+        WorkspaceFeature.imageEditor,
+        current: previousAction,
+        replacement: replacement,
+      );
+      if (replaced) {
+        _rememberEditorConfigHistory(
+          action: replacement,
+          mergeKey: mergeKey,
+          before: mergedBefore,
+          now: now,
+        );
+        return;
+      }
+    }
+
+    final action = _editorConfigHistoryAction(
+      label: label,
+      before: before,
+      after: after,
+    );
+    _pushHistory(WorkspaceFeature.imageEditor, action);
+    _rememberEditorConfigHistory(
+      action: action,
+      mergeKey: mergeKey,
+      before: before,
+      now: now,
+    );
+  }
+
+  HistoryAction _editorConfigHistoryAction({
+    required String label,
+    required _EditorConfigSnapshot before,
+    required _EditorConfigSnapshot after,
+  }) {
+    return HistoryAction(
+      label: label,
+      apply: () => _restoreEditorConfig(after),
+      revert: () => _restoreEditorConfig(before),
+    );
+  }
+
+  void _rememberEditorConfigHistory({
+    required HistoryAction action,
+    required String mergeKey,
+    required _EditorConfigSnapshot before,
+    required DateTime now,
+  }) {
+    _lastEditorConfigHistoryAction = action;
+    _lastEditorConfigHistoryKey = mergeKey;
+    _lastEditorConfigHistoryBefore = before;
+    _lastEditorConfigHistoryAt = now;
+  }
+
+  _EditorSourceSnapshot _captureEditorSource() {
+    return _EditorSourceSnapshot(
+      sheetPath: _editorImagePath,
+      patchPath: _editorPatchImagePath,
+      rows: _editorRows,
+      columns: _editorColumns,
+      gridSpec: _editorGridSpec,
+      targetFrameIndex: _editorTargetFrameIndex,
+      frameFit: _editorFrameFit,
+      errorMessage: _editorErrorMessage,
+    );
+  }
+
+  void _restoreEditorSource(_EditorSourceSnapshot snapshot) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _editorImagePath = snapshot.sheetPath;
+      _editorPatchImagePath = snapshot.patchPath;
+      _editorRows = snapshot.rows;
+      _editorColumns = snapshot.columns;
+      _editorGridSpec = snapshot.gridSpec;
+      _editorTargetFrameIndex = snapshot.targetFrameIndex;
+      _editorFrameFit = snapshot.frameFit;
+      _editorErrorMessage = snapshot.errorMessage;
+      _normalizeEditorTargetFrameIndex();
+    });
+  }
+
+  void _pushEditorSourceHistory({
+    required String label,
+    required _EditorSourceSnapshot before,
+  }) {
+    final after = _captureEditorSource();
+    if (before == after) {
+      return;
+    }
+
+    _pushHistory(
+      WorkspaceFeature.imageEditor,
+      HistoryAction(
+        label: label,
+        apply: () => _restoreEditorSource(after),
+        revert: () => _restoreEditorSource(before),
+      ),
+    );
   }
 
   void _normalizeEditorTargetFrameIndex() {
@@ -130,18 +466,26 @@ mixin _EditorGifStateMixin
       return;
     }
 
+    final before = _captureEditorSource();
     setState(() {
       _editorImagePath = imagePath;
       _editorErrorMessage = null;
     });
+    _pushEditorSourceHistory(label: '载入 Sprite Sheet', before: before);
     _showMessage('已载入图片：${fileNameFromPath(imagePath)}');
   }
 
   void _clearEditorImage() {
+    final before = _captureEditorSource();
+    if (before.sheetPath == null && before.errorMessage == null) {
+      return;
+    }
+
     setState(() {
       _editorImagePath = null;
       _editorErrorMessage = null;
     });
+    _pushEditorSourceHistory(label: '清空 Sprite Sheet', before: before);
   }
 
   Future<void> _pickEditorPatchImage() async {
@@ -155,18 +499,202 @@ mixin _EditorGifStateMixin
       return;
     }
 
+    final before = _captureEditorSource();
     setState(() {
       _editorPatchImagePath = imagePath;
       _editorErrorMessage = null;
     });
+    _pushEditorSourceHistory(label: '选择单帧图片', before: before);
     _showMessage('已选择单帧图片：${fileNameFromPath(imagePath)}');
   }
 
   void _clearEditorPatchImage() {
+    final before = _captureEditorSource();
+    if (before.patchPath == null && before.errorMessage == null) {
+      return;
+    }
+
     setState(() {
       _editorPatchImagePath = null;
       _editorErrorMessage = null;
     });
+    _pushEditorSourceHistory(label: '清空单帧图片', before: before);
+  }
+
+  Future<void> _makeEditorPatchBackgroundTransparent(int tolerance) async {
+    final patchPath = _editorPatchImagePath;
+    if (patchPath == null) {
+      _showMessage('请先选择一张单帧图片');
+      return;
+    }
+
+    setState(() {
+      _isReplacingEditorFrame = true;
+      _editorErrorMessage = null;
+    });
+
+    try {
+      final sourceBytes = await _fileService.readFileBytes(patchPath);
+      final result = BackgroundTransparencyService.makeBackgroundTransparent(
+        sourceBytes,
+        tolerance: tolerance,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (result.transparentPixelCount == 0) {
+        _showMessage('没有检测到可透明化的边缘背景，可尝试调高容差');
+        return;
+      }
+
+      final file = await _store.saveGeneratedImageBytes(
+        groupId: 'transparent_${DateTime.now().microsecondsSinceEpoch}',
+        index: 0,
+        bytes: result.pngBytes,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final item = await _imageLibraryService.addItem(
+        store: _store,
+        path: file.path,
+        kind: ImageAssetKind.generatedImage,
+        title: '透明背景单帧',
+        source: '图片编辑',
+        prompt:
+            '背景转透明 · 容差 $tolerance · '
+            '${result.width} x ${result.height}',
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _editorPatchImagePath = file.path;
+        _imageLibrary = [item, ..._imageLibrary];
+      });
+      _pushEditorPatchImageHistory(
+        label: '背景转透明单帧',
+        beforePatchPath: patchPath,
+        afterPatchPath: file.path,
+        appendedItem: item,
+      );
+      _showMessage(
+        '已生成透明背景单帧：${fileNameFromPath(file.path)} · '
+        '透明化 ${result.transparentPixelCount} 个像素',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _editorErrorMessage = '背景转透明失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isReplacingEditorFrame = false);
+      }
+    }
+  }
+
+  Future<void> _adjustEditorPatchFraming() async {
+    final sheetPath = _editorImagePath;
+    final patchPath = _editorPatchImagePath;
+    if (sheetPath == null) {
+      _showMessage('请先选择一张 Sprite Sheet');
+      return;
+    }
+    if (patchPath == null) {
+      _showMessage('请先选择一张单帧图片');
+      return;
+    }
+
+    try {
+      final sheetBytes = await _fileService.readFileBytes(sheetPath);
+      final previewData = SpriteSheetPreviewComposer.buildFromSheetBytes(
+        sheetBytes,
+        rows: _editorRows,
+        columns: _editorColumns,
+        gridSpec: _editorGridSpec,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final patchBytes = await _fileService.readFileBytes(patchPath);
+      if (!mounted) {
+        return;
+      }
+
+      final framing = await showPatchImageFramingDialog(
+        context,
+        imageBytes: patchBytes,
+        targetWidth: previewData.frameWidth,
+        targetHeight: previewData.frameHeight,
+        sourceTitle: fileNameFromPath(patchPath),
+      );
+      if (framing == null || !mounted) {
+        return;
+      }
+
+      setState(() {
+        _isReplacingEditorFrame = true;
+        _editorErrorMessage = null;
+      });
+
+      final framedBytes = PatchImageFramingService.render(
+        imageBytes: patchBytes,
+        targetWidth: previewData.frameWidth,
+        targetHeight: previewData.frameHeight,
+        framing: framing,
+      );
+      final file = await _store.saveGeneratedImageBytes(
+        groupId: 'framed_patch_${DateTime.now().microsecondsSinceEpoch}',
+        index: 0,
+        bytes: framedBytes,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final item = await _imageLibraryService.addItem(
+        store: _store,
+        path: file.path,
+        kind: ImageAssetKind.generatedImage,
+        title: '取景单帧',
+        source: '图片编辑',
+        prompt:
+            '单帧取景 · ${previewData.frameWidth} x '
+            '${previewData.frameHeight}',
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _editorPatchImagePath = file.path;
+        _editorFrameFit = SpriteSheetFrameFit.stretch;
+        _imageLibrary = [item, ..._imageLibrary];
+      });
+      _pushEditorPatchImageHistory(
+        label: '调整单帧取景',
+        beforePatchPath: patchPath,
+        afterPatchPath: file.path,
+        appendedItem: item,
+      );
+      _showMessage(
+        '已生成取景单帧：${fileNameFromPath(file.path)} · '
+        '${previewData.frameWidth} x ${previewData.frameHeight}',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _editorErrorMessage = '调整取景失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isReplacingEditorFrame = false);
+      }
+    }
   }
 
   Future<void> _pickAnimationTemplateImage() async {
@@ -309,23 +837,49 @@ mixin _EditorGifStateMixin
       return;
     }
 
+    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
     setState(() {
       _gifSourceFrames = newFrames;
       _gifOutputPath = null;
       _gifErrorMessage = null;
     });
+    _pushGifFramesHistory(
+      label: '载入 GIF 图片序列',
+      before: before,
+      mergeKey: _gifLoadSourceFramesHistoryKey,
+    );
   }
 
   void _clearGifSourceImages() {
+    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
+    if (before.isEmpty) {
+      return;
+    }
+
     setState(() {
       _gifSourceFrames = const [];
       _gifOutputPath = null;
       _gifErrorMessage = null;
     });
+    _pushGifFramesHistory(
+      label: '清空 GIF 帧',
+      before: before,
+      mergeKey: _gifClearFramesHistoryKey,
+    );
   }
 
   void _setGifDefaultFrameDelay(int value) {
+    final before = _captureGifConfig();
+    if (before.defaultFrameDelayMs == value) {
+      return;
+    }
+
     setState(() => _gifDefaultFrameDelayMs = value);
+    _pushGifConfigHistory(
+      label: '调整默认帧时长为 $value ms',
+      before: before,
+      mergeKey: _gifDefaultDelayHistoryKey,
+    );
   }
 
   void _applyGifFrameDelayToAll() {
@@ -333,6 +887,7 @@ mixin _EditorGifStateMixin
       return;
     }
 
+    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
     setState(() {
       _gifSourceFrames = [
         for (final frame in _gifSourceFrames)
@@ -341,10 +896,20 @@ mixin _EditorGifStateMixin
       _gifOutputPath = null;
       _gifErrorMessage = null;
     });
+    _pushGifFramesHistory(
+      label: '应用默认帧时长到全部',
+      before: before,
+      mergeKey: _gifApplyDelayToAllHistoryKey,
+    );
   }
 
   void _setGifSourceFrameDelay(int index, int delayMs) {
     if (index < 0 || index >= _gifSourceFrames.length) {
+      return;
+    }
+
+    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
+    if (_gifSourceFrames[index].delayMs == delayMs) {
       return;
     }
 
@@ -355,22 +920,324 @@ mixin _EditorGifStateMixin
       _gifOutputPath = null;
       _gifErrorMessage = null;
     });
+    final frame = before[index];
+    _pushGifFramesHistory(
+      label: '调整${frame.label ?? '第 ${index + 1} 帧'}时长为 $delayMs ms',
+      before: before,
+      mergeKey: 'gif-frame-delay-$index',
+    );
   }
 
   void _setGifLoopCount(int value) {
+    final before = _captureGifConfig();
+    if (before.loopCount == value) {
+      return;
+    }
+
     setState(() => _gifLoopCount = value);
+    _pushGifConfigHistory(
+      label: value == 0 ? '调整 GIF 为无限循环' : '调整 GIF 循环为 $value 次',
+      before: before,
+      mergeKey: _gifLoopCountHistoryKey,
+    );
   }
 
   void _setGifPlaybackMode(GifPlaybackMode value) {
+    final before = _captureGifConfig();
+    if (before.playbackMode == value) {
+      return;
+    }
+
     setState(() => _gifPlaybackMode = value);
+    _pushGifConfigHistory(
+      label: '调整播放模式为 ${gifPlaybackModeLabel(value)}',
+      before: before,
+      mergeKey: _gifPlaybackModeHistoryKey,
+    );
   }
 
-  void _reorderGifSourceImages(int oldIndex, int newIndex) {
+  _GifConfigSnapshot _captureGifConfig() {
+    return _GifConfigSnapshot(
+      defaultFrameDelayMs: _gifDefaultFrameDelayMs,
+      loopCount: _gifLoopCount,
+      playbackMode: _gifPlaybackMode,
+    );
+  }
+
+  void _restoreGifConfig(_GifConfigSnapshot snapshot) {
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
-      _gifSourceFrames = reorderListItems(_gifSourceFrames, oldIndex, newIndex);
+      _gifDefaultFrameDelayMs = snapshot.defaultFrameDelayMs;
+      _gifLoopCount = snapshot.loopCount;
+      _gifPlaybackMode = snapshot.playbackMode;
+    });
+  }
+
+  void _pushGifConfigHistory({
+    required String label,
+    required _GifConfigSnapshot before,
+    required String mergeKey,
+  }) {
+    final after = _captureGifConfig();
+    if (before == after) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final previousAction = _lastGifConfigHistoryAction;
+    final previousAt = _lastGifConfigHistoryAt;
+    final shouldMerge =
+        previousAction != null &&
+        previousAt != null &&
+        _lastGifConfigHistoryKey == mergeKey &&
+        now.difference(previousAt) <= _gifHistoryMergeWindow;
+
+    if (shouldMerge) {
+      final mergedBefore = _lastGifConfigHistoryBefore ?? before;
+      final replacement = _gifConfigHistoryAction(
+        label: label,
+        before: mergedBefore,
+        after: after,
+      );
+      final replaced = _replaceTopHistory(
+        WorkspaceFeature.gifComposer,
+        current: previousAction,
+        replacement: replacement,
+      );
+      if (replaced) {
+        _rememberGifConfigHistory(
+          action: replacement,
+          mergeKey: mergeKey,
+          before: mergedBefore,
+          now: now,
+        );
+        return;
+      }
+    }
+
+    final action = _gifConfigHistoryAction(
+      label: label,
+      before: before,
+      after: after,
+    );
+    _pushHistory(WorkspaceFeature.gifComposer, action);
+    _rememberGifConfigHistory(
+      action: action,
+      mergeKey: mergeKey,
+      before: before,
+      now: now,
+    );
+  }
+
+  HistoryAction _gifConfigHistoryAction({
+    required String label,
+    required _GifConfigSnapshot before,
+    required _GifConfigSnapshot after,
+  }) {
+    return HistoryAction(
+      label: label,
+      apply: () => _restoreGifConfig(after),
+      revert: () => _restoreGifConfig(before),
+    );
+  }
+
+  void _rememberGifConfigHistory({
+    required HistoryAction action,
+    required String mergeKey,
+    required _GifConfigSnapshot before,
+    required DateTime now,
+  }) {
+    _lastGifConfigHistoryAction = action;
+    _lastGifConfigHistoryKey = mergeKey;
+    _lastGifConfigHistoryBefore = before;
+    _lastGifConfigHistoryAt = now;
+  }
+
+  void _restoreGifFrames(List<GifSourceFrame> frames) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _gifSourceFrames = List<GifSourceFrame>.unmodifiable(frames);
       _gifOutputPath = null;
       _gifErrorMessage = null;
     });
+  }
+
+  void _pushGifFramesHistory({
+    required String label,
+    required List<GifSourceFrame> before,
+    required String mergeKey,
+  }) {
+    final after = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
+    if (_gifSourceFrameStateEquals(before, after)) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final previousAction = _lastGifFramesHistoryAction;
+    final previousAt = _lastGifFramesHistoryAt;
+    final shouldMerge =
+        previousAction != null &&
+        previousAt != null &&
+        _lastGifFramesHistoryKey == mergeKey &&
+        now.difference(previousAt) <= _gifHistoryMergeWindow;
+
+    if (shouldMerge) {
+      final mergedBefore = _lastGifFramesHistoryBefore ?? before;
+      final replacement = _gifFramesHistoryAction(
+        label: label,
+        before: mergedBefore,
+        after: after,
+      );
+      final replaced = _replaceTopHistory(
+        WorkspaceFeature.gifComposer,
+        current: previousAction,
+        replacement: replacement,
+      );
+      if (replaced) {
+        _rememberGifFramesHistory(
+          action: replacement,
+          mergeKey: mergeKey,
+          before: mergedBefore,
+          now: now,
+        );
+        return;
+      }
+    }
+
+    final action = _gifFramesHistoryAction(
+      label: label,
+      before: before,
+      after: after,
+    );
+    _pushHistory(WorkspaceFeature.gifComposer, action);
+    _rememberGifFramesHistory(
+      action: action,
+      mergeKey: mergeKey,
+      before: before,
+      now: now,
+    );
+  }
+
+  HistoryAction _gifFramesHistoryAction({
+    required String label,
+    required List<GifSourceFrame> before,
+    required List<GifSourceFrame> after,
+  }) {
+    return HistoryAction(
+      label: label,
+      estimatedBytes:
+          _gifFramesEstimatedBytes(before) + _gifFramesEstimatedBytes(after),
+      apply: () => _restoreGifFrames(after),
+      revert: () => _restoreGifFrames(before),
+    );
+  }
+
+  void _rememberGifFramesHistory({
+    required HistoryAction action,
+    required String mergeKey,
+    required List<GifSourceFrame> before,
+    required DateTime now,
+  }) {
+    _lastGifFramesHistoryAction = action;
+    _lastGifFramesHistoryKey = mergeKey;
+    _lastGifFramesHistoryBefore = before;
+    _lastGifFramesHistoryAt = now;
+  }
+
+  int _gifFramesEstimatedBytes(List<GifSourceFrame> frames) {
+    return frames.fold<int>(
+      0,
+      (total, frame) => total + (frame.inlineBytes?.length ?? 0),
+    );
+  }
+
+  bool _gifSourceFrameStateEquals(
+    List<GifSourceFrame> a,
+    List<GifSourceFrame> b,
+  ) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id || a[i].delayMs != b[i].delayMs) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> _sendPreviewDataToGif(SpriteSheetPreviewData previewData) async {
+    final frames = <GifSourceFrame>[
+      for (var index = 0; index < previewData.frames.length; index++)
+        GifSourceFrame.fromBytes(
+          previewData.frames[index],
+          sourcePath: 'Sprite Sheet 预览',
+          delayMs: _gifDefaultFrameDelayMs,
+          seed: index,
+          label: '第 ${index + 1} 帧',
+        ),
+    ];
+
+    if (frames.length < 2) {
+      _showMessage('至少需要 2 帧才能合成 GIF');
+      return;
+    }
+
+    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
+    setState(() {
+      _gifSourceFrames = frames;
+      _gifOutputPath = null;
+      _gifErrorMessage = null;
+      _selectedFeature = WorkspaceFeature.gifComposer;
+    });
+    _pushGifFramesHistory(
+      label: '载入切片到 GIF',
+      before: before,
+      mergeKey: _gifLoadPreviewFramesHistoryKey,
+    );
+    _showMessage('已载入 ${frames.length} 帧到 GIF 合成');
+  }
+
+  void _reorderGifSourceImages(int oldIndex, int newIndex) {
+    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
+    final after = List<GifSourceFrame>.unmodifiable(
+      reorderListItems(_gifSourceFrames, oldIndex, newIndex),
+    );
+    if (_gifSourceFrameOrderEquals(before, after)) {
+      return;
+    }
+    setState(() {
+      _gifSourceFrames = after;
+      _gifOutputPath = null;
+      _gifErrorMessage = null;
+    });
+    _pushHistory(
+      WorkspaceFeature.gifComposer,
+      HistoryAction(
+        label: '调整 GIF 帧顺序',
+        apply: () {
+          if (!mounted) return;
+          setState(() {
+            _gifSourceFrames = after;
+            _gifOutputPath = null;
+            _gifErrorMessage = null;
+          });
+        },
+        revert: () {
+          if (!mounted) return;
+          setState(() {
+            _gifSourceFrames = before;
+            _gifOutputPath = null;
+            _gifErrorMessage = null;
+          });
+        },
+      ),
+    );
   }
 
   void _removeGifSourceImageAt(int index) {
@@ -378,12 +1245,53 @@ mixin _EditorGifStateMixin
       return;
     }
 
-    final nextFrames = [..._gifSourceFrames]..removeAt(index);
+    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
+    final removedFrame = _gifSourceFrames[index];
+    final after = List<GifSourceFrame>.unmodifiable(
+      [..._gifSourceFrames]..removeAt(index),
+    );
     setState(() {
-      _gifSourceFrames = nextFrames;
+      _gifSourceFrames = after;
       _gifOutputPath = null;
       _gifErrorMessage = null;
     });
+    _pushHistory(
+      WorkspaceFeature.gifComposer,
+      HistoryAction(
+        label: removedFrame.label != null
+            ? '移除「${removedFrame.label}」'
+            : '移除第 ${index + 1} 帧',
+        estimatedBytes: removedFrame.inlineBytes?.length ?? 0,
+        apply: () {
+          if (!mounted) return;
+          setState(() {
+            _gifSourceFrames = after;
+            _gifOutputPath = null;
+            _gifErrorMessage = null;
+          });
+        },
+        revert: () {
+          if (!mounted) return;
+          setState(() {
+            _gifSourceFrames = before;
+            _gifOutputPath = null;
+            _gifErrorMessage = null;
+          });
+        },
+      ),
+    );
+  }
+
+  bool _gifSourceFrameOrderEquals(
+    List<GifSourceFrame> a,
+    List<GifSourceFrame> b,
+  ) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id) return false;
+    }
+    return true;
   }
 
   Future<void> _composeGif() async {
@@ -392,6 +1300,7 @@ mixin _EditorGifStateMixin
       return;
     }
 
+    final beforeOutputPath = _gifOutputPath;
     setState(() {
       _isComposingGif = true;
       _gifErrorMessage = null;
@@ -422,6 +1331,12 @@ mixin _EditorGifStateMixin
         _gifOutputPath = output.path;
         _imageLibrary = [item, ..._imageLibrary];
       });
+      _pushGifCompositionHistory(
+        label: '生成 GIF',
+        beforeOutputPath: beforeOutputPath,
+        afterOutputPath: output.path,
+        appendedItem: item,
+      );
       _showMessage(
         'GIF 已生成：${fileNameFromPath(output.path)} · 目录：${output.directoryPath}',
       );
@@ -438,16 +1353,39 @@ mixin _EditorGifStateMixin
     }
   }
 
+  void _pushGifCompositionHistory({
+    required String label,
+    required String? beforeOutputPath,
+    required String afterOutputPath,
+    required ImageLibraryItem appendedItem,
+  }) {
+    _pushImageLibraryAppendHistory(
+      feature: WorkspaceFeature.gifComposer,
+      label: label,
+      appendedItems: [appendedItem],
+      applyState: () {
+        _gifOutputPath = afterOutputPath;
+        _gifErrorMessage = null;
+      },
+      revertState: () {
+        _gifOutputPath = beforeOutputPath;
+        _gifErrorMessage = null;
+      },
+    );
+  }
+
   Future<void> _exportSpriteSheet({
     required Uint8List pngBytes,
     required int rows,
     required int columns,
+    required SpriteSheetGridSpec gridSpec,
   }) async {
     final output = await SpriteSheetFileService.exportPng(
       store: _store,
       pngBytes: pngBytes,
       rows: rows,
       columns: columns,
+      gridSpec: gridSpec,
     );
     if (!mounted) {
       return;
@@ -457,13 +1395,49 @@ mixin _EditorGifStateMixin
       path: output.path,
       rows: rows,
       columns: columns,
+      gridSpec: gridSpec,
     );
     if (!mounted) {
       return;
     }
     setState(() => _imageLibrary = [item, ..._imageLibrary]);
+    _pushImageLibraryAppendHistory(
+      feature: _selectedFeature,
+      label: '导出 Sprite Sheet',
+      appendedItems: [item],
+    );
     _showMessage(
       '已导出 Sprite Sheet：${fileNameFromPath(output.path)} · 目录：${output.directoryPath}',
+    );
+  }
+
+  void _pushEditorFrameHistory({
+    required String label,
+    required String? beforeSheetPath,
+    required String afterSheetPath,
+    required ImageLibraryItem appendedItem,
+  }) {
+    _pushImageLibraryAppendHistory(
+      feature: WorkspaceFeature.imageEditor,
+      label: label,
+      appendedItems: [appendedItem],
+      applyState: () => _editorImagePath = afterSheetPath,
+      revertState: () => _editorImagePath = beforeSheetPath,
+    );
+  }
+
+  void _pushEditorPatchImageHistory({
+    required String label,
+    required String? beforePatchPath,
+    required String afterPatchPath,
+    required ImageLibraryItem appendedItem,
+  }) {
+    _pushImageLibraryAppendHistory(
+      feature: WorkspaceFeature.imageEditor,
+      label: label,
+      appendedItems: [appendedItem],
+      applyState: () => _editorPatchImagePath = afterPatchPath,
+      revertState: () => _editorPatchImagePath = beforePatchPath,
     );
   }
 
@@ -494,6 +1468,7 @@ mixin _EditorGifStateMixin
         columns: _editorColumns,
         frameIndex: _editorTargetFrameIndex,
         fit: _editorFrameFit,
+        gridSpec: _editorGridSpec,
       );
 
       if (!mounted) {
@@ -506,6 +1481,7 @@ mixin _EditorGifStateMixin
         frameIndex: _editorTargetFrameIndex,
         rows: _editorRows,
         columns: _editorColumns,
+        gridSpec: _editorGridSpec,
       );
       if (!mounted) {
         return;
@@ -514,6 +1490,12 @@ mixin _EditorGifStateMixin
         _editorImagePath = output.path;
         _imageLibrary = [item, ..._imageLibrary];
       });
+      _pushEditorFrameHistory(
+        label: '替换第 ${_editorTargetFrameIndex + 1} 帧',
+        beforeSheetPath: sheetPath,
+        afterSheetPath: output.path,
+        appendedItem: item,
+      );
       _showMessage(
         '已替换第 ${_editorTargetFrameIndex + 1} 帧：${fileNameFromPath(output.path)} · 目录：${output.directoryPath}',
       );
@@ -530,32 +1512,170 @@ mixin _EditorGifStateMixin
     }
   }
 
+  Future<void> _copyPreviousEditorFrame() async {
+    final sheetPath = _editorImagePath;
+    if (sheetPath == null) {
+      _showMessage('请先选择一张 Sprite Sheet');
+      return;
+    }
+    if (_editorTargetFrameIndex <= 0) {
+      _showMessage('第 1 帧没有上一帧可复制');
+      return;
+    }
+
+    setState(() {
+      _isReplacingEditorFrame = true;
+      _editorErrorMessage = null;
+    });
+
+    try {
+      final output = await SpriteSheetFileService.copyFrameAndSave(
+        store: _store,
+        readFileBytes: _fileService.readFileBytes,
+        sheetPath: sheetPath,
+        rows: _editorRows,
+        columns: _editorColumns,
+        sourceFrameIndex: _editorTargetFrameIndex - 1,
+        targetFrameIndex: _editorTargetFrameIndex,
+        gridSpec: _editorGridSpec,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final item = await _imageLibraryService.addEditedSpriteSheet(
+        store: _store,
+        path: output.path,
+        frameIndex: _editorTargetFrameIndex,
+        rows: _editorRows,
+        columns: _editorColumns,
+        gridSpec: _editorGridSpec,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _editorImagePath = output.path;
+        _imageLibrary = [item, ..._imageLibrary];
+      });
+      _pushEditorFrameHistory(
+        label: '复制上一帧到第 ${_editorTargetFrameIndex + 1} 帧',
+        beforeSheetPath: sheetPath,
+        afterSheetPath: output.path,
+        appendedItem: item,
+      );
+      _showMessage('已复制上一帧到第 ${_editorTargetFrameIndex + 1} 帧');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _editorErrorMessage = '复制帧失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isReplacingEditorFrame = false);
+      }
+    }
+  }
+
+  Future<void> _clearEditorTargetFrame() async {
+    final sheetPath = _editorImagePath;
+    if (sheetPath == null) {
+      _showMessage('请先选择一张 Sprite Sheet');
+      return;
+    }
+
+    setState(() {
+      _isReplacingEditorFrame = true;
+      _editorErrorMessage = null;
+    });
+
+    try {
+      final output = await SpriteSheetFileService.clearFrameAndSave(
+        store: _store,
+        readFileBytes: _fileService.readFileBytes,
+        sheetPath: sheetPath,
+        rows: _editorRows,
+        columns: _editorColumns,
+        frameIndex: _editorTargetFrameIndex,
+        gridSpec: _editorGridSpec,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final item = await _imageLibraryService.addEditedSpriteSheet(
+        store: _store,
+        path: output.path,
+        frameIndex: _editorTargetFrameIndex,
+        rows: _editorRows,
+        columns: _editorColumns,
+        gridSpec: _editorGridSpec,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _editorImagePath = output.path;
+        _imageLibrary = [item, ..._imageLibrary];
+      });
+      _pushEditorFrameHistory(
+        label: '清空第 ${_editorTargetFrameIndex + 1} 帧',
+        beforeSheetPath: sheetPath,
+        afterSheetPath: output.path,
+        appendedItem: item,
+      );
+      _showMessage('已清空第 ${_editorTargetFrameIndex + 1} 帧');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _editorErrorMessage = '清空帧失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isReplacingEditorFrame = false);
+      }
+    }
+  }
+
   Widget _buildImageEditorWorkspace() {
     return ImageEditorWorkspace(
       imagePath: _editorImagePath,
       patchImagePath: _editorPatchImagePath,
       rows: _editorRows,
       columns: _editorColumns,
+      gridSpec: _editorGridSpec,
       targetFrameIndex: _editorTargetFrameIndex.clamp(0, _editorFrameCount - 1),
       frameFit: _editorFrameFit,
       isReplacingFrame: _isReplacingEditorFrame,
+      isFocusMode: _isImageEditorFocusMode,
+      historyControls: _buildCompactHistoryControls(),
       errorMessage: _editorErrorMessage,
       onPickImage: _pickEditorImage,
       onClearImage: _clearEditorImage,
       onPickPatchImage: _pickEditorPatchImage,
       onClearPatchImage: _clearEditorPatchImage,
+      onAdjustPatchFraming: () => unawaited(_adjustEditorPatchFraming()),
+      onMakePatchBackgroundTransparent: (tolerance) =>
+          unawaited(_makeEditorPatchBackgroundTransparent(tolerance)),
       onRowsChanged: _setEditorRows,
       onColumnsChanged: _setEditorColumns,
+      onGridSpecChanged: _setEditorGridSpec,
       onTargetFrameChanged: _setEditorTargetFrameIndex,
       onFrameFitChanged: _setEditorFrameFit,
+      onFocusModeChanged: (value) =>
+          setState(() => _isImageEditorFocusMode = value),
       onReplaceFrame: _replaceEditorFrame,
+      onCopyPreviousFrame: () => unawaited(_copyPreviousEditorFrame()),
+      onClearTargetFrame: () => unawaited(_clearEditorTargetFrame()),
       onExportSpriteSheet: (bytes) => unawaited(
         _exportSpriteSheet(
           pngBytes: bytes,
           rows: _editorRows,
           columns: _editorColumns,
+          gridSpec: _editorGridSpec,
         ),
       ),
+      onSendToGif: _sendPreviewDataToGif,
     );
   }
 

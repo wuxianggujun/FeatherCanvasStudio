@@ -1,5 +1,120 @@
 part of 'package:feather_canvas_studio/main.dart';
 
+class _GenerationReuseSnapshot {
+  const _GenerationReuseSnapshot({
+    required this.apiConfigs,
+    required this.selectedApiConfigId,
+    required this.apiConfigProviderKind,
+    required this.imageSizeCapabilityOverride,
+    required this.apiConfigName,
+    required this.baseUrl,
+    required this.apiKey,
+    required this.model,
+    required this.generationTimeout,
+    required this.prompt,
+    required this.negativePrompt,
+    required this.user,
+    required this.size,
+    required this.imageCount,
+    required this.advancedSettings,
+    required this.errorMessage,
+  });
+
+  final List<ApiConfig> apiConfigs;
+  final String selectedApiConfigId;
+  final ApiProviderKind apiConfigProviderKind;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
+  final String apiConfigName;
+  final String baseUrl;
+  final String apiKey;
+  final String model;
+  final String generationTimeout;
+  final String prompt;
+  final String negativePrompt;
+  final String user;
+  final String size;
+  final int imageCount;
+  final ImageAdvancedSettings advancedSettings;
+  final String? errorMessage;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _GenerationReuseSnapshot &&
+            _apiConfigListEquals(apiConfigs, other.apiConfigs) &&
+            selectedApiConfigId == other.selectedApiConfigId &&
+            apiConfigProviderKind == other.apiConfigProviderKind &&
+            imageSizeCapabilityOverride == other.imageSizeCapabilityOverride &&
+            apiConfigName == other.apiConfigName &&
+            baseUrl == other.baseUrl &&
+            apiKey == other.apiKey &&
+            model == other.model &&
+            generationTimeout == other.generationTimeout &&
+            prompt == other.prompt &&
+            negativePrompt == other.negativePrompt &&
+            user == other.user &&
+            size == other.size &&
+            imageCount == other.imageCount &&
+            advancedSettings == other.advancedSettings &&
+            errorMessage == other.errorMessage;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    Object.hashAll(apiConfigs.map(_apiConfigHash)),
+    selectedApiConfigId,
+    apiConfigProviderKind,
+    imageSizeCapabilityOverride,
+    apiConfigName,
+    baseUrl,
+    apiKey,
+    model,
+    generationTimeout,
+    prompt,
+    negativePrompt,
+    user,
+    size,
+    imageCount,
+    advancedSettings,
+    errorMessage,
+  );
+}
+
+bool _apiConfigListEquals(List<ApiConfig> a, List<ApiConfig> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var index = 0; index < a.length; index++) {
+    if (!_apiConfigEquals(a[index], b[index])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _apiConfigEquals(ApiConfig a, ApiConfig b) {
+  return a.id == b.id &&
+      a.name == b.name &&
+      a.baseUrl == b.baseUrl &&
+      a.apiKey == b.apiKey &&
+      a.model == b.model &&
+      a.providerKind == b.providerKind &&
+      a.imageSizeCapabilityOverride == b.imageSizeCapabilityOverride &&
+      a.generationTimeoutSeconds == b.generationTimeoutSeconds;
+}
+
+int _apiConfigHash(ApiConfig config) {
+  return Object.hash(
+    config.id,
+    config.name,
+    config.baseUrl,
+    config.apiKey,
+    config.model,
+    config.providerKind,
+    config.imageSizeCapabilityOverride,
+    config.generationTimeoutSeconds,
+  );
+}
+
 mixin _ImageLibraryStateMixin
     on
         State<FeatherCanvasHomePage>,
@@ -7,6 +122,7 @@ mixin _ImageLibraryStateMixin
         _LocalSettingsStateMixin {
   @override
   AppLocalStore get _store;
+  @override
   WorkspaceFeature get _selectedFeature;
   @override
   bool get _isRestoringState;
@@ -16,9 +132,18 @@ mixin _ImageLibraryStateMixin
   set _editorImagePath(String? value);
   String? get _editorPatchImagePath;
   set _editorPatchImagePath(String? value);
+  set _editorRows(int value);
+  set _editorColumns(int value);
+  set _editorGridSpec(SpriteSheetGridSpec value);
+  _EditorSourceSnapshot _captureEditorSource();
+  void _pushEditorSourceHistory({
+    required String label,
+    required _EditorSourceSnapshot before,
+  });
   String? get _animationTemplateImagePath;
   set _animationTemplateImagePath(String? value);
   set _editorErrorMessage(String? value);
+  String? get _errorMessage;
   set _errorMessage(String? value);
   List<GifSourceFrame> get _gifSourceFrames;
   set _gifSourceFrames(List<GifSourceFrame> value);
@@ -26,6 +151,8 @@ mixin _ImageLibraryStateMixin
   Future<void> _selectFeature(WorkspaceFeature feature);
   @override
   void _showMessage(String message);
+  @override
+  void _pushHistory(WorkspaceFeature feature, HistoryAction action);
 
   final TextEditingController _imageLibrarySearchController =
       TextEditingController();
@@ -37,6 +164,8 @@ mixin _ImageLibraryStateMixin
   ImageLibraryKindFilter _imageLibraryKindFilter = ImageLibraryKindFilter.all;
   ImageLibrarySortOrder _imageLibrarySortOrder = ImageLibrarySortOrder.newest;
   String _imageLibrarySearchQuery = '';
+  String _imageLibraryProjectFilter = '';
+  String _imageLibraryTagFilter = '';
   Set<String> _selectedImageLibraryItemIds = <String>{};
   bool _showStandaloneSpriteFrames = false;
 
@@ -93,21 +222,22 @@ mixin _ImageLibraryStateMixin
     );
   }
 
-  Future<bool> _saveSingleSlice(
+  Future<ImageLibraryItem?> _saveSingleSliceItem(
     ImageLibraryItem sheet,
     int frameIndex,
-    Uint8List bytes,
-  ) async {
+    Uint8List bytes, {
+    bool pushHistory = true,
+  }) async {
     final groupId = sheet.groupId;
     if (groupId == null) {
       _showMessage('该 Sprite Sheet 缺少 groupId，无法保存切片');
-      return false;
+      return null;
     }
     if (savedSpriteFrameIndexesForSheet(
       _imageLibrary,
       sheet,
     ).contains(frameIndex)) {
-      return false;
+      return null;
     }
     try {
       final item = await _imageLibraryService.saveSpriteFrame(
@@ -117,28 +247,55 @@ mixin _ImageLibraryStateMixin
         bytes: bytes,
       );
       if (!mounted) {
-        return false;
+        return null;
       }
       setState(() => _imageLibrary = [item, ..._imageLibrary]);
-      return true;
+      if (pushHistory) {
+        _pushImageLibraryAppendHistory(
+          feature: WorkspaceFeature.imageLibrary,
+          label: '保存「${sheet.displayTitle}」第 ${frameIndex + 1} 帧',
+          appendedItems: [item],
+        );
+      }
+      return item;
     } catch (error) {
       _showMessage('保存切片失败：$error');
-      return false;
+      return null;
     }
+  }
+
+  Future<bool> _saveSingleSlice(
+    ImageLibraryItem sheet,
+    int frameIndex,
+    Uint8List bytes,
+  ) async {
+    final item = await _saveSingleSliceItem(sheet, frameIndex, bytes);
+    return item != null;
   }
 
   Future<int> _saveAllSlices(
     ImageLibraryItem sheet,
     List<MapEntry<int, Uint8List>> framesToSave,
   ) async {
-    var saved = 0;
+    final savedItems = <ImageLibraryItem>[];
     for (final entry in framesToSave) {
-      final ok = await _saveSingleSlice(sheet, entry.key, entry.value);
-      if (!ok) {
+      final item = await _saveSingleSliceItem(
+        sheet,
+        entry.key,
+        entry.value,
+        pushHistory: false,
+      );
+      if (item == null) {
         break;
       }
-      saved++;
+      savedItems.add(item);
     }
+    final saved = savedItems.length;
+    _pushImageLibraryAppendHistory(
+      feature: WorkspaceFeature.imageLibrary,
+      label: '保存「${sheet.displayTitle}」$saved 个切片帧',
+      appendedItems: savedItems,
+    );
     if (mounted) {
       _showMessage('已保存 $saved 个切片帧到作品集');
     }
@@ -164,20 +321,146 @@ mixin _ImageLibraryStateMixin
     ImageLibraryItem item, {
     required String title,
     required String note,
+    required String project,
+    required List<String> tags,
   }) async {
+    final before = item;
     final nextLibrary = await _imageLibraryService.updateItemMetadata(
       store: _store,
       library: _imageLibrary,
       itemId: item.id,
       title: title,
       note: note,
+      project: project,
+      tags: tags,
     );
     if (!mounted) {
       return;
     }
 
+    final updated = nextLibrary.firstWhere(
+      (entry) => entry.id == item.id,
+      orElse: () => item,
+    );
     setState(() => _imageLibrary = nextLibrary);
+
+    final unchanged =
+        updated.title == before.title &&
+        updated.note == before.note &&
+        updated.project == before.project &&
+        _stringListEquals(updated.tags, before.tags);
+    if (!unchanged) {
+      _pushHistory(
+        WorkspaceFeature.imageLibrary,
+        HistoryAction(
+          label: '编辑「${updated.displayTitle}」',
+          apply: () async {
+            if (!mounted) return;
+            final redoLibrary = await _imageLibraryService.updateItemMetadata(
+              store: _store,
+              library: _imageLibrary,
+              itemId: updated.id,
+              title: updated.title,
+              note: updated.note,
+              project: updated.project,
+              tags: updated.tags,
+            );
+            if (!mounted) return;
+            setState(() => _imageLibrary = redoLibrary);
+          },
+          revert: () async {
+            if (!mounted) return;
+            final revertedLibrary = await _imageLibraryService
+                .updateItemMetadata(
+                  store: _store,
+                  library: _imageLibrary,
+                  itemId: before.id,
+                  title: before.title,
+                  note: before.note,
+                  project: before.project,
+                  tags: before.tags,
+                );
+            if (!mounted) return;
+            setState(() => _imageLibrary = revertedLibrary);
+          },
+        ),
+      );
+    }
     _showMessage('作品信息已更新');
+  }
+
+  bool _stringListEquals(List<String> a, List<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  List<ImageLibraryItem> _mergeImageLibraryState({
+    required List<ImageLibraryItem> currentLibrary,
+    List<ImageLibraryItem> appendedItems = const [],
+    Set<String> removedItemIds = const {},
+  }) {
+    final appendedIds = {for (final item in appendedItems) item.id};
+    return [
+      ...appendedItems,
+      for (final item in currentLibrary)
+        if (!removedItemIds.contains(item.id) && !appendedIds.contains(item.id))
+          item,
+    ];
+  }
+
+  Future<void> _applyImageLibraryMerge({
+    List<ImageLibraryItem> appendedItems = const [],
+    Set<String> removedItemIds = const {},
+    VoidCallback? updateState,
+  }) async {
+    final nextLibrary = _mergeImageLibraryState(
+      currentLibrary: _imageLibrary,
+      appendedItems: appendedItems,
+      removedItemIds: removedItemIds,
+    );
+    await _store.saveImageLibrary(nextLibrary);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _imageLibrary = nextLibrary;
+      updateState?.call();
+    });
+  }
+
+  void _pushImageLibraryAppendHistory({
+    required WorkspaceFeature feature,
+    required String label,
+    required List<ImageLibraryItem> appendedItems,
+    VoidCallback? applyState,
+    VoidCallback? revertState,
+  }) {
+    if (appendedItems.isEmpty) {
+      return;
+    }
+
+    _pushHistory(
+      feature,
+      HistoryAction(
+        label: label,
+        apply: () async {
+          await _applyImageLibraryMerge(
+            appendedItems: appendedItems,
+            updateState: applyState,
+          );
+        },
+        revert: () async {
+          await _applyImageLibraryMerge(
+            removedItemIds: {for (final item in appendedItems) item.id},
+            updateState: revertState,
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _showEditImageLibraryItemDialog(ImageLibraryItem item) async {
@@ -190,6 +473,8 @@ mixin _ImageLibraryStateMixin
       item,
       title: result.title,
       note: result.note,
+      project: result.project,
+      tags: result.tags,
     );
   }
 
@@ -218,6 +503,126 @@ mixin _ImageLibraryStateMixin
     }
   }
 
+  ImageLibraryItem? _findImageLibraryItemByPath(String? path) {
+    if (path == null) {
+      return null;
+    }
+    for (final item in _imageLibrary) {
+      if (item.path == path) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  Future<_TransparentBackgroundLibraryResult?> _saveTransparentBackgroundImage({
+    required Uint8List sourceBytes,
+    required int tolerance,
+    ImageLibraryItem? sourceItem,
+    String? fallbackTitle,
+    String source = '背景转透明',
+  }) async {
+    final result = BackgroundTransparencyService.makeBackgroundTransparent(
+      sourceBytes,
+      tolerance: tolerance,
+    );
+    if (result.transparentPixelCount == 0) {
+      return null;
+    }
+
+    final groupId = 'transparent_${DateTime.now().microsecondsSinceEpoch}';
+    final file = await _store.saveGeneratedImageBytes(
+      groupId: groupId,
+      index: 0,
+      bytes: result.pngBytes,
+    );
+    if (!mounted) {
+      return null;
+    }
+
+    final titleSource = sourceItem?.displayTitle ?? fallbackTitle ?? '图片';
+    final item = await _imageLibraryService.addItem(
+      store: _store,
+      path: file.path,
+      kind: sourceItem?.kind == ImageAssetKind.spriteSheet
+          ? ImageAssetKind.spriteSheet
+          : sourceItem?.kind == ImageAssetKind.editedImage
+          ? ImageAssetKind.editedImage
+          : sourceItem?.kind == ImageAssetKind.spriteFrame
+          ? ImageAssetKind.spriteFrame
+          : ImageAssetKind.generatedImage,
+      title: '透明背景：$titleSource',
+      source: source,
+      prompt:
+          '背景转透明 · 容差 $tolerance · '
+          '${result.width} x ${result.height}',
+      generation: sourceItem?.generation,
+      groupId: sourceItem?.kind == ImageAssetKind.spriteSheet ? groupId : null,
+      rows: sourceItem?.rows,
+      columns: sourceItem?.columns,
+      gridSpec: sourceItem?.gridSpec,
+      frameWidth: sourceItem?.frameWidth,
+      frameHeight: sourceItem?.frameHeight,
+      frameIndex: sourceItem?.frameIndex,
+    );
+    if (!mounted) {
+      return null;
+    }
+
+    setState(() => _imageLibrary = [item, ..._imageLibrary]);
+    return _TransparentBackgroundLibraryResult(
+      item: item,
+      transparentPixelCount: result.transparentPixelCount,
+    );
+  }
+
+  Future<void> _makeImageLibraryItemBackgroundTransparent(
+    ImageLibraryItem item,
+  ) async {
+    if (!item.canMakeBackgroundTransparent) {
+      _showMessage('该作品不是可处理的静态图片');
+      return;
+    }
+
+    final tolerance = await showBackgroundTransparencyDialog(
+      context,
+      sourceTitle: item.displayTitle,
+    );
+    if (tolerance == null || !mounted) {
+      return;
+    }
+
+    try {
+      final sourceBytes = await _fileService.readFileBytes(item.path);
+      final saved = await _saveTransparentBackgroundImage(
+        sourceBytes: sourceBytes,
+        tolerance: tolerance,
+        sourceItem: item,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (saved == null) {
+        _showMessage('没有检测到可透明化的边缘背景，可尝试调高容差');
+        return;
+      }
+      _pushImageLibraryAppendHistory(
+        feature: WorkspaceFeature.imageLibrary,
+        label: '背景转透明：${item.displayTitle}',
+        appendedItems: [saved.item],
+      );
+      _showMessage(
+        '已生成透明背景图片：${saved.item.displayTitle} · '
+        '透明化 ${saved.transparentPixelCount} 个像素',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('背景转透明失败：$error');
+    }
+  }
+
   void _setImageLibraryKindFilter(ImageLibraryKindFilter filter) {
     setState(() {
       _imageLibraryKindFilter = filter;
@@ -232,6 +637,20 @@ mixin _ImageLibraryStateMixin
   void _setImageLibrarySearchQuery(String value) {
     setState(() {
       _imageLibrarySearchQuery = value;
+      _selectedImageLibraryItemIds = <String>{};
+    });
+  }
+
+  void _setImageLibraryProjectFilter(String value) {
+    setState(() {
+      _imageLibraryProjectFilter = value;
+      _selectedImageLibraryItemIds = <String>{};
+    });
+  }
+
+  void _setImageLibraryTagFilter(String value) {
+    setState(() {
+      _imageLibraryTagFilter = value;
       _selectedImageLibraryItemIds = <String>{};
     });
   }
@@ -316,6 +735,12 @@ mixin _ImageLibraryStateMixin
       return;
     }
 
+    final beforeSelectedIds = _selectedImageLibraryItemIds;
+    final beforeEditorImagePath = _editorImagePath;
+    final beforeEditorPatchImagePath = _editorPatchImagePath;
+    final beforeAnimationTemplateImagePath = _animationTemplateImagePath;
+    final beforeGifSourceFrames = _gifSourceFrames;
+
     final impact = await _imageLibraryService.deleteItems(
       store: _store,
       fileService: _fileService,
@@ -343,6 +768,72 @@ mixin _ImageLibraryStateMixin
       _animationTemplateImagePath = cleanup.animationTemplateImagePath;
       _gifSourceFrames = cleanup.gifSourceFrames;
     });
+
+    final removedItems = List<ImageLibraryItem>.unmodifiable(
+      impact.removedItems,
+    );
+    if (removedItems.isNotEmpty) {
+      var trashPaths = impact.trashPaths;
+      _pushHistory(
+        WorkspaceFeature.imageLibrary,
+        HistoryAction(
+          label: removedItems.length == 1
+              ? '删除「${removedItems.first.displayTitle}」'
+              : '删除 ${removedItems.length} 个作品',
+          apply: () async {
+            if (!mounted) return;
+            final redoImpact = await _imageLibraryService.deleteItems(
+              store: _store,
+              fileService: _fileService,
+              library: _imageLibrary,
+              ids: removedItems.map((item) => item.id).toSet(),
+            );
+            if (!mounted) return;
+            final redoCleanup = cleanDeletedImageLibraryReferences(
+              removedIds: redoImpact.removedItems
+                  .map((item) => item.id)
+                  .toSet(),
+              removedPaths: redoImpact.removedPaths,
+              selectedItemIds: _selectedImageLibraryItemIds,
+              editorImagePath: _editorImagePath,
+              editorPatchImagePath: _editorPatchImagePath,
+              animationTemplateImagePath: _animationTemplateImagePath,
+              gifSourceFrames: _gifSourceFrames,
+            );
+            trashPaths = redoImpact.trashPaths;
+            setState(() {
+              _imageLibrary = redoImpact.remainingItems;
+              _selectedImageLibraryItemIds = redoCleanup.selectedItemIds;
+              _editorImagePath = redoCleanup.editorImagePath;
+              _editorPatchImagePath = redoCleanup.editorPatchImagePath;
+              _animationTemplateImagePath =
+                  redoCleanup.animationTemplateImagePath;
+              _gifSourceFrames = redoCleanup.gifSourceFrames;
+            });
+          },
+          revert: () async {
+            if (!mounted) return;
+            final restoredLibrary = await _imageLibraryService.restoreItems(
+              store: _store,
+              fileService: _fileService,
+              currentLibrary: _imageLibrary,
+              removedItems: removedItems,
+              trashPaths: trashPaths,
+            );
+            if (!mounted) return;
+            setState(() {
+              _imageLibrary = restoredLibrary;
+              _selectedImageLibraryItemIds = beforeSelectedIds;
+              _editorImagePath = beforeEditorImagePath;
+              _editorPatchImagePath = beforeEditorPatchImagePath;
+              _animationTemplateImagePath = beforeAnimationTemplateImagePath;
+              _gifSourceFrames = beforeGifSourceFrames;
+            });
+          },
+        ),
+      );
+    }
+
     _showMessage(
       impact.removedItems.length == 1
           ? '作品已删除'
@@ -355,14 +846,117 @@ mixin _ImageLibraryStateMixin
       _showMessage('这类作品不能直接作为 Sprite Sheet 编辑');
       return;
     }
+    final before = _captureEditorSource();
     await _selectFeature(WorkspaceFeature.imageEditor);
     if (!mounted) {
       return;
     }
     setState(() {
       _editorImagePath = item.path;
+      if (item.isSpriteSheetWithMetadata) {
+        final gridSpec = item.effectiveGridSpec;
+        _editorRows = gridSpec.rows;
+        _editorColumns = gridSpec.columns;
+        _editorGridSpec = gridSpec;
+      }
       _editorErrorMessage = null;
     });
+    _pushEditorSourceHistory(
+      label: '在编辑器中打开「${item.displayTitle}」',
+      before: before,
+    );
+  }
+
+  _GenerationReuseSnapshot _captureGenerationReuseSnapshot() {
+    final draft = _currentApiConfigDraft;
+    return _GenerationReuseSnapshot(
+      apiConfigs: List<ApiConfig>.unmodifiable(
+        upsertApiConfig(_apiConfigs, draft),
+      ),
+      selectedApiConfigId: draft.id,
+      apiConfigProviderKind: _apiConfigProviderKind,
+      imageSizeCapabilityOverride: _imageSizeCapabilityOverride,
+      apiConfigName: _apiConfigNameController.text,
+      baseUrl: _baseUrlController.text,
+      apiKey: _apiKeyController.text,
+      model: _modelController.text,
+      generationTimeout: _generationTimeoutController.text,
+      prompt: _promptController.text,
+      negativePrompt: _negativePromptController.text,
+      user: _userController.text,
+      size: _size,
+      imageCount: _imageCount,
+      advancedSettings: _advancedSettings,
+      errorMessage: _errorMessage,
+    );
+  }
+
+  Future<void> _restoreGenerationReuseSnapshot(
+    _GenerationReuseSnapshot snapshot,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+
+    _settingsSaveDebounce?.cancel();
+    _apiConfigSaveDebounce?.cancel();
+    _isRestoringState = true;
+    try {
+      _apiConfigNameController.text = snapshot.apiConfigName;
+      _baseUrlController.text = snapshot.baseUrl;
+      _apiKeyController.text = snapshot.apiKey;
+      _modelController.text = snapshot.model;
+      _generationTimeoutController.text = snapshot.generationTimeout;
+      _setControllerText(
+        controller: _promptController,
+        value: snapshot.prompt,
+        remember: (value) => _lastPromptText = value,
+      );
+      _setControllerText(
+        controller: _negativePromptController,
+        value: snapshot.negativePrompt,
+        remember: (value) => _lastNegativePromptText = value,
+      );
+      _userController.text = snapshot.user;
+
+      setState(() {
+        _apiConfigs = snapshot.apiConfigs;
+        _selectedApiConfigId = snapshot.selectedApiConfigId;
+        _apiConfigProviderKind = snapshot.apiConfigProviderKind;
+        _imageSizeCapabilityOverride = snapshot.imageSizeCapabilityOverride;
+        _apiConfigSaveStatus = ApiConfigSaveStatus.saved;
+        _apiConfigSaveErrorMessage = null;
+        _size = snapshot.size;
+        _imageCount = snapshot.imageCount;
+        _advancedSettings = snapshot.advancedSettings;
+        _errorMessage = snapshot.errorMessage;
+      });
+    } finally {
+      _isRestoringState = false;
+    }
+
+    await _store.saveApiConfigs(snapshot.apiConfigs);
+    await _store.saveSelectedApiConfigId(snapshot.selectedApiConfigId);
+    await _saveSettings();
+  }
+
+  void _pushGenerationReuseHistory({
+    required String label,
+    required _GenerationReuseSnapshot before,
+  }) {
+    final after = _captureGenerationReuseSnapshot();
+    if (before == after) {
+      return;
+    }
+
+    _pushHistory(
+      WorkspaceFeature.imageGeneration,
+      HistoryAction(
+        label: label,
+        apply: () => _restoreGenerationReuseSnapshot(after),
+        revert: () => _restoreGenerationReuseSnapshot(before),
+      ),
+    );
   }
 
   Future<void> _reuseImageLibraryGeneration(ImageLibraryItem item) async {
@@ -372,6 +966,8 @@ mixin _ImageLibraryStateMixin
       return;
     }
 
+    _flushPendingGenerationTextHistory();
+    final before = _captureGenerationReuseSnapshot();
     if (_selectedFeature != WorkspaceFeature.imageGeneration) {
       await _selectFeature(WorkspaceFeature.imageGeneration);
       if (!mounted) {
@@ -380,30 +976,59 @@ mixin _ImageLibraryStateMixin
     }
 
     _isRestoringState = true;
-    _promptController.text = generation.prompt;
-    _negativePromptController.text = generation.negativePrompt;
-    _userController.text = generation.advancedSettings.user;
     final draft = buildImageLibraryGenerationReuseDraft(
       generation: generation,
       apiConfigs: _apiConfigs,
     );
     final matchingConfigId = draft.matchingConfigId;
 
-    setState(() {
-      if (matchingConfigId != null) {
-        _selectedApiConfigId = matchingConfigId;
-      }
-      _size = draft.size;
-      _imageCount = draft.imageCount;
-      _advancedSettings = draft.advancedSettings;
-      _errorMessage = null;
-    });
+    try {
+      _setControllerText(
+        controller: _promptController,
+        value: generation.prompt,
+        remember: (value) => _lastPromptText = value,
+      );
+      _setControllerText(
+        controller: _negativePromptController,
+        value: generation.negativePrompt,
+        remember: (value) => _lastNegativePromptText = value,
+      );
+      _userController.text = generation.advancedSettings.user;
 
-    _isRestoringState = false;
+      setState(() {
+        if (matchingConfigId != null) {
+          _selectedApiConfigId = matchingConfigId;
+        }
+        _size = safeImageSizeForModel(
+          size: draft.size,
+          providerKind: matchingConfigId != null
+              ? resolveApiConfig(_apiConfigs, matchingConfigId).providerKind
+              : _apiConfigProviderKind,
+          model: matchingConfigId != null
+              ? resolveApiConfig(_apiConfigs, matchingConfigId).model
+              : _modelController.text,
+          capabilityOverride: matchingConfigId != null
+              ? resolveApiConfig(
+                  _apiConfigs,
+                  matchingConfigId,
+                ).imageSizeCapabilityOverride
+              : _imageSizeCapabilityOverride,
+        );
+        _imageCount = draft.imageCount;
+        _advancedSettings = draft.advancedSettings;
+        _errorMessage = null;
+      });
+    } finally {
+      _isRestoringState = false;
+    }
     if (matchingConfigId != null) {
       await _selectApiConfig(matchingConfigId);
     }
     await _saveSettings();
+    _pushGenerationReuseHistory(
+      label: '复用「${item.displayTitle}」生成参数',
+      before: before,
+    );
     _showMessage(matchingConfigId == null ? '已载入作品参数，接口配置需要手动选择' : '已载入作品参数');
   }
 
@@ -430,6 +1055,8 @@ mixin _ImageLibraryStateMixin
       sortOrder: _imageLibrarySortOrder,
       searchQuery: _imageLibrarySearchQuery,
       showStandaloneFrames: _showStandaloneSpriteFrames,
+      projectFilter: _imageLibraryProjectFilter,
+      tagFilter: _imageLibraryTagFilter,
     );
 
     return ImageLibraryWorkspace(
@@ -440,6 +1067,10 @@ mixin _ImageLibraryStateMixin
       onSearchChanged: _setImageLibrarySearchQuery,
       onClearSearch: _clearImageLibrarySearchQuery,
       onFilterChanged: _setImageLibraryKindFilter,
+      selectedProject: _imageLibraryProjectFilter,
+      onProjectChanged: _setImageLibraryProjectFilter,
+      selectedTag: _imageLibraryTagFilter,
+      onTagChanged: _setImageLibraryTagFilter,
       sortOrder: _imageLibrarySortOrder,
       onSortOrderChanged: _setImageLibrarySortOrder,
       selectedItemIds: _selectedImageLibraryItemIds,
@@ -451,6 +1082,8 @@ mixin _ImageLibraryStateMixin
       onUseInEditor: _useImageLibraryItemInEditor,
       onReuseGeneration: _reuseImageLibraryGeneration,
       onCopyGeneration: _copyImageLibraryGeneration,
+      onMakeBackgroundTransparent: (item) =>
+          unawaited(_makeImageLibraryItemBackgroundTransparent(item)),
       onEditMetadata: _showEditImageLibraryItemDialog,
       onCopyPath: _copyImageLibraryItemPath,
       onOpenLocation: _openImageLibraryItemLocation,
@@ -461,4 +1094,14 @@ mixin _ImageLibraryStateMixin
           setState(() => _showStandaloneSpriteFrames = value),
     );
   }
+}
+
+class _TransparentBackgroundLibraryResult {
+  const _TransparentBackgroundLibraryResult({
+    required this.item,
+    required this.transparentPixelCount,
+  });
+
+  final ImageLibraryItem item;
+  final int transparentPixelCount;
 }

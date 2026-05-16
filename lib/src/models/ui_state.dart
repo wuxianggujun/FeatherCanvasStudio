@@ -8,6 +8,7 @@ enum ImageLibraryTileMenuAction {
   useInEditor,
   reuseGeneration,
   copyGeneration,
+  makeBackgroundTransparent,
   copyPath,
   openLocation,
   delete,

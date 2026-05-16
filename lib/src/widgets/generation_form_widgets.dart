@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/api_provider.dart';
 import '../models/app_config.dart';
 import '../models/image_advanced_settings.dart';
+import '../models/sprite_sheet_grid_spec.dart';
 import '../theme/layout_constants.dart';
+import '../utils/image_dimensions.dart';
 import '../widgets/api_settings_widgets.dart';
 import '../widgets/common_form_widgets.dart';
 import '../widgets/image_advanced_settings_widgets.dart';
@@ -15,6 +17,8 @@ class ControlPanel extends StatelessWidget {
     required this.apiConfigs,
     required this.selectedApiConfigId,
     required this.providerKind,
+    required this.model,
+    required this.imageSizeCapabilityOverride,
     required this.promptController,
     required this.negativePromptController,
     required this.size,
@@ -34,6 +38,8 @@ class ControlPanel extends StatelessWidget {
   final List<ApiConfig> apiConfigs;
   final String selectedApiConfigId;
   final ApiProviderKind providerKind;
+  final String model;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final TextEditingController promptController;
   final TextEditingController negativePromptController;
   final String size;
@@ -50,6 +56,13 @@ class ControlPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sizeValidation = validateImageSizeForModel(
+      size: size,
+      providerKind: providerKind,
+      model: model,
+      capabilityOverride: imageSizeCapabilityOverride,
+    );
+
     return AppPanel(
       title: '生成配置',
       child: Column(
@@ -86,6 +99,8 @@ class ControlPanel extends StatelessWidget {
           ImageSizeInput(
             size: size,
             providerKind: providerKind,
+            model: model,
+            capabilityOverride: imageSizeCapabilityOverride,
             onChanged: onSizeChanged,
           ),
           const SizedBox(height: fieldGap),
@@ -105,7 +120,9 @@ class ControlPanel extends StatelessWidget {
           ),
           const SizedBox(height: sectionGap),
           PrimaryActionButton(
-            onPressed: isGenerating ? null : onGenerate,
+            onPressed: isGenerating || !sizeValidation.isValid
+                ? null
+                : onGenerate,
             icon: Icons.auto_awesome,
             label: '生成图片',
             busyLabel: '生成中',
@@ -122,11 +139,14 @@ class FrameAnimationPanel extends StatelessWidget {
     required this.apiConfigs,
     required this.selectedApiConfigId,
     required this.providerKind,
+    required this.model,
+    required this.imageSizeCapabilityOverride,
     required this.promptController,
     required this.negativePromptController,
     required this.size,
     required this.rows,
     required this.columns,
+    required this.gridSpec,
     required this.templateImagePath,
     required this.advancedSettings,
     required this.userController,
@@ -136,6 +156,7 @@ class FrameAnimationPanel extends StatelessWidget {
     required this.onSizeChanged,
     required this.onRowsChanged,
     required this.onColumnsChanged,
+    required this.onGridSpecChanged,
     required this.onAdvancedSettingsChanged,
     required this.onPickTemplateImage,
     required this.onClearTemplateImage,
@@ -148,11 +169,14 @@ class FrameAnimationPanel extends StatelessWidget {
   final List<ApiConfig> apiConfigs;
   final String selectedApiConfigId;
   final ApiProviderKind providerKind;
+  final String model;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final TextEditingController promptController;
   final TextEditingController negativePromptController;
   final String size;
   final int rows;
   final int columns;
+  final SpriteSheetGridSpec gridSpec;
   final String? templateImagePath;
   final ImageAdvancedSettings advancedSettings;
   final TextEditingController userController;
@@ -162,6 +186,7 @@ class FrameAnimationPanel extends StatelessWidget {
   final ValueChanged<String> onSizeChanged;
   final ValueChanged<int> onRowsChanged;
   final ValueChanged<int> onColumnsChanged;
+  final ValueChanged<SpriteSheetGridSpec> onGridSpecChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final VoidCallback onPickTemplateImage;
   final VoidCallback onClearTemplateImage;
@@ -170,6 +195,12 @@ class FrameAnimationPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final frameTotal = rows * columns;
+    final sizeValidation = validateImageSizeForModel(
+      size: size,
+      providerKind: providerKind,
+      model: model,
+      capabilityOverride: imageSizeCapabilityOverride,
+    );
 
     return AppPanel(
       title: '帧动画配置',
@@ -216,6 +247,8 @@ class FrameAnimationPanel extends StatelessWidget {
           ImageSizeInput(
             size: size,
             providerKind: providerKind,
+            model: model,
+            capabilityOverride: imageSizeCapabilityOverride,
             onChanged: onSizeChanged,
             compact: true,
           ),
@@ -243,9 +276,16 @@ class FrameAnimationPanel extends StatelessWidget {
               onChanged: onColumnsChanged,
             ),
           ),
+          const SizedBox(height: fieldGap),
+          SpriteSheetGridSpecControls(
+            gridSpec: gridSpec,
+            onChanged: onGridSpecChanged,
+          ),
           const SizedBox(height: sectionGap),
           PrimaryActionButton(
-            onPressed: isGenerating ? null : onGenerate,
+            onPressed: isGenerating || !sizeValidation.isValid
+                ? null
+                : onGenerate,
             icon: Icons.movie_filter_outlined,
             label: '生成 Sprite Sheet',
             busyLabel: '生成 Sprite Sheet 中',

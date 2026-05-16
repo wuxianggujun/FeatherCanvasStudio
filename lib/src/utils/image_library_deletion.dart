@@ -19,11 +19,23 @@ class ImageLibraryDeleteImpact {
     required this.removedItems,
     required this.removedPaths,
     required this.remainingItems,
+    this.trashPaths = const <String, String>{},
   });
 
   final List<ImageLibraryItem> removedItems;
   final Set<String> removedPaths;
   final List<ImageLibraryItem> remainingItems;
+
+  /// 原始路径 -> 回收站路径。当删除走回收站模式时填充,空表示走硬删除。
+  final Map<String, String> trashPaths;
+
+  ImageLibraryDeleteImpact withTrashPaths(Map<String, String> trashPaths) =>
+      ImageLibraryDeleteImpact(
+        removedItems: removedItems,
+        removedPaths: removedPaths,
+        remainingItems: remainingItems,
+        trashPaths: trashPaths,
+      );
 }
 
 class ImageLibraryReferenceCleanup {

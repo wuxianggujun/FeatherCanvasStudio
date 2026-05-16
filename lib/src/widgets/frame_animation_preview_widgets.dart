@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../models/generated_image.dart';
+import '../models/sprite_sheet_grid_spec.dart';
 import '../services/image_api_client.dart';
 import '../services/sprite_sheet_service.dart';
 import '../theme/layout_constants.dart';
@@ -25,7 +27,9 @@ class FrameAnimationPreviewPanel extends StatefulWidget {
     required this.isGenerating,
     required this.rows,
     required this.columns,
+    required this.gridSpec,
     required this.onExportSpriteSheet,
+    this.onSendToGif,
     this.labelBuilder,
     this.onRetry,
     super.key,
@@ -39,7 +43,9 @@ class FrameAnimationPreviewPanel extends StatefulWidget {
   final bool isGenerating;
   final int rows;
   final int columns;
+  final SpriteSheetGridSpec gridSpec;
   final ValueChanged<Uint8List> onExportSpriteSheet;
+  final ValueChanged<SpriteSheetPreviewData>? onSendToGif;
   final String Function(int index)? labelBuilder;
   final VoidCallback? onRetry;
 
@@ -73,7 +79,8 @@ class FrameAnimationPreviewPanelState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.generatedImages != widget.generatedImages ||
         oldWidget.rows != widget.rows ||
-        oldWidget.columns != widget.columns) {
+        oldWidget.columns != widget.columns ||
+        oldWidget.gridSpec != widget.gridSpec) {
       _selectedRow = _selectedRow.clamp(0, (widget.rows - 1).clamp(0, 99));
       _currentColumn = _currentColumn.clamp(
         0,
@@ -112,6 +119,7 @@ class FrameAnimationPreviewPanelState
       images: widget.generatedImages,
       rows: widget.rows,
       columns: widget.columns,
+      gridSpec: widget.gridSpec,
       sourceMode: SpriteSheetPreviewSourceMode.sheet,
     );
   }
@@ -230,7 +238,7 @@ class FrameAnimationPreviewPanelState
 
     return FutureBuilder<SpriteSheetPreviewData>(
       key: ValueKey(
-        'frame-preview-${widget.generatedImages.length}-${widget.rows}-${widget.columns}',
+        'frame-preview-${widget.generatedImages.length}-${widget.rows}-${widget.columns}-${widget.gridSpec.toJson()}',
       ),
       future: _previewFuture,
       builder: (context, snapshot) {

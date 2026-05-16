@@ -10,6 +10,7 @@ class SpriteSheetPreviewData {
     required this.sheetHeight,
     required this.frameWidth,
     required this.frameHeight,
+    required this.gridSpec,
   });
 
   final Uint8List sheetBytes;
@@ -20,6 +21,7 @@ class SpriteSheetPreviewData {
   final int sheetHeight;
   final int frameWidth;
   final int frameHeight;
+  final SpriteSheetGridSpec gridSpec;
 
   double get sheetAspectRatio => sheetWidth / sheetHeight;
   double get frameAspectRatio => frameWidth / frameHeight;
@@ -43,18 +45,37 @@ class SpriteSheetPreviewData {
   }
 
   Rect rowRectForDisplay(Size displaySize, int row) {
-    final rowHeight = displaySize.height / rows;
-    return Rect.fromLTWH(0, rowHeight * row, displaySize.width, rowHeight);
+    final scaleX = displaySize.width / sheetWidth;
+    final scaleY = displaySize.height / sheetHeight;
+    final firstCell = gridSpec.cellRectForSheet(
+      sheetWidth: sheetWidth,
+      sheetHeight: sheetHeight,
+      row: row,
+      column: 0,
+    );
+    final rowHeight = gridSpec.frameHeightForSheet(sheetHeight);
+    return Rect.fromLTWH(
+      firstCell.left * scaleX,
+      firstCell.top * scaleY,
+      (frameWidth * columns + gridSpec.columnGap * (columns - 1)) * scaleX,
+      rowHeight * scaleY,
+    );
   }
 
   Rect cellRectForDisplay(Size displaySize, int row, int column) {
-    final cellWidth = displaySize.width / columns;
-    final cellHeight = displaySize.height / rows;
+    final scaleX = displaySize.width / sheetWidth;
+    final scaleY = displaySize.height / sheetHeight;
+    final cellRect = gridSpec.cellRectForSheet(
+      sheetWidth: sheetWidth,
+      sheetHeight: sheetHeight,
+      row: row,
+      column: column,
+    );
     return Rect.fromLTWH(
-      cellWidth * column,
-      cellHeight * row,
-      cellWidth,
-      cellHeight,
+      cellRect.left * scaleX,
+      cellRect.top * scaleY,
+      cellRect.width * scaleX,
+      cellRect.height * scaleY,
     );
   }
 }
@@ -68,11 +89,14 @@ class SpriteSheetPreviewComposer {
     required List<GeneratedImage> images,
     required int rows,
     required int columns,
+    SpriteSheetGridSpec? gridSpec,
     SpriteSheetPreviewSourceMode sourceMode = SpriteSheetPreviewSourceMode.auto,
   }) async {
-    if (rows <= 0 || columns <= 0) {
-      throw const ImageGenerationException('切片预览需要有效的行列数。');
-    }
+    final spec = _resolveGridSpec(
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    )..validateForSheet(context: '切片预览');
     if (images.isEmpty) {
       throw const ImageGenerationException('没有可用于切片预览的图片。');
     }
@@ -83,30 +107,37 @@ class SpriteSheetPreviewComposer {
       final sheetBytes = await _resolveGeneratedImageBytesForPreview(
         images.single,
       );
-      return buildFromSheetBytes(sheetBytes, rows: rows, columns: columns);
+      return buildFromSheetBytes(
+        sheetBytes,
+        rows: spec.rows,
+        columns: spec.columns,
+        gridSpec: spec,
+      );
     }
 
-    return _buildFromFrames(images, rows: rows, columns: columns);
+    return _buildFromFrames(images, gridSpec: spec);
   }
 
   static SpriteSheetPreviewData buildFromSheetBytes(
     Uint8List sheetBytes, {
     required int rows,
     required int columns,
+    SpriteSheetGridSpec? gridSpec,
   }) {
-    if (rows <= 0 || columns <= 0) {
-      throw const ImageGenerationException('切片预览需要有效的行列数。');
-    }
+    final spec = _resolveGridSpec(
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    )..validateForSheet(context: '切片预览');
 
-    return _buildFromSheetBytes(sheetBytes, rows: rows, columns: columns);
+    return _buildFromSheetBytes(sheetBytes, gridSpec: spec);
   }
 
   static Future<SpriteSheetPreviewData> _buildFromFrames(
     List<GeneratedImage> images, {
-    required int rows,
-    required int columns,
+    required SpriteSheetGridSpec gridSpec,
   }) async {
-    final totalFrames = rows * columns;
+    final totalFrames = gridSpec.totalFrameCount;
     final decodedFrames = <image_lib.Image>[];
 
     for (final image in images.take(totalFrames)) {
@@ -125,8 +156,16 @@ class SpriteSheetPreviewComposer {
     final frameWidth = decodedFrames.first.width;
     final frameHeight = decodedFrames.first.height;
     final sheet = image_lib.Image(
-      width: frameWidth * columns,
-      height: frameHeight * rows,
+      width:
+          gridSpec.marginLeft +
+          gridSpec.marginRight +
+          frameWidth * gridSpec.columns +
+          gridSpec.columnGap * (gridSpec.columns - 1),
+      height:
+          gridSpec.marginTop +
+          gridSpec.marginBottom +
+          frameHeight * gridSpec.rows +
+          gridSpec.rowGap * (gridSpec.rows - 1),
     );
     final frames = <Uint8List>[];
 
@@ -143,49 +182,65 @@ class SpriteSheetPreviewComposer {
               height: frameHeight,
             );
       frames.add(Uint8List.fromList(image_lib.encodePng(normalizedFrame)));
+      final row = index ~/ gridSpec.columns;
+      final column = index % gridSpec.columns;
+      final cellRect = gridSpec.cellRectForSheet(
+        sheetWidth: sheet.width,
+        sheetHeight: sheet.height,
+        row: row,
+        column: column,
+      );
       image_lib.compositeImage(
         sheet,
         normalizedFrame,
-        dstX: (index % columns) * frameWidth,
-        dstY: (index ~/ columns) * frameHeight,
+        dstX: cellRect.left.toInt(),
+        dstY: cellRect.top.toInt(),
       );
     }
 
     return SpriteSheetPreviewData(
       sheetBytes: Uint8List.fromList(image_lib.encodePng(sheet)),
       frames: frames,
-      rows: rows,
-      columns: columns,
+      rows: gridSpec.rows,
+      columns: gridSpec.columns,
       sheetWidth: sheet.width,
       sheetHeight: sheet.height,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
+      gridSpec: gridSpec,
     );
   }
 
   static SpriteSheetPreviewData _buildFromSheetBytes(
     Uint8List sheetBytes, {
-    required int rows,
-    required int columns,
+    required SpriteSheetGridSpec gridSpec,
   }) {
     final sheet = image_lib.decodeImage(sheetBytes);
     if (sheet == null) {
       throw const ImageGenerationException('整张图片无法解码，无法切片。');
     }
 
-    final frameWidth = (sheet.width / columns).floor();
-    final frameHeight = (sheet.height / rows).floor();
-    if (frameWidth <= 0 || frameHeight <= 0) {
-      throw const ImageGenerationException('整张图片尺寸不足，无法按当前行列切片。');
-    }
+    gridSpec.validateForSheet(
+      sheetWidth: sheet.width,
+      sheetHeight: sheet.height,
+      context: '整张图片',
+    );
+    final frameWidth = gridSpec.frameWidthForSheet(sheet.width);
+    final frameHeight = gridSpec.frameHeightForSheet(sheet.height);
 
     final frames = <Uint8List>[];
-    for (var row = 0; row < rows; row++) {
-      for (var column = 0; column < columns; column++) {
+    for (var row = 0; row < gridSpec.rows; row++) {
+      for (var column = 0; column < gridSpec.columns; column++) {
+        final cellRect = gridSpec.cellRectForSheet(
+          sheetWidth: sheet.width,
+          sheetHeight: sheet.height,
+          row: row,
+          column: column,
+        );
         final frame = image_lib.copyCrop(
           sheet,
-          x: column * frameWidth,
-          y: row * frameHeight,
+          x: cellRect.left.toInt(),
+          y: cellRect.top.toInt(),
           width: frameWidth,
           height: frameHeight,
         );
@@ -196,12 +251,27 @@ class SpriteSheetPreviewComposer {
     return SpriteSheetPreviewData(
       sheetBytes: sheetBytes,
       frames: frames,
-      rows: rows,
-      columns: columns,
+      rows: gridSpec.rows,
+      columns: gridSpec.columns,
       sheetWidth: sheet.width,
       sheetHeight: sheet.height,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
+      gridSpec: gridSpec,
     );
   }
+}
+
+SpriteSheetGridSpec _resolveGridSpec({
+  required int rows,
+  required int columns,
+  SpriteSheetGridSpec? gridSpec,
+}) {
+  if (gridSpec == null) {
+    return SpriteSheetGridSpec(rows: rows, columns: columns);
+  }
+  if (gridSpec.rows != rows || gridSpec.columns != columns) {
+    throw const ImageGenerationException('网格配置的行列数必须与传入行列数一致。');
+  }
+  return gridSpec;
 }

@@ -26,6 +26,8 @@ void main() {
       kind: ImageAssetKind.spriteSheet,
       groupId: 'group',
       createdAt: DateTime.parse('2026-05-15T12:00:00Z'),
+      project: 'Project Beta',
+      tags: ['sheet', 'Pixel'],
     );
     final groupedFrame = _item(
       id: 'frame',
@@ -33,6 +35,8 @@ void main() {
       kind: ImageAssetKind.spriteFrame,
       groupId: 'group',
       createdAt: DateTime.parse('2026-05-15T12:01:00Z'),
+      project: 'Project Beta',
+      tags: ['frame'],
     );
     final standaloneFrame = _item(
       id: 'standalone',
@@ -40,6 +44,8 @@ void main() {
       kind: ImageAssetKind.spriteFrame,
       groupId: 'other',
       createdAt: DateTime.parse('2026-05-15T12:02:00Z'),
+      project: 'Project Alpha',
+      tags: ['Character'],
     );
     final missing = _item(
       id: 'missing',
@@ -70,9 +76,60 @@ void main() {
     ]);
     expect(hiddenGroupedFrames.visibleItems, [sheet, standaloneFrame]);
     expect(hiddenGroupedFrames.filteredItems, [standaloneFrame, sheet]);
+    expect(hiddenGroupedFrames.availableProjects, [
+      'Project Alpha',
+      'Project Beta',
+    ]);
+    expect(hiddenGroupedFrames.availableTags, ['Character', 'Pixel', 'sheet']);
     expect(hiddenGroupedFrames.groupedFrameCount, 1);
     expect(hiddenGroupedFrames.savedFrameCountFor(sheet), 1);
     expect(shownGroupedFrames.filteredItems, [sheet]);
+  });
+
+  test('filters image library view data by project and tag', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'image_library_project_tag_filter_test_',
+    );
+    addTearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    Future<String> touch(String name) async {
+      final file = File('${tempDir.path}${Platform.pathSeparator}$name');
+      await file.writeAsBytes([1], flush: true);
+      return file.path;
+    }
+
+    final alpha = _item(
+      id: 'alpha',
+      path: await touch('alpha.png'),
+      kind: ImageAssetKind.generatedImage,
+      createdAt: DateTime.parse('2026-05-15T12:00:00Z'),
+      project: 'Project Alpha',
+      tags: ['Character', 'Hero'],
+    );
+    final beta = _item(
+      id: 'beta',
+      path: await touch('beta.png'),
+      kind: ImageAssetKind.generatedImage,
+      createdAt: DateTime.parse('2026-05-15T12:01:00Z'),
+      project: 'Project Beta',
+      tags: ['Character'],
+    );
+
+    final viewData = buildImageLibraryViewData(
+      library: [alpha, beta],
+      filter: ImageLibraryKindFilter.all,
+      sortOrder: ImageLibrarySortOrder.newest,
+      searchQuery: 'hero alpha',
+      showStandaloneFrames: true,
+      projectFilter: 'project alpha',
+      tagFilter: 'hero',
+    );
+
+    expect(viewData.filteredItems, [alpha]);
   });
 }
 
@@ -82,6 +139,8 @@ ImageLibraryItem _item({
   required ImageAssetKind kind,
   required DateTime createdAt,
   String? groupId,
+  String project = '',
+  List<String> tags = const <String>[],
 }) {
   return ImageLibraryItem(
     id: id,
@@ -90,6 +149,8 @@ ImageLibraryItem _item({
     kind: kind,
     title: id,
     source: 'test',
+    project: project,
+    tags: tags,
     groupId: groupId,
   );
 }

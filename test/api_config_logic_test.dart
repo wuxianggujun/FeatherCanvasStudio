@@ -1,4 +1,4 @@
-﻿import 'package:feather_canvas_studio/feather_canvas_studio.dart';
+import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -10,6 +10,7 @@ void main() {
       apiKeyText: ' key ',
       modelText: ' gpt-image-2 ',
       providerKind: ApiProviderKind.official,
+      imageSizeCapabilityOverride: ImageSizeCapabilityOverride.customPixels,
     );
 
     expect(draft.id, isNotEmpty);
@@ -18,6 +19,10 @@ void main() {
     expect(draft.apiKey, ' key ');
     expect(draft.model, 'gpt-image-2');
     expect(draft.providerKind, ApiProviderKind.official);
+    expect(
+      draft.imageSizeCapabilityOverride,
+      ImageSizeCapabilityOverride.customPixels,
+    );
   });
 
   test('resolves and upserts API configs', () {
@@ -60,6 +65,10 @@ void main() {
       defaultModelForProviderKind(ApiProviderKind.compatible),
     );
     expect(config.providerKind, ApiProviderKind.compatible);
+    expect(
+      config.imageSizeCapabilityOverride,
+      ImageSizeCapabilityOverride.auto,
+    );
   });
 
   test('applies provider defaults only when current fields are unchanged', () {
@@ -87,6 +96,32 @@ void main() {
     expect(preserved.baseUrl, 'https://proxy.example/v1');
     expect(preserved.model, 'custom-model');
   });
+
+  test(
+    'normalizes impossible size capability overrides for provider protocol',
+    () {
+      final normalized = normalizeImageSizeCapabilityOverrideForProvider(
+        providerKind: ApiProviderKind.gemini,
+        imageSizeCapabilityOverride: ImageSizeCapabilityOverride.customPixels,
+      );
+
+      expect(normalized, ImageSizeCapabilityOverride.aspectRatio);
+      expect(
+        normalizeImageSizeCapabilityOverrideForProvider(
+          providerKind: ApiProviderKind.compatible,
+          imageSizeCapabilityOverride: ImageSizeCapabilityOverride.customPixels,
+        ),
+        ImageSizeCapabilityOverride.customPixels,
+      );
+      expect(
+        normalizeImageSizeCapabilityOverrideForProvider(
+          providerKind: ApiProviderKind.official,
+          imageSizeCapabilityOverride: ImageSizeCapabilityOverride.aspectRatio,
+        ),
+        ImageSizeCapabilityOverride.fixedPresets,
+      );
+    },
+  );
 
   test(
     'deletes selected API config and chooses the first remaining config',
@@ -171,6 +206,7 @@ void main() {
       apiKey: ' key ',
       model: 'gpt-image-2',
       providerKind: ApiProviderKind.official,
+      imageSizeCapabilityOverride: ImageSizeCapabilityOverride.customPixels,
     );
     const gemini = ApiConfig(
       id: 'gemini',
@@ -197,6 +233,10 @@ void main() {
     expect(basicRequest.providerKind, ApiProviderKind.compatible);
     expect(basicRequest.advancedSettings.quality, 'auto');
     expect(fullRequest.providerKind, ApiProviderKind.official);
+    expect(
+      fullRequest.imageSizeCapabilityOverride,
+      ImageSizeCapabilityOverride.customPixels,
+    );
     expect(fullRequest.advancedSettings.quality, 'low');
     expect(geminiBasicRequest.providerKind, ApiProviderKind.gemini);
     expect(basicRequest.apiKey, 'key');

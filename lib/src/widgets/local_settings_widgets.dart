@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/api_provider.dart';
+import '../models/app_preset.dart';
+import '../models/app_config.dart';
 import '../models/image_advanced_settings.dart';
 import '../theme/layout_constants.dart';
 import '../widgets/image_advanced_settings_widgets.dart';
@@ -15,15 +17,21 @@ class LocalSettingsPanel extends StatelessWidget {
     required this.generatedPreviewCount,
     required this.isCleaningStorage,
     required this.providerKind,
+    required this.model,
+    required this.imageSizeCapabilityOverride,
     required this.promptController,
     required this.negativePromptController,
     required this.size,
     required this.imageCount,
     required this.advancedSettings,
+    required this.presets,
     required this.userController,
     required this.onSizeChanged,
     required this.onImageCountChanged,
     required this.onAdvancedSettingsChanged,
+    required this.onSavePreset,
+    required this.onApplyPreset,
+    required this.onDeletePreset,
     required this.onOpenApiSettings,
     required this.onCleanupStorage,
     required this.onResetToDefaults,
@@ -35,15 +43,21 @@ class LocalSettingsPanel extends StatelessWidget {
   final int generatedPreviewCount;
   final bool isCleaningStorage;
   final ApiProviderKind providerKind;
+  final String model;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final TextEditingController promptController;
   final TextEditingController negativePromptController;
   final String size;
   final int imageCount;
   final ImageAdvancedSettings advancedSettings;
+  final List<AppPreset> presets;
   final TextEditingController userController;
   final ValueChanged<String> onSizeChanged;
   final ValueChanged<int> onImageCountChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
+  final ValueChanged<AppPresetKind> onSavePreset;
+  final ValueChanged<AppPreset> onApplyPreset;
+  final ValueChanged<AppPreset> onDeletePreset;
   final VoidCallback onOpenApiSettings;
   final VoidCallback onCleanupStorage;
   final VoidCallback onResetToDefaults;
@@ -117,6 +131,8 @@ class LocalSettingsPanel extends StatelessWidget {
               ImageSizeInput(
                 size: size,
                 providerKind: providerKind,
+                model: model,
+                capabilityOverride: imageSizeCapabilityOverride,
                 onChanged: onSizeChanged,
               ),
               const SizedBox(height: fieldGap),
@@ -134,6 +150,46 @@ class LocalSettingsPanel extends StatelessWidget {
                 hasTemplateImage: false,
                 onChanged: onAdvancedSettingsChanged,
               ),
+            ],
+          ),
+        ),
+        const SizedBox(height: sectionGap),
+        AppPanel(
+          title: '常用预设',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        onSavePreset(AppPresetKind.localGeneration),
+                    icon: const Icon(Icons.save_outlined),
+                    label: const Text('保存文本预设'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => onSavePreset(AppPresetKind.spriteSheet),
+                    icon: const Icon(Icons.video_library_outlined),
+                    label: const Text('保存帧动画预设'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => onSavePreset(AppPresetKind.gif),
+                    icon: const Icon(Icons.gif_box_outlined),
+                    label: const Text('保存 GIF 预设'),
+                  ),
+                ],
+              ),
+              if (presets.isNotEmpty) ...[
+                const SizedBox(height: fieldGap),
+                for (final preset in presets)
+                  _PresetRow(
+                    preset: preset,
+                    onApply: () => onApplyPreset(preset),
+                    onDelete: () => onDeletePreset(preset),
+                  ),
+              ],
             ],
           ),
         ),
@@ -247,4 +303,84 @@ class _SettingsSummaryRow extends StatelessWidget {
       ],
     );
   }
+}
+
+class _PresetRow extends StatelessWidget {
+  const _PresetRow({
+    required this.preset,
+    required this.onApply,
+    required this.onDelete,
+  });
+
+  final AppPreset preset;
+  final VoidCallback onApply;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            Icon(_presetIcon(preset.kind), color: colorScheme.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    preset.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _presetSummary(preset),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            TextButton(onPressed: onApply, child: const Text('应用')),
+            IconButton(
+              tooltip: '删除预设',
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+IconData _presetIcon(AppPresetKind kind) {
+  return switch (kind) {
+    AppPresetKind.localGeneration => Icons.image_outlined,
+    AppPresetKind.spriteSheet => Icons.video_library_outlined,
+    AppPresetKind.gif => Icons.gif_box_outlined,
+  };
+}
+
+String _presetSummary(AppPreset preset) {
+  return switch (preset.kind) {
+    AppPresetKind.localGeneration => '${preset.size} · ${preset.imageCount} 张',
+    AppPresetKind.spriteSheet =>
+      '${preset.size} · ${preset.rows} x ${preset.columns}',
+    AppPresetKind.gif =>
+      '${preset.gifDelayMs} ms · ${preset.gifLoopCount == 0 ? '无限循环' : '播放 ${preset.gifLoopCount} 次'}',
+  };
 }

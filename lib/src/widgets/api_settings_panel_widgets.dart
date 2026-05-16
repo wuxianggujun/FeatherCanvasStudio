@@ -281,6 +281,85 @@ class _ApiConfigSaveIndicator extends StatelessWidget {
   }
 }
 
+class _ImageSizeCapabilityOverrideDropdown extends StatelessWidget {
+  const _ImageSizeCapabilityOverrideDropdown({
+    required this.providerKind,
+    required this.model,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final ApiProviderKind providerKind;
+  final String model;
+  final ImageSizeCapabilityOverride value;
+  final ValueChanged<ImageSizeCapabilityOverride> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final availableOverrides = ImageSizeCapabilityOverride.values
+        .where(
+          (override) => providerKind == ApiProviderKind.gemini
+              ? override != ImageSizeCapabilityOverride.customPixels
+              : override != ImageSizeCapabilityOverride.aspectRatio,
+        )
+        .toList(growable: false);
+    final normalizedValue = normalizeImageSizeCapabilityOverrideForProvider(
+      providerKind: providerKind,
+      imageSizeCapabilityOverride: value,
+    );
+    final selectedValue = availableOverrides.contains(normalizedValue)
+        ? normalizedValue
+        : ImageSizeCapabilityOverride.auto;
+    final capabilities = imageModelCapabilitiesFor(
+      providerKind: providerKind,
+      model: model,
+      capabilityOverride: selectedValue,
+    );
+    final autoCapabilities = imageModelCapabilitiesFor(
+      providerKind: providerKind,
+      model: model,
+    );
+    final helperText = selectedValue == ImageSizeCapabilityOverride.auto
+        ? '自动识别：${imageSizeCapabilityLabel(autoCapabilities)}。'
+        : '${imageSizeCapabilityLabel(capabilities)}：'
+              '${imageSizeCapabilityDescription(capabilities)}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DropdownButtonFormField<ImageSizeCapabilityOverride>(
+          key: ValueKey(
+            'image-size-capability-$providerKind-$model-$selectedValue',
+          ),
+          initialValue: selectedValue,
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: '生图尺寸能力'),
+          items: [
+            for (final override in availableOverrides)
+              DropdownMenuItem<ImageSizeCapabilityOverride>(
+                value: override,
+                child: Text(imageSizeCapabilityOverrideLabel(override)),
+              ),
+          ],
+          onChanged: (override) {
+            if (override != null) {
+              onChanged(override);
+            }
+          },
+        ),
+        const SizedBox(height: 4),
+        Text(
+          helperText,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ConnectionSettingsFields extends StatelessWidget {
   const _ConnectionSettingsFields({
     required this.baseUrlController,
@@ -313,14 +392,9 @@ class _ConnectionSettingsFields extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedModel = matchingFetchedModel(
-      availableModels,
-      modelController.text,
-    )?.id;
-    final modelListKey = Object.hashAll(
-      availableModels.map((model) => Object.hash(model.id, model.ownedBy)),
-    );
     final hasFetchedModels = modelFetchedAt != null;
+    final hasAnyModels = availableModels.isNotEmpty;
+    final fetchActionLabel = hasFetchedModels ? '刷新模型列表' : '获取模型列表';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -364,47 +438,17 @@ class _ConnectionSettingsFields extends StatelessWidget {
               modelFetchedAt: modelFetchedAt,
             ),
             helperMaxLines: 2,
-            suffixIcon: Tooltip(
-              message: hasFetchedModels ? '刷新模型列表' : '获取模型列表',
-              child: IconButton(
-                onPressed: isFetchingModels ? null : onFetchModels,
-                icon: ButtonProgressIcon(
-                  isBusy: isFetchingModels,
-                  icon: Icons.manage_search_outlined,
-                ),
-              ),
+            suffixIcon: _ModelPickerButton(
+              isFetchingModels: isFetchingModels,
+              hasAnyModels: hasAnyModels,
+              fetchActionLabel: fetchActionLabel,
+              availableModels: availableModels,
+              currentModelId: modelController.text,
+              onFetchModels: onFetchModels,
+              onModelSelected: onModelSelected,
             ),
           ),
         ),
-        if (availableModels.isNotEmpty) ...[
-          const SizedBox(height: fieldGap),
-          DropdownButtonFormField<String>(
-            key: ValueKey('api-model-$modelListKey-$selectedModel'),
-            initialValue: selectedModel,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: '可用模型',
-              helperText: '选择后会写入上方模型字段，保存配置后生效',
-              prefixIcon: const Icon(Icons.list_alt_outlined),
-            ),
-            items: [
-              for (final model in availableModels)
-                DropdownMenuItem<String>(
-                  value: model.id,
-                  child: Text(
-                    model.displayLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-            onChanged: (value) {
-              if (value != null) {
-                onModelSelected(value);
-              }
-            },
-          ),
-        ],
         if (modelFetchErrorMessage != null) ...[
           const SizedBox(height: 8),
           Row(
@@ -428,6 +472,90 @@ class _ConnectionSettingsFields extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _ModelPickerButton extends StatelessWidget {
+  const _ModelPickerButton({
+    required this.isFetchingModels,
+    required this.hasAnyModels,
+    required this.fetchActionLabel,
+    required this.availableModels,
+    required this.currentModelId,
+    required this.onFetchModels,
+    required this.onModelSelected,
+  });
+
+  static const String _fetchActionValue = '__fetch__';
+
+  final bool isFetchingModels;
+  final bool hasAnyModels;
+  final String fetchActionLabel;
+  final List<ApiModelInfo> availableModels;
+  final String currentModelId;
+  final VoidCallback onFetchModels;
+  final ValueChanged<String> onModelSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final tooltip = hasAnyModels ? '从已获取列表选择模型，或刷新列表' : fetchActionLabel;
+    final normalizedCurrent = normalizeModelIdForSelection(currentModelId);
+
+    return PopupMenuButton<String>(
+      enabled: !isFetchingModels,
+      tooltip: tooltip,
+      position: PopupMenuPosition.under,
+      icon: ButtonProgressIcon(
+        isBusy: isFetchingModels,
+        icon: hasAnyModels
+            ? Icons.list_alt_outlined
+            : Icons.manage_search_outlined,
+      ),
+      onSelected: (value) {
+        if (value == _fetchActionValue) {
+          onFetchModels();
+        } else {
+          onModelSelected(value);
+        }
+      },
+      itemBuilder: (context) {
+        return [
+          PopupMenuItem<String>(
+            value: _fetchActionValue,
+            child: Row(
+              children: [
+                const Icon(Icons.manage_search_outlined, size: 18),
+                const SizedBox(width: 8),
+                Text(fetchActionLabel),
+              ],
+            ),
+          ),
+          if (hasAnyModels) const PopupMenuDivider(),
+          for (final model in availableModels)
+            PopupMenuItem<String>(
+              value: model.id,
+              child: Row(
+                children: [
+                  Icon(
+                    normalizeModelIdForSelection(model.id) == normalizedCurrent
+                        ? Icons.check
+                        : Icons.circle_outlined,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      model.id,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ];
+      },
     );
   }
 }

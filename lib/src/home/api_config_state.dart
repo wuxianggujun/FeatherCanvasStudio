@@ -8,6 +8,8 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
   OpenAICompatibleImageClient get _client;
   Future<void> _saveSettings();
   void _showMessage(String message);
+  String get _size;
+  set _size(String value);
 
   final TextEditingController _baseUrlController = TextEditingController(
     text: defaultAppSettings.baseUrl,
@@ -33,6 +35,8 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
   String? _apiConfigSaveErrorMessage;
   ImageRequestDebugRecord? _apiTestDebugRecord;
   bool _isFetchingApiModels = false;
+  ImageSizeCapabilityOverride _imageSizeCapabilityOverride =
+      ImageSizeCapabilityOverride.auto;
   Map<String, List<ApiModelInfo>> _apiModelCache = const {};
   Map<String, String> _apiModelFetchErrorCache = const {};
   Map<String, DateTime> _apiModelFetchedAtCache = const {};
@@ -51,6 +55,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
       apiKeyText: _apiKeyController.text,
       modelText: _modelController.text,
       providerKind: _apiConfigProviderKind,
+      imageSizeCapabilityOverride: _imageSizeCapabilityOverride,
       timeoutText: _generationTimeoutController.text,
     );
   }
@@ -122,19 +127,28 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
       apiKeyText: _apiKeyController.text,
       modelText: _modelController.text,
       providerKind: _apiConfigProviderKind,
+      imageSizeCapabilityOverride: _imageSizeCapabilityOverride,
       timeoutText: _generationTimeoutController.text,
     );
 
     final nextConfigs = upsertApiConfig(_apiConfigs, nextConfig);
+    final normalizedSize = safeImageSizeForModel(
+      size: _size,
+      providerKind: nextConfig.providerKind,
+      model: nextConfig.model,
+      capabilityOverride: nextConfig.imageSizeCapabilityOverride,
+    );
 
     if (mounted) {
       setState(() {
         _apiConfigs = nextConfigs;
         _selectedApiConfigId = selectedId;
+        _size = normalizedSize;
       });
     } else {
       _apiConfigs = nextConfigs;
       _selectedApiConfigId = selectedId;
+      _size = normalizedSize;
     }
 
     try {
@@ -242,6 +256,16 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
     if (autoSelectedModel != null &&
         _modelController.text.trim() != autoSelectedModel.id) {
       _modelController.text = autoSelectedModel.id;
+      if (mounted) {
+        setState(() {
+          _size = safeImageSizeForModel(
+            size: _size,
+            providerKind: _apiConfigProviderKind,
+            model: autoSelectedModel.id,
+            capabilityOverride: _imageSizeCapabilityOverride,
+          );
+        });
+      }
     }
 
     _showMessage(result.message);
@@ -249,6 +273,14 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
 
   void _selectFetchedApiModel(String modelId) {
     _modelController.text = modelId;
+    setState(() {
+      _size = safeImageSizeForModel(
+        size: _size,
+        providerKind: _apiConfigProviderKind,
+        model: modelId,
+        capabilityOverride: _imageSizeCapabilityOverride,
+      );
+    });
   }
 
   Future<void> _selectApiConfig(String id) async {
@@ -259,18 +291,26 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
     _baseUrlController.text = nextConfig.baseUrl;
     _apiKeyController.text = nextConfig.apiKey;
     _modelController.text = nextConfig.model;
-    _generationTimeoutController.text =
-        nextConfig.generationTimeoutSeconds.toString();
+    _generationTimeoutController.text = nextConfig.generationTimeoutSeconds
+        .toString();
     if (mounted) {
       setState(() {
         _selectedApiConfigId = nextConfig.id;
         _apiConfigProviderKind = nextConfig.providerKind;
+        _imageSizeCapabilityOverride = nextConfig.imageSizeCapabilityOverride;
+        _size = safeImageSizeForModel(
+          size: _size,
+          providerKind: nextConfig.providerKind,
+          model: nextConfig.model,
+          capabilityOverride: nextConfig.imageSizeCapabilityOverride,
+        );
         _apiConfigSaveStatus = ApiConfigSaveStatus.saved;
         _apiConfigSaveErrorMessage = null;
       });
     } else {
       _selectedApiConfigId = nextConfig.id;
       _apiConfigProviderKind = nextConfig.providerKind;
+      _imageSizeCapabilityOverride = nextConfig.imageSizeCapabilityOverride;
     }
     _isRestoringState = false;
 
@@ -303,7 +343,45 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
     _baseUrlController.text = fields.baseUrl;
     _modelController.text = fields.model;
     _isRestoringState = false;
-    setState(() => _apiConfigProviderKind = kind);
+    final normalizedSizeOverride =
+        normalizeImageSizeCapabilityOverrideForProvider(
+          providerKind: kind,
+          imageSizeCapabilityOverride: _imageSizeCapabilityOverride,
+        );
+    setState(() {
+      _apiConfigProviderKind = kind;
+      _imageSizeCapabilityOverride = normalizedSizeOverride;
+      _size = safeImageSizeForModel(
+        size: _size,
+        providerKind: kind,
+        model: fields.model,
+        capabilityOverride: normalizedSizeOverride,
+      );
+    });
+    _markApiConfigDirty();
+  }
+
+  void _setImageSizeCapabilityOverride(
+    ImageSizeCapabilityOverride capabilityOverride,
+  ) {
+    final normalizedSizeOverride =
+        normalizeImageSizeCapabilityOverrideForProvider(
+          providerKind: _apiConfigProviderKind,
+          imageSizeCapabilityOverride: capabilityOverride,
+        );
+    if (normalizedSizeOverride == _imageSizeCapabilityOverride) {
+      return;
+    }
+
+    setState(() {
+      _imageSizeCapabilityOverride = normalizedSizeOverride;
+      _size = safeImageSizeForModel(
+        size: _size,
+        providerKind: _apiConfigProviderKind,
+        model: _modelController.text,
+        capabilityOverride: normalizedSizeOverride,
+      );
+    });
     _markApiConfigDirty();
   }
 
@@ -337,6 +415,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
       modelController: _modelController,
       timeoutController: _generationTimeoutController,
       providerKind: _apiConfigProviderKind,
+      imageSizeCapabilityOverride: _imageSizeCapabilityOverride,
       showApiKey: _showApiKey,
       availableModels: _visibleApiModels,
       isFetchingModels: _isFetchingApiModels,
@@ -351,6 +430,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
       onFetchModels: _fetchCurrentApiModels,
       onModelSelected: _selectFetchedApiModel,
       onProviderKindChanged: _setApiConfigProviderKind,
+      onImageSizeCapabilityOverrideChanged: _setImageSizeCapabilityOverride,
       onToggleApiKeyVisibility: () =>
           setState(() => _showApiKey = !_showApiKey),
     );

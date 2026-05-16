@@ -9,14 +9,6 @@ class ApiModelInfo {
 
   final String id;
   final String? ownedBy;
-
-  String get displayLabel {
-    final owner = ownedBy?.trim();
-    if (owner == null || owner.isEmpty || owner == id) {
-      return id;
-    }
-    return '$id · $owner';
-  }
 }
 
 Uri buildModelsEndpoint({

@@ -9,6 +9,8 @@ class ImageLibraryViewData {
     required this.availableItems,
     required this.visibleItems,
     required this.filteredItems,
+    required this.availableProjects,
+    required this.availableTags,
     required this.savedFrameCounts,
     required this.groupedFrameCount,
   });
@@ -16,6 +18,8 @@ class ImageLibraryViewData {
   final List<ImageLibraryItem> availableItems;
   final List<ImageLibraryItem> visibleItems;
   final List<ImageLibraryItem> filteredItems;
+  final List<String> availableProjects;
+  final List<String> availableTags;
   final Map<String, int> savedFrameCounts;
   final int groupedFrameCount;
 
@@ -31,6 +35,8 @@ ImageLibraryViewData buildImageLibraryViewData({
   required ImageLibrarySortOrder sortOrder,
   required String searchQuery,
   required bool showStandaloneFrames,
+  String projectFilter = '',
+  String tagFilter = '',
 }) {
   final availableItems = [
     for (final item in library)
@@ -58,9 +64,17 @@ ImageLibraryViewData buildImageLibraryViewData({
           !showStandaloneFrames))
         item,
   ];
+  final availableProjects = _sortedDistinctStrings([
+    for (final item in visibleItems) item.project,
+  ]);
+  final availableTags = _sortedDistinctStrings([
+    for (final item in visibleItems) ...item.tags,
+  ]);
   final filteredItems = [
     for (final item in visibleItems)
       if (imageLibraryKindFilterMatches(filter, item.kind) &&
+          imageLibraryItemMatchesProject(item, projectFilter) &&
+          imageLibraryItemMatchesTag(item, tagFilter) &&
           imageLibraryItemMatchesSearch(item, searchQuery))
         item,
   ]..sort((a, b) => compareImageLibraryItems(a, b, sortOrder));
@@ -77,7 +91,23 @@ ImageLibraryViewData buildImageLibraryViewData({
     availableItems: availableItems,
     visibleItems: visibleItems,
     filteredItems: filteredItems,
+    availableProjects: availableProjects,
+    availableTags: availableTags,
     savedFrameCounts: savedFrameCounts,
     groupedFrameCount: groupedFrameCount,
   );
+}
+
+List<String> _sortedDistinctStrings(Iterable<String> values) {
+  final valuesByKey = <String, String>{};
+  for (final value in values) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      continue;
+    }
+    valuesByKey.putIfAbsent(normalized.toLowerCase(), () => normalized);
+  }
+
+  return valuesByKey.values.toList()
+    ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 }

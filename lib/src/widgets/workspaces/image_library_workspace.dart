@@ -15,6 +15,10 @@ class ImageLibraryWorkspace extends StatelessWidget {
     required this.onSearchChanged,
     required this.onClearSearch,
     required this.onFilterChanged,
+    required this.selectedProject,
+    required this.onProjectChanged,
+    required this.selectedTag,
+    required this.onTagChanged,
     required this.sortOrder,
     required this.onSortOrderChanged,
     required this.selectedItemIds,
@@ -25,6 +29,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
+    required this.onMakeBackgroundTransparent,
     required this.onEditMetadata,
     required this.onCopyPath,
     required this.onOpenLocation,
@@ -42,6 +47,10 @@ class ImageLibraryWorkspace extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
   final ValueChanged<ImageLibraryKindFilter> onFilterChanged;
+  final String selectedProject;
+  final ValueChanged<String> onProjectChanged;
+  final String selectedTag;
+  final ValueChanged<String> onTagChanged;
   final ImageLibrarySortOrder sortOrder;
   final ValueChanged<ImageLibrarySortOrder> onSortOrderChanged;
   final Set<String> selectedItemIds;
@@ -52,6 +61,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
   final ValueChanged<ImageLibraryItem> onUseInEditor;
   final ValueChanged<ImageLibraryItem> onReuseGeneration;
   final ValueChanged<ImageLibraryItem> onCopyGeneration;
+  final ValueChanged<ImageLibraryItem> onMakeBackgroundTransparent;
   final ValueChanged<ImageLibraryItem> onEditMetadata;
   final ValueChanged<ImageLibraryItem> onCopyPath;
   final ValueChanged<ImageLibraryItem> onOpenLocation;
@@ -75,6 +85,12 @@ class ImageLibraryWorkspace extends StatelessWidget {
           onClearSearch: onClearSearch,
           selectedFilter: selectedFilter,
           onFilterChanged: onFilterChanged,
+          availableProjects: viewData.availableProjects,
+          selectedProject: selectedProject,
+          onProjectChanged: onProjectChanged,
+          availableTags: viewData.availableTags,
+          selectedTag: selectedTag,
+          onTagChanged: onTagChanged,
           sortOrder: sortOrder,
           onSortOrderChanged: onSortOrderChanged,
           selectedItemIds: selectedItemIds,
@@ -85,6 +101,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
           onUseInEditor: onUseInEditor,
           onReuseGeneration: onReuseGeneration,
           onCopyGeneration: onCopyGeneration,
+          onMakeBackgroundTransparent: onMakeBackgroundTransparent,
           onEditMetadata: onEditMetadata,
           onCopyPath: onCopyPath,
           onOpenLocation: onOpenLocation,

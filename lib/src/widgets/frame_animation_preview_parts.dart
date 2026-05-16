@@ -115,6 +115,191 @@ class _PreviewSurfaceCard extends StatelessWidget {
   }
 }
 
+class _ZoomableFramePreview extends StatefulWidget {
+  const _ZoomableFramePreview({required this.frameBytes});
+
+  final Uint8List frameBytes;
+
+  @override
+  State<_ZoomableFramePreview> createState() => _ZoomableFramePreviewState();
+}
+
+class _ZoomableFramePreviewState extends State<_ZoomableFramePreview> {
+  static const double _minScale = 1;
+  static const double _maxScale = 8;
+  static const double _scaleStep = 1.25;
+
+  late final TransformationController _transformationController;
+  double _scale = _minScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformationController = TransformationController();
+  }
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  void _syncScale() {
+    final nextScale = _transformationController.value
+        .getMaxScaleOnAxis()
+        .clamp(_minScale, _maxScale)
+        .toDouble();
+    if ((nextScale - _scale).abs() < 0.01) {
+      return;
+    }
+    setState(() => _scale = nextScale);
+  }
+
+  void _setScale(double value) {
+    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final safeCurrentScale = currentScale <= 0 ? _minScale : currentScale;
+    final nextScale = value.clamp(_minScale, _maxScale).toDouble();
+    final scaleDelta = nextScale / safeCurrentScale;
+    final nextMatrix = Matrix4.copy(_transformationController.value)
+      ..scaleByDouble(scaleDelta, scaleDelta, scaleDelta, 1);
+
+    _transformationController.value = nextMatrix;
+    setState(() => _scale = nextScale);
+  }
+
+  void _resetZoom() {
+    _transformationController.value = Matrix4.identity();
+    setState(() => _scale = _minScale);
+  }
+
+  void _reserveMouseWheelSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) {
+      return;
+    }
+
+    GestureBinding.instance.pointerSignalResolver.register(event, (_) {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return SizedBox.expand(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: colorScheme.surfaceContainerHighest,
+            child: Listener(
+              onPointerSignal: _reserveMouseWheelSignal,
+              child: InteractiveViewer(
+                transformationController: _transformationController,
+                minScale: _minScale,
+                maxScale: _maxScale,
+                boundaryMargin: const EdgeInsets.all(96),
+                clipBehavior: Clip.hardEdge,
+                trackpadScrollCausesScale: true,
+                onInteractionUpdate: (_) => _syncScale(),
+                onInteractionEnd: (_) => _syncScale(),
+                child: SizedBox.expand(
+                  child: Center(
+                    child: Image.memory(
+                      widget.frameBytes,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.none,
+                      gaplessPlayback: true,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surface.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: colorScheme.outlineVariant),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _FrameZoomButton(
+                    tooltip: '缩小播放帧',
+                    icon: Icons.remove,
+                    onPressed: _scale <= _minScale + 0.01
+                        ? null
+                        : () => _setScale(_scale / _scaleStep),
+                  ),
+                  _FrameZoomButton(
+                    tooltip: '放大播放帧',
+                    icon: Icons.add,
+                    onPressed: _scale >= _maxScale - 0.01
+                        ? null
+                        : () => _setScale(_scale * _scaleStep),
+                  ),
+                  _FrameZoomButton(
+                    tooltip: '重置播放帧缩放',
+                    icon: Icons.fit_screen_outlined,
+                    onPressed: _resetZoom,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 8,
+            bottom: 8,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surface.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                child: Text(
+                  '${(_scale * 100).round()}%',
+                  style: theme.textTheme.labelSmall,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FrameZoomButton extends StatelessWidget {
+  const _FrameZoomButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 34,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+}
+
 class _SpriteSheetPreviewCanvas extends StatelessWidget {
   const _SpriteSheetPreviewCanvas({
     required this.previewData,

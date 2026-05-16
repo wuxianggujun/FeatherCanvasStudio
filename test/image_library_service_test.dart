@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:feather_canvas_studio/feather_canvas_studio.dart';
@@ -58,6 +58,26 @@ void main() {
       '/tmp/second.png',
     });
   });
+
+  test(
+    'restores image library items from legacy json without grouping fields',
+    () {
+      final item = ImageLibraryItem.fromJson({
+        'id': 'legacy',
+        'path': '/tmp/legacy.png',
+        'createdAt': '2026-05-15T12:00:00.000Z',
+        'kind': 'generatedImage',
+        'title': 'Legacy',
+        'source': 'test',
+        'note': 'note',
+      });
+
+      expect(item.tags, isEmpty);
+      expect(item.project, isEmpty);
+      expect(item.toJson()['tags'], isEmpty);
+      expect(item.toJson()['project'], isEmpty);
+    },
+  );
 
   test('adds fixed output items with domain metadata', () async {
     SharedPreferences.setMockInitialValues({});
@@ -120,6 +140,33 @@ void main() {
     expect(updated.single.note, 'New note');
     expect(restored.single.title, 'New title');
     expect(restored.single.note, 'New note');
+  });
+
+  test('updates image library item project and tags metadata', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = AppLocalStore();
+    const service = ImageLibraryService();
+    final original = _item(
+      id: 'item',
+      path: '/tmp/item.png',
+      kind: ImageAssetKind.generatedImage,
+    );
+
+    final updated = await service.updateItemMetadata(
+      store: store,
+      library: [original],
+      itemId: original.id,
+      title: original.title,
+      note: original.note,
+      project: '  Project Alpha  ',
+      tags: ['  Character ', 'character', '', ' Pixel '],
+    );
+    final restored = await store.loadImageLibrary();
+
+    expect(updated.single.project, 'Project Alpha');
+    expect(updated.single.tags, ['Character', 'Pixel']);
+    expect(restored.single.project, 'Project Alpha');
+    expect(restored.single.tags, ['Character', 'Pixel']);
   });
 
   test('deletes image library items from store and disk', () async {

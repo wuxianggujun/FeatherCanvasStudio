@@ -2,34 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../models/api_provider.dart';
+import '../models/app_config.dart';
 import '../theme/layout_constants.dart';
 import '../utils/image_dimensions.dart';
 import 'common_form_widgets.dart';
 
-enum _ImageAspectPreset { square, landscape, portrait, custom }
+const String _customSizeValue = '__custom_pixels__';
 
-String _imageAspectPresetLabel(_ImageAspectPreset preset) {
-  return switch (preset) {
-    _ImageAspectPreset.square => '方图',
-    _ImageAspectPreset.landscape => '横图',
-    _ImageAspectPreset.portrait => '竖图',
-    _ImageAspectPreset.custom => '自定义',
-  };
-}
+enum _ImagePresetOrientation { square, landscape, portrait }
 
 class ImageSizeInput extends StatefulWidget {
   const ImageSizeInput({
     required this.size,
     required this.providerKind,
+    required this.model,
+    required this.capabilityOverride,
     required this.onChanged,
     this.compact = false,
+    this.onValidityChanged,
     super.key,
   });
 
   final String size;
   final ApiProviderKind providerKind;
+  final String model;
+  final ImageSizeCapabilityOverride capabilityOverride;
   final ValueChanged<String> onChanged;
   final bool compact;
+  final ValueChanged<bool>? onValidityChanged;
 
   @override
   State<ImageSizeInput> createState() => _ImageSizeInputState();
@@ -38,7 +38,7 @@ class ImageSizeInput extends StatefulWidget {
 class _ImageSizeInputState extends State<ImageSizeInput> {
   late final TextEditingController _widthController;
   late final TextEditingController _heightController;
-  late _ImageAspectPreset _preset;
+  late String _selectedValue;
 
   @override
   void initState() {
@@ -48,32 +48,27 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
     _heightController = TextEditingController(
       text: dimensions.height.toString(),
     );
-    _preset = _presetFromDimensions(dimensions);
+    _selectedValue = _selectedValueFor(widget.size);
+    _notifyValidity();
   }
 
   @override
   void didUpdateWidget(covariant ImageSizeInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.size == widget.size) {
+    if (oldWidget.size == widget.size &&
+        oldWidget.providerKind == widget.providerKind &&
+        oldWidget.model == widget.model &&
+        oldWidget.capabilityOverride == widget.capabilityOverride) {
       return;
     }
 
-    final dimensions = imageDimensionsFromSize(widget.size);
-    final widthText = dimensions.width.toString();
-    final heightText = dimensions.height.toString();
-    if (_widthController.text != widthText) {
-      _widthController.value = TextEditingValue(
-        text: widthText,
-        selection: TextSelection.collapsed(offset: widthText.length),
-      );
+    final dimensions = tryParseImageDimensions(widget.size);
+    if (dimensions != null) {
+      _setControllerText(_widthController, dimensions.width.toString());
+      _setControllerText(_heightController, dimensions.height.toString());
     }
-    if (_heightController.text != heightText) {
-      _heightController.value = TextEditingValue(
-        text: heightText,
-        selection: TextSelection.collapsed(offset: heightText.length),
-      );
-    }
-    _preset = _presetFromDimensions(dimensions);
+    _selectedValue = _selectedValueFor(widget.size);
+    _notifyValidity();
   }
 
   @override
@@ -85,152 +80,433 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
 
   @override
   Widget build(BuildContext context) {
-    final width = int.tryParse(_widthController.text);
-    final height = int.tryParse(_heightController.text);
-    final helperText = _buildHelperText(width, height);
-
-    final aspectPicker = DropdownButtonFormField<_ImageAspectPreset>(
-      decoration: const InputDecoration(labelText: '画幅'),
-      initialValue: _preset,
-      items: [
-        for (final preset in _ImageAspectPreset.values)
-          DropdownMenuItem<_ImageAspectPreset>(
-            value: preset,
-            child: Text(_imageAspectPresetLabel(preset)),
-          ),
-      ],
-      onChanged: (value) {
-        if (value != null) {
-          _applyPreset(value);
-        }
-      },
+    final capabilities = imageModelCapabilitiesFor(
+      providerKind: widget.providerKind,
+      model: widget.model,
+      capabilityOverride: widget.capabilityOverride,
     );
-
-    final widthInput = TextField(
-      controller: _widthController,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: const InputDecoration(labelText: '宽度'),
-      onChanged: (_) => _commitManualSize(),
+    final validation = validateImageSizeForModel(
+      size: widget.size,
+      providerKind: widget.providerKind,
+      model: widget.model,
+      capabilityOverride: widget.capabilityOverride,
     );
-    final heightInput = TextField(
-      controller: _heightController,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: const InputDecoration(labelText: '高度'),
-      onChanged: (_) => _commitManualSize(),
-    );
+    final isCustom = _selectedValue == _customSizeValue;
+    final picker = capabilities.allowsCustomPixels
+        ? _customPixelPresetPicker(capabilities)
+        : _presetPicker(capabilities);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.compact) ...[
-          aspectPicker,
+        picker,
+        if (isCustom) ...[
           const SizedBox(height: fieldGap),
-          ResponsivePair(first: widthInput, second: heightInput),
-        ] else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 520) {
-                return Column(
-                  children: [
-                    aspectPicker,
-                    const SizedBox(height: fieldGap),
-                    ResponsivePair(first: widthInput, second: heightInput),
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(child: aspectPicker),
-                  const SizedBox(width: fieldGap),
-                  Expanded(child: widthInput),
-                  const SizedBox(width: fieldGap),
-                  Expanded(child: heightInput),
-                ],
-              );
-            },
+          ResponsivePair(
+            first: _customSideInput(controller: _widthController, label: '宽度'),
+            second: _customSideInput(
+              controller: _heightController,
+              label: '高度',
+            ),
           ),
+        ],
         const SizedBox(height: 6),
-        Text(helperText, style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          _buildHelperText(capabilities, validation),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: validation.isValid
+                ? null
+                : Theme.of(context).colorScheme.error,
+          ),
+        ),
       ],
     );
   }
 
-  void _applyPreset(_ImageAspectPreset preset) {
-    final next = switch (preset) {
-      _ImageAspectPreset.square => const ImageDimensions(1024, 1024),
-      _ImageAspectPreset.landscape => const ImageDimensions(1536, 1024),
-      _ImageAspectPreset.portrait => const ImageDimensions(1024, 1536),
-      _ImageAspectPreset.custom => _readCurrentDimensions(),
-    };
-
-    setState(() {
-      _preset = preset;
-      _widthController.text = next.width.toString();
-      _heightController.text = next.height.toString();
-    });
-    widget.onChanged(next.size);
+  Widget _presetPicker(ImageModelCapabilities capabilities) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey(
+        '${widget.providerKind}:${widget.model}:'
+        '${widget.capabilityOverride}:$_selectedValue',
+      ),
+      decoration: InputDecoration(labelText: _pickerLabel(capabilities)),
+      initialValue: _selectedValue,
+      items: [
+        for (final preset in capabilities.presets)
+          DropdownMenuItem<String>(
+            value: preset.size,
+            child: Text('${preset.label} · ${preset.size}'),
+          ),
+        if (capabilities.allowsCustomPixels)
+          const DropdownMenuItem<String>(
+            value: _customSizeValue,
+            child: Text('自定义尺寸'),
+          ),
+      ],
+      onChanged: (value) {
+        if (value != null) {
+          _applySelection(value);
+        }
+      },
+    );
   }
 
-  void _commitManualSize() {
-    final width = int.tryParse(_widthController.text);
-    final height = int.tryParse(_heightController.text);
-    if (width == null || height == null || width <= 0 || height <= 0) {
-      setState(() => _preset = _ImageAspectPreset.custom);
+  Widget _customPixelPresetPicker(ImageModelCapabilities capabilities) {
+    final scaleValues = _scaleValuesFor(capabilities);
+    final selectedPreset = _selectedPresetFor(capabilities);
+    final selectedScale = _selectedValue == _customSizeValue
+        ? _customSizeValue
+        : selectedPreset == null
+        ? scaleValues.first
+        : _scaleLabelForPreset(selectedPreset);
+    final availableOrientations = selectedScale == _customSizeValue
+        ? <_ImagePresetOrientation>[]
+        : _orientationsForScale(capabilities, selectedScale);
+    final selectedOrientation =
+        selectedPreset == null || availableOrientations.isEmpty
+        ? null
+        : _orientationForDimensions(selectedPreset.dimensions);
+
+    final scaleDropdown = DropdownButtonFormField<String>(
+      key: ValueKey(
+        '${widget.providerKind}:${widget.model}:'
+        '${widget.capabilityOverride}:scale:$selectedScale',
+      ),
+      decoration: const InputDecoration(labelText: '尺寸档位'),
+      initialValue: selectedScale,
+      items: [
+        for (final scale in scaleValues)
+          DropdownMenuItem<String>(value: scale, child: Text(scale)),
+        const DropdownMenuItem<String>(
+          value: _customSizeValue,
+          child: Text('自定义尺寸'),
+        ),
+      ],
+      onChanged: (value) {
+        if (value != null) {
+          _applyScaleSelection(value);
+        }
+      },
+    );
+
+    if (selectedScale == _customSizeValue) {
+      return scaleDropdown;
+    }
+
+    final orientationDropdown =
+        DropdownButtonFormField<_ImagePresetOrientation>(
+          key: ValueKey(
+            '${widget.providerKind}:${widget.model}:'
+            '${widget.capabilityOverride}:orientation:$selectedScale:'
+            '$selectedOrientation',
+          ),
+          decoration: const InputDecoration(labelText: '方向'),
+          initialValue: selectedOrientation,
+          items: [
+            for (final orientation in availableOrientations)
+              DropdownMenuItem<_ImagePresetOrientation>(
+                value: orientation,
+                child: Text(_orientationLabel(orientation)),
+              ),
+          ],
+          onChanged: availableOrientations.length <= 1
+              ? null
+              : (orientation) {
+                  if (orientation != null) {
+                    _applyOrientationSelection(selectedScale, orientation);
+                  }
+                },
+        );
+
+    return ResponsivePair(first: scaleDropdown, second: orientationDropdown);
+  }
+
+  List<String> _scaleValuesFor(ImageModelCapabilities capabilities) {
+    final scales = <String>[];
+    for (final preset in capabilities.presets) {
+      final scale = _scaleLabelForPreset(preset);
+      if (!scales.contains(scale)) {
+        scales.add(scale);
+      }
+    }
+    return scales;
+  }
+
+  List<_ImagePresetOrientation> _orientationsForScale(
+    ImageModelCapabilities capabilities,
+    String scale,
+  ) {
+    final orientations = <_ImagePresetOrientation>[];
+    for (final preset in capabilities.presets) {
+      if (_scaleLabelForPreset(preset) != scale) {
+        continue;
+      }
+      final orientation = _orientationForDimensions(preset.dimensions);
+      if (!orientations.contains(orientation)) {
+        orientations.add(orientation);
+      }
+    }
+    return orientations;
+  }
+
+  ImageSizePreset? _selectedPresetFor(ImageModelCapabilities capabilities) {
+    final dimensions = tryParseImageDimensions(widget.size);
+    if (dimensions == null) {
+      return null;
+    }
+    return exactImageSizePresetForDimensions(
+      dimensions,
+      presets: capabilities.presets,
+    );
+  }
+
+  ImageSizePreset _presetForScaleAndOrientation({
+    required ImageModelCapabilities capabilities,
+    required String scale,
+    required _ImagePresetOrientation orientation,
+  }) {
+    return capabilities.presets.firstWhere(
+      (preset) =>
+          _scaleLabelForPreset(preset) == scale &&
+          _orientationForDimensions(preset.dimensions) == orientation,
+      orElse: () => capabilities.presets.firstWhere(
+        (preset) => _scaleLabelForPreset(preset) == scale,
+        orElse: () => capabilities.presets.first,
+      ),
+    );
+  }
+
+  void _applyScaleSelection(String scale) {
+    if (scale == _customSizeValue) {
+      setState(() => _selectedValue = scale);
+      _commitCustomSize();
       return;
     }
 
-    final dimensions = ImageDimensions(width, height);
-    setState(() => _preset = _ImageAspectPreset.custom);
-    widget.onChanged(dimensions.size);
+    final capabilities = imageModelCapabilitiesFor(
+      providerKind: widget.providerKind,
+      model: widget.model,
+      capabilityOverride: widget.capabilityOverride,
+    );
+    final currentPreset = _selectedPresetFor(capabilities);
+    final currentOrientation = currentPreset == null
+        ? _orientationsForScale(capabilities, scale).first
+        : _orientationForDimensions(currentPreset.dimensions);
+    final preset = _presetForScaleAndOrientation(
+      capabilities: capabilities,
+      scale: scale,
+      orientation: currentOrientation,
+    );
+    _applyPreset(preset);
   }
 
-  ImageDimensions _readCurrentDimensions() {
-    final width = int.tryParse(_widthController.text);
-    final height = int.tryParse(_heightController.text);
-    if (width == null || height == null || width <= 0 || height <= 0) {
-      return const ImageDimensions(
-        openAIDefaultImageSide,
-        openAIDefaultImageSide,
+  void _applyOrientationSelection(
+    String scale,
+    _ImagePresetOrientation orientation,
+  ) {
+    final capabilities = imageModelCapabilitiesFor(
+      providerKind: widget.providerKind,
+      model: widget.model,
+      capabilityOverride: widget.capabilityOverride,
+    );
+    final preset = _presetForScaleAndOrientation(
+      capabilities: capabilities,
+      scale: scale,
+      orientation: orientation,
+    );
+    _applyPreset(preset);
+  }
+
+  void _applyPreset(ImageSizePreset preset) {
+    setState(() {
+      _selectedValue = preset.size;
+      _setControllerText(_widthController, preset.dimensions.width.toString());
+      _setControllerText(
+        _heightController,
+        preset.dimensions.height.toString(),
       );
-    }
-    return ImageDimensions(width, height);
+    });
+    widget.onChanged(preset.size);
+    _notifyValidityForSize(preset.size);
   }
 
-  _ImageAspectPreset _presetFromDimensions(ImageDimensions dimensions) {
-    if (dimensions == const ImageDimensions(1024, 1024)) {
-      return _ImageAspectPreset.square;
+  String _scaleLabelForPreset(ImageSizePreset preset) {
+    final label = preset.label.trim();
+    final separatorIndex = label.indexOf(' ');
+    if (separatorIndex <= 0) {
+      return label;
     }
-    if (dimensions == const ImageDimensions(1536, 1024)) {
-      return _ImageAspectPreset.landscape;
-    }
-    if (dimensions == const ImageDimensions(1024, 1536)) {
-      return _ImageAspectPreset.portrait;
-    }
-    return _ImageAspectPreset.custom;
+    return label.substring(0, separatorIndex);
   }
 
-  String _buildHelperText(int? width, int? height) {
-    if (width == null || height == null || width <= 0 || height <= 0) {
-      return '请输入有效的宽度和高度';
+  _ImagePresetOrientation _orientationForDimensions(
+    ImageDimensions dimensions,
+  ) {
+    if (dimensions.width == dimensions.height) {
+      return _ImagePresetOrientation.square;
+    }
+    return dimensions.width > dimensions.height
+        ? _ImagePresetOrientation.landscape
+        : _ImagePresetOrientation.portrait;
+  }
+
+  String _orientationLabel(_ImagePresetOrientation orientation) {
+    return switch (orientation) {
+      _ImagePresetOrientation.square => '方图',
+      _ImagePresetOrientation.landscape => '横图',
+      _ImagePresetOrientation.portrait => '竖图',
+    };
+  }
+
+  TextField _customSideInput({
+    required TextEditingController controller,
+    required String label,
+  }) {
+    final constraints =
+        imageModelCapabilitiesFor(
+          providerKind: widget.providerKind,
+          model: widget.model,
+          capabilityOverride: widget.capabilityOverride,
+        ).constraints ??
+        gptImage2SizeConstraints;
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(constraints.maxSide.toString().length),
+      ],
+      decoration: InputDecoration(
+        labelText: label,
+        helperText:
+            '${constraints.minSide}-${constraints.maxSide}，${constraints.step}px 倍数',
+      ),
+      onChanged: (_) => _commitCustomSize(),
+    );
+  }
+
+  void _applySelection(String value) {
+    if (value == _customSizeValue) {
+      setState(() => _selectedValue = value);
+      _commitCustomSize();
+      return;
     }
 
-    final dimensions = ImageDimensions(width, height);
-    final aspectName = imageAspectName(width, height);
-    if (widget.providerKind == ApiProviderKind.gemini) {
+    final capabilities = imageModelCapabilitiesFor(
+      providerKind: widget.providerKind,
+      model: widget.model,
+      capabilityOverride: widget.capabilityOverride,
+    );
+    final preset = capabilities.presets.firstWhere(
+      (preset) => preset.size == value,
+      orElse: () => nearestImageSizePresetInList(
+        dimensions: imageDimensionsFromSize(value),
+        presets: capabilities.presets,
+      ),
+    );
+    setState(() {
+      _selectedValue = preset.size;
+      _setControllerText(_widthController, preset.dimensions.width.toString());
+      _setControllerText(
+        _heightController,
+        preset.dimensions.height.toString(),
+      );
+    });
+    widget.onChanged(preset.size);
+    _notifyValidityForSize(preset.size);
+  }
+
+  void _commitCustomSize() {
+    final size =
+        '${_widthController.text.trim()}x${_heightController.text.trim()}';
+    widget.onChanged(size);
+    _notifyValidityForSize(size);
+  }
+
+  String _buildHelperText(
+    ImageModelCapabilities capabilities,
+    ImageSizeValidationResult validation,
+  ) {
+    if (!validation.isValid) {
+      return validation.message ?? '当前图片尺寸无效。';
+    }
+
+    final dimensions = validation.dimensions!;
+    final preset = exactImageSizePresetForDimensions(
+      dimensions,
+      presets: capabilities.presets,
+    );
+    final fallbackLabel = imageAspectName(dimensions.width, dimensions.height);
+    if (capabilities.sizeMode == ImageSizeMode.aspectRatio) {
       final aspectRatio = geminiAspectRatioForDimensions(dimensions);
-      return '$aspectName · Gemini 画幅比例 $aspectRatio';
+      return '${preset?.label ?? fallbackLabel} · Gemini 画幅比例 $aspectRatio';
     }
 
-    final requestDimensions = normalizeOpenAIImageDimensions(dimensions);
-    if (requestDimensions == dimensions) {
-      return '$aspectName · 请求尺寸 ${requestDimensions.size}';
+    if (capabilities.allowsCustomPixels && preset == null) {
+      return '自定义尺寸 · 请求尺寸 ${dimensions.size}';
     }
 
-    return '$aspectName · 输入值保持 ${dimensions.size}，'
-        '生成时请求 ${requestDimensions.size}';
+    return '${preset?.label ?? '固定分辨率'} · 请求尺寸 ${dimensions.size}';
+  }
+
+  String _pickerLabel(ImageModelCapabilities capabilities) {
+    return switch (capabilities.sizeMode) {
+      ImageSizeMode.customPixels => '分辨率',
+      ImageSizeMode.aspectRatio => '画幅比例',
+      ImageSizeMode.fixedPresets => '分辨率档位',
+    };
+  }
+
+  String _selectedValueFor(String size) {
+    final capabilities = imageModelCapabilitiesFor(
+      providerKind: widget.providerKind,
+      model: widget.model,
+      capabilityOverride: widget.capabilityOverride,
+    );
+    final dimensions = tryParseImageDimensions(size);
+    final preset = dimensions == null
+        ? null
+        : exactImageSizePresetForDimensions(
+            dimensions,
+            presets: capabilities.presets,
+          );
+    if (preset != null) {
+      return preset.size;
+    }
+    if (capabilities.allowsCustomPixels) {
+      return _customSizeValue;
+    }
+    return nearestImageSizePresetInList(
+      dimensions: imageDimensionsFromSize(size),
+      presets: capabilities.presets,
+    ).size;
+  }
+
+  void _notifyValidity() {
+    _notifyValidityForSize(widget.size);
+  }
+
+  void _notifyValidityForSize(String size) {
+    final validation = validateImageSizeForModel(
+      size: size,
+      providerKind: widget.providerKind,
+      model: widget.model,
+      capabilityOverride: widget.capabilityOverride,
+    );
+    widget.onValidityChanged?.call(validation.isValid);
+  }
+
+  static void _setControllerText(
+    TextEditingController controller,
+    String value,
+  ) {
+    if (controller.text == value) {
+      return;
+    }
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
   }
 }
 

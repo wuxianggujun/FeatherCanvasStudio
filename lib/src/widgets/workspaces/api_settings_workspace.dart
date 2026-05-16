@@ -21,6 +21,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
     required this.modelController,
     required this.timeoutController,
     required this.providerKind,
+    required this.imageSizeCapabilityOverride,
     required this.showApiKey,
     required this.availableModels,
     required this.isFetchingModels,
@@ -35,6 +36,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
     required this.onFetchModels,
     required this.onModelSelected,
     required this.onProviderKindChanged,
+    required this.onImageSizeCapabilityOverrideChanged,
     required this.onToggleApiKeyVisibility,
     super.key,
   });
@@ -51,6 +53,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
   final TextEditingController modelController;
   final TextEditingController timeoutController;
   final ApiProviderKind providerKind;
+  final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final bool showApiKey;
   final List<ApiModelInfo> availableModels;
   final bool isFetchingModels;
@@ -65,6 +68,8 @@ class ApiSettingsWorkspace extends StatelessWidget {
   final VoidCallback onFetchModels;
   final ValueChanged<String> onModelSelected;
   final ValueChanged<ApiProviderKind> onProviderKindChanged;
+  final ValueChanged<ImageSizeCapabilityOverride>
+  onImageSizeCapabilityOverrideChanged;
   final VoidCallback onToggleApiKeyVisibility;
 
   @override
@@ -86,6 +91,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
           modelController: modelController,
           timeoutController: timeoutController,
           providerKind: providerKind,
+          imageSizeCapabilityOverride: imageSizeCapabilityOverride,
           showApiKey: showApiKey,
           availableModels: availableModels,
           isFetchingModels: isFetchingModels,
@@ -100,6 +106,8 @@ class ApiSettingsWorkspace extends StatelessWidget {
           onFetchModels: onFetchModels,
           onModelSelected: onModelSelected,
           onProviderKindChanged: onProviderKindChanged,
+          onImageSizeCapabilityOverrideChanged:
+              onImageSizeCapabilityOverrideChanged,
           onToggleApiKeyVisibility: onToggleApiKeyVisibility,
         ),
       ],

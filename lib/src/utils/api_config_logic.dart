@@ -23,12 +23,19 @@ ApiConfig buildApiConfigDraft({
   required String apiKeyText,
   required String modelText,
   required ApiProviderKind providerKind,
+  ImageSizeCapabilityOverride imageSizeCapabilityOverride =
+      ImageSizeCapabilityOverride.auto,
   String? timeoutText,
 }) {
   final name = nameText.trim();
   final parsedTimeout = timeoutText == null
       ? null
       : int.tryParse(timeoutText.trim());
+  final normalizedSizeOverride =
+      normalizeImageSizeCapabilityOverrideForProvider(
+        providerKind: providerKind,
+        imageSizeCapabilityOverride: imageSizeCapabilityOverride,
+      );
   return ApiConfig(
     id: selectedId ?? ApiConfig.newId(),
     name: name.isEmpty ? unnamedApiConfigName : name,
@@ -36,10 +43,26 @@ ApiConfig buildApiConfigDraft({
     apiKey: apiKeyText,
     model: modelText.trim(),
     providerKind: providerKind,
+    imageSizeCapabilityOverride: normalizedSizeOverride,
     generationTimeoutSeconds: ApiConfig.clampGenerationTimeoutSeconds(
       parsedTimeout,
     ),
   );
+}
+
+ImageSizeCapabilityOverride normalizeImageSizeCapabilityOverrideForProvider({
+  required ApiProviderKind providerKind,
+  required ImageSizeCapabilityOverride imageSizeCapabilityOverride,
+}) {
+  if (providerKind == ApiProviderKind.gemini &&
+      imageSizeCapabilityOverride == ImageSizeCapabilityOverride.customPixels) {
+    return ImageSizeCapabilityOverride.aspectRatio;
+  }
+  if (providerKind != ApiProviderKind.gemini &&
+      imageSizeCapabilityOverride == ImageSizeCapabilityOverride.aspectRatio) {
+    return ImageSizeCapabilityOverride.fixedPresets;
+  }
+  return imageSizeCapabilityOverride;
 }
 
 ApiConfig resolveApiConfig(List<ApiConfig> configs, String? selectedId) {
@@ -168,6 +191,7 @@ OpenAIImageRequest buildApiConfigTestRequest({
     size: '1024x1024',
     imageCount: 1,
     providerKind: providerKind,
+    imageSizeCapabilityOverride: apiConfig.imageSizeCapabilityOverride,
     advancedSettings: apiConfigTestAdvancedSettings(basic: basic),
     generationTimeout: apiConfig.generationTimeout,
   );

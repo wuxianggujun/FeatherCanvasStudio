@@ -1,5 +1,117 @@
 part of 'package:feather_canvas_studio/main.dart';
 
+const Duration _generationFormHistoryMergeWindow = Duration(milliseconds: 800);
+const Duration _generationTextHistoryDebounce = Duration(milliseconds: 650);
+const String _textPromptHistoryKey = 'text-prompt';
+const String _animationPromptHistoryKey = 'animation-prompt';
+const String _negativePromptHistoryKey = 'negative-prompt';
+const String _sizeHistoryKey = 'generation-size';
+const String _imageCountHistoryKey = 'generation-count';
+const String _advancedSettingsHistoryKey = 'generation-advanced-settings';
+
+class _PendingGenerationTextHistory {
+  const _PendingGenerationTextHistory({
+    required this.feature,
+    required this.key,
+    required this.label,
+    required this.before,
+    required this.after,
+    required this.restore,
+  });
+
+  final WorkspaceFeature feature;
+  final String key;
+  final String label;
+  final String before;
+  final String after;
+  final FutureOr<void> Function(String value) restore;
+}
+
+class _LocalGenerationPresetSnapshot {
+  const _LocalGenerationPresetSnapshot({
+    required this.prompt,
+    required this.negativePrompt,
+    required this.size,
+    required this.imageCount,
+  });
+
+  final String prompt;
+  final String negativePrompt;
+  final String size;
+  final int imageCount;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _LocalGenerationPresetSnapshot &&
+            prompt == other.prompt &&
+            negativePrompt == other.negativePrompt &&
+            size == other.size &&
+            imageCount == other.imageCount;
+  }
+
+  @override
+  int get hashCode => Object.hash(prompt, negativePrompt, size, imageCount);
+}
+
+class _SpriteSheetPresetSnapshot {
+  const _SpriteSheetPresetSnapshot({
+    required this.prompt,
+    required this.negativePrompt,
+    required this.size,
+    required this.rows,
+    required this.columns,
+    required this.gridSpec,
+  });
+
+  final String prompt;
+  final String negativePrompt;
+  final String size;
+  final int rows;
+  final int columns;
+  final SpriteSheetGridSpec gridSpec;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _SpriteSheetPresetSnapshot &&
+            prompt == other.prompt &&
+            negativePrompt == other.negativePrompt &&
+            size == other.size &&
+            rows == other.rows &&
+            columns == other.columns &&
+            gridSpec == other.gridSpec;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(prompt, negativePrompt, size, rows, columns, gridSpec);
+}
+
+class _GifPresetSnapshot {
+  const _GifPresetSnapshot({
+    required this.delayMs,
+    required this.loopCount,
+    required this.playbackMode,
+  });
+
+  final int delayMs;
+  final int loopCount;
+  final GifPlaybackMode playbackMode;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _GifPresetSnapshot &&
+            delayMs == other.delayMs &&
+            loopCount == other.loopCount &&
+            playbackMode == other.playbackMode;
+  }
+
+  @override
+  int get hashCode => Object.hash(delayMs, loopCount, playbackMode);
+}
+
 mixin _LocalSettingsStateMixin
     on State<FeatherCanvasHomePage>, _ApiConfigStateMixin {
   @override
@@ -8,11 +120,35 @@ mixin _LocalSettingsStateMixin
   bool get _isBootstrapping;
   @override
   bool get _isRestoringState;
+  @override
+  set _isRestoringState(bool value);
+  WorkspaceFeature get _selectedFeature;
   List<ImageLibraryItem> get _imageLibrary;
   List<GeneratedImage> get _generatedImages;
   List<GeneratedImage> get _animationFrames;
+  List<AppPreset> get _appPresets;
+  set _appPresets(List<AppPreset> value);
+  TextEditingController get _animationPromptController;
+  int get _animationRows;
+  set _animationRows(int value);
+  int get _animationColumns;
+  set _animationColumns(int value);
+  SpriteSheetGridSpec get _animationGridSpec;
+  set _animationGridSpec(SpriteSheetGridSpec value);
+  int get _gifDefaultFrameDelayMs;
+  set _gifDefaultFrameDelayMs(int value);
+  int get _gifLoopCount;
+  set _gifLoopCount(int value);
+  GifPlaybackMode get _gifPlaybackMode;
+  set _gifPlaybackMode(GifPlaybackMode value);
   Future<void> _selectFeature(WorkspaceFeature feature);
   Future<void> _confirmResetToDefaults();
+  void _pushHistory(WorkspaceFeature feature, HistoryAction action);
+  bool _replaceTopHistory(
+    WorkspaceFeature feature, {
+    required HistoryAction current,
+    required HistoryAction replacement,
+  });
   @override
   void _showMessage(String message);
 
@@ -23,20 +159,34 @@ mixin _LocalSettingsStateMixin
       TextEditingController();
   final TextEditingController _userController = TextEditingController();
 
+  @override
   String _size = defaultAppSettings.size;
   int _imageCount = defaultAppSettings.imageCount;
   ImageAdvancedSettings _advancedSettings = defaultAppSettings.advancedSettings;
   bool _isCleaningStorage = false;
   Timer? _settingsSaveDebounce;
+  Timer? _generationTextHistoryDebounceTimer;
+  _PendingGenerationTextHistory? _pendingGenerationTextHistory;
+  HistoryAction? _lastGenerationFormHistoryAction;
+  String? _lastGenerationFormHistoryKey;
+  WorkspaceFeature? _lastGenerationFormHistoryFeature;
+  DateTime? _lastGenerationFormHistoryAt;
+  Object? _lastGenerationFormHistoryBefore;
+  String _lastPromptText = defaultAppSettings.prompt;
+  String _lastAnimationPromptText = defaultAnimationPrompt;
+  String _lastNegativePromptText = '';
 
   void _initLocalSettingsState() {
-    _promptController.addListener(_scheduleSettingsSave);
-    _negativePromptController.addListener(_scheduleSettingsSave);
+    _promptController.addListener(_handlePromptTextChanged);
+    _animationPromptController.addListener(_handleAnimationPromptChanged);
+    _negativePromptController.addListener(_handleNegativePromptChanged);
     _userController.addListener(_syncUserAndScheduleSettingsSave);
   }
 
   void _disposeLocalSettingsState() {
     _settingsSaveDebounce?.cancel();
+    _generationTextHistoryDebounceTimer?.cancel();
+    _animationPromptController.removeListener(_handleAnimationPromptChanged);
     _promptController.dispose();
     _negativePromptController.dispose();
     _userController.dispose();
@@ -54,16 +204,29 @@ mixin _LocalSettingsStateMixin
   }
 
   void _syncUserAndScheduleSettingsSave() {
-    _advancedSettings = _advancedSettings.copyWith(
-      user: _userController.text.trim(),
-    );
+    if (_isBootstrapping || _isRestoringState) {
+      _advancedSettings = _advancedSettings.copyWith(
+        user: _userController.text.trim(),
+      );
+      return;
+    }
+
+    final before = _advancedSettings;
+    final after = _advancedSettings.copyWith(user: _userController.text.trim());
+    _advancedSettings = after;
     _scheduleSettingsSave();
+    _pushAdvancedSettingsHistoryIfNeeded(before, after);
   }
 
   @override
   Future<void> _saveSettings() async {
     final apiConfig = _selectedApiConfig;
-    final normalizedSize = imageDimensionsFromSize(_size).size;
+    final normalizedSize = safeImageSizeForModel(
+      size: _size,
+      providerKind: apiConfig.providerKind,
+      model: apiConfig.model,
+      capabilityOverride: apiConfig.imageSizeCapabilityOverride,
+    );
     await _store.saveSettings(
       AppSettings(
         baseUrl: apiConfig.baseUrl,
@@ -81,21 +244,679 @@ mixin _LocalSettingsStateMixin
   }
 
   void _setSize(String value) {
-    setState(() => _size = value.trim());
+    _flushPendingGenerationTextHistory();
+    final before = _size;
+    final after = value.trim();
+    if (before == after) {
+      return;
+    }
+
+    setState(() => _size = after);
     _scheduleSettingsSave();
+    final feature = _generationFormHistoryFeature(
+      includeFrameAnimation: true,
+      includeImageGeneration: true,
+    );
+    if (feature == null) {
+      return;
+    }
+    _pushGenerationFormFieldHistory<String>(
+      feature: feature,
+      key: _sizeHistoryKey,
+      label: '调整分辨率为 $after',
+      before: before,
+      after: after,
+      restore: _restoreSize,
+    );
   }
 
   void _setImageCount(int value) {
+    _flushPendingGenerationTextHistory();
+    final before = _imageCount;
+    if (before == value) {
+      return;
+    }
+
     setState(() => _imageCount = value);
     _scheduleSettingsSave();
+    final feature = _generationFormHistoryFeature(
+      includeFrameAnimation: false,
+      includeImageGeneration: true,
+    );
+    if (feature == null) {
+      return;
+    }
+    _pushGenerationFormFieldHistory<int>(
+      feature: feature,
+      key: _imageCountHistoryKey,
+      label: '调整生成数量为 $value 张',
+      before: before,
+      after: value,
+      restore: _restoreImageCount,
+    );
   }
 
   void _setAdvancedSettings(ImageAdvancedSettings value) {
+    _flushPendingGenerationTextHistory();
+    final before = _advancedSettings;
+    if (before == value) {
+      return;
+    }
+
     setState(() => _advancedSettings = value);
     if (_userController.text != value.user) {
       _userController.text = value.user;
     }
     _scheduleSettingsSave();
+    _pushAdvancedSettingsHistoryIfNeeded(before, value);
+  }
+
+  void _handlePromptTextChanged() {
+    _handleGenerationTextChanged(
+      key: _textPromptHistoryKey,
+      label: '修改正向提示词',
+      before: _lastPromptText,
+      after: _promptController.text,
+      remember: (value) => _lastPromptText = value,
+      feature: switch (_selectedFeature) {
+        WorkspaceFeature.imageGeneration => WorkspaceFeature.imageGeneration,
+        WorkspaceFeature.localSettings => WorkspaceFeature.localSettings,
+        _ => null,
+      },
+      restore: (value) => _restoreTextControllerValue(
+        controller: _promptController,
+        value: value,
+        remember: (value) => _lastPromptText = value,
+        saveSettings: true,
+      ),
+    );
+  }
+
+  void _handleAnimationPromptChanged() {
+    _handleGenerationTextChanged(
+      key: _animationPromptHistoryKey,
+      label: '修改帧动画提示词',
+      before: _lastAnimationPromptText,
+      after: _animationPromptController.text,
+      remember: (value) => _lastAnimationPromptText = value,
+      feature: switch (_selectedFeature) {
+        WorkspaceFeature.frameAnimation => WorkspaceFeature.frameAnimation,
+        WorkspaceFeature.localSettings => WorkspaceFeature.localSettings,
+        _ => null,
+      },
+      restore: (value) => _restoreTextControllerValue(
+        controller: _animationPromptController,
+        value: value,
+        remember: (value) => _lastAnimationPromptText = value,
+        saveSettings: false,
+      ),
+    );
+  }
+
+  void _handleNegativePromptChanged() {
+    final feature = _generationFormHistoryFeature(
+      includeFrameAnimation: true,
+      includeImageGeneration: true,
+    );
+    _handleGenerationTextChanged(
+      key: _negativePromptHistoryKey,
+      label: '修改负向提示词',
+      before: _lastNegativePromptText,
+      after: _negativePromptController.text,
+      remember: (value) => _lastNegativePromptText = value,
+      feature: feature,
+      restore: (value) => _restoreTextControllerValue(
+        controller: _negativePromptController,
+        value: value,
+        remember: (value) => _lastNegativePromptText = value,
+        saveSettings: true,
+      ),
+    );
+  }
+
+  void _handleGenerationTextChanged({
+    required String key,
+    required String label,
+    required String before,
+    required String after,
+    required ValueChanged<String> remember,
+    required WorkspaceFeature? feature,
+    required FutureOr<void> Function(String value) restore,
+  }) {
+    remember(after);
+
+    if (_isBootstrapping || _isRestoringState) {
+      return;
+    }
+
+    if (key != _animationPromptHistoryKey) {
+      _scheduleSettingsSave();
+    }
+
+    if (before == after || feature == null) {
+      return;
+    }
+
+    final pending = _pendingGenerationTextHistory;
+    if (pending != null && (pending.key != key || pending.feature != feature)) {
+      _flushPendingGenerationTextHistory();
+    }
+
+    final currentPending = _pendingGenerationTextHistory;
+    _pendingGenerationTextHistory = _PendingGenerationTextHistory(
+      feature: feature,
+      key: key,
+      label: label,
+      before: currentPending?.key == key && currentPending?.feature == feature
+          ? currentPending!.before
+          : before,
+      after: after,
+      restore: restore,
+    );
+    _generationTextHistoryDebounceTimer?.cancel();
+    _generationTextHistoryDebounceTimer = Timer(
+      _generationTextHistoryDebounce,
+      _flushPendingGenerationTextHistory,
+    );
+  }
+
+  void _flushPendingGenerationTextHistory() {
+    final pending = _pendingGenerationTextHistory;
+    if (pending == null) {
+      return;
+    }
+
+    _generationTextHistoryDebounceTimer?.cancel();
+    _generationTextHistoryDebounceTimer = null;
+    _pendingGenerationTextHistory = null;
+    if (pending.before == pending.after) {
+      return;
+    }
+
+    _pushGenerationFormFieldHistory<String>(
+      feature: pending.feature,
+      key: pending.key,
+      label: pending.label,
+      before: pending.before,
+      after: pending.after,
+      restore: pending.restore,
+    );
+  }
+
+  WorkspaceFeature? _generationFormHistoryFeature({
+    required bool includeFrameAnimation,
+    required bool includeImageGeneration,
+  }) {
+    return switch (_selectedFeature) {
+      WorkspaceFeature.imageGeneration when includeImageGeneration =>
+        WorkspaceFeature.imageGeneration,
+      WorkspaceFeature.frameAnimation when includeFrameAnimation =>
+        WorkspaceFeature.frameAnimation,
+      WorkspaceFeature.localSettings
+          when includeFrameAnimation || includeImageGeneration =>
+        WorkspaceFeature.localSettings,
+      _ => null,
+    };
+  }
+
+  void _pushAdvancedSettingsHistoryIfNeeded(
+    ImageAdvancedSettings before,
+    ImageAdvancedSettings after,
+  ) {
+    if (before == after || _isBootstrapping || _isRestoringState) {
+      return;
+    }
+
+    final feature = _generationFormHistoryFeature(
+      includeFrameAnimation: true,
+      includeImageGeneration: true,
+    );
+    if (feature == null) {
+      return;
+    }
+
+    _pushGenerationFormFieldHistory<ImageAdvancedSettings>(
+      feature: feature,
+      key: _advancedSettingsHistoryKey,
+      label: _advancedSettingsHistoryLabel(before, after),
+      before: before,
+      after: after,
+      restore: _restoreAdvancedSettings,
+    );
+  }
+
+  void _pushGenerationFormFieldHistory<T>({
+    required WorkspaceFeature feature,
+    required String key,
+    required String label,
+    required T before,
+    required T after,
+    required FutureOr<void> Function(T value) restore,
+  }) {
+    if (before == after) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final previousAction = _lastGenerationFormHistoryAction;
+    final previousAt = _lastGenerationFormHistoryAt;
+    final shouldMerge =
+        previousAction != null &&
+        previousAt != null &&
+        _lastGenerationFormHistoryKey == key &&
+        _lastGenerationFormHistoryFeature == feature &&
+        now.difference(previousAt) <= _generationFormHistoryMergeWindow;
+
+    if (shouldMerge) {
+      final mergedBefore = _lastGenerationFormHistoryBefore is T
+          ? _lastGenerationFormHistoryBefore as T
+          : before;
+      final replacement = _generationFormFieldHistoryAction<T>(
+        label: label,
+        before: mergedBefore,
+        after: after,
+        restore: restore,
+      );
+      final replaced = _replaceTopHistory(
+        feature,
+        current: previousAction,
+        replacement: replacement,
+      );
+      if (replaced) {
+        _rememberGenerationFormHistory(
+          action: replacement,
+          feature: feature,
+          key: key,
+          before: mergedBefore as Object,
+          now: now,
+        );
+        return;
+      }
+    }
+
+    final action = _generationFormFieldHistoryAction<T>(
+      label: label,
+      before: before,
+      after: after,
+      restore: restore,
+    );
+    _pushHistory(feature, action);
+    _rememberGenerationFormHistory(
+      action: action,
+      feature: feature,
+      key: key,
+      before: before as Object,
+      now: now,
+    );
+  }
+
+  HistoryAction _generationFormFieldHistoryAction<T>({
+    required String label,
+    required T before,
+    required T after,
+    required FutureOr<void> Function(T value) restore,
+  }) {
+    return HistoryAction(
+      label: label,
+      apply: () => restore(after),
+      revert: () => restore(before),
+    );
+  }
+
+  void _rememberGenerationFormHistory({
+    required HistoryAction action,
+    required WorkspaceFeature feature,
+    required String key,
+    required Object before,
+    required DateTime now,
+  }) {
+    _lastGenerationFormHistoryAction = action;
+    _lastGenerationFormHistoryFeature = feature;
+    _lastGenerationFormHistoryKey = key;
+    _lastGenerationFormHistoryBefore = before;
+    _lastGenerationFormHistoryAt = now;
+  }
+
+  Future<void> _restoreTextControllerValue({
+    required TextEditingController controller,
+    required String value,
+    required ValueChanged<String> remember,
+    required bool saveSettings,
+  }) async {
+    if (!mounted) {
+      return;
+    }
+
+    _isRestoringState = true;
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+    remember(value);
+    _isRestoringState = false;
+
+    if (saveSettings) {
+      await _saveSettings();
+    }
+  }
+
+  Future<void> _restoreSize(String value) async {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _size = value);
+    await _saveSettings();
+  }
+
+  Future<void> _restoreImageCount(int value) async {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _imageCount = value);
+    await _saveSettings();
+  }
+
+  Future<void> _restoreAdvancedSettings(ImageAdvancedSettings value) async {
+    if (!mounted) {
+      return;
+    }
+
+    _isRestoringState = true;
+    setState(() => _advancedSettings = value);
+    if (_userController.text != value.user) {
+      _userController.text = value.user;
+    }
+    _isRestoringState = false;
+    await _saveSettings();
+  }
+
+  String _advancedSettingsHistoryLabel(
+    ImageAdvancedSettings before,
+    ImageAdvancedSettings after,
+  ) {
+    if (before.quality != after.quality) {
+      return '调整质量为 ${imageQualityLabel(after.quality)}';
+    }
+    if (before.background != after.background) {
+      return '调整背景为 ${imageBackgroundLabel(after.background)}';
+    }
+    if (before.outputFormat != after.outputFormat) {
+      return '调整输出格式为 ${imageOutputFormatLabel(after.outputFormat)}';
+    }
+    if (before.outputCompression != after.outputCompression) {
+      return '调整输出压缩率为 ${after.outputCompression}%';
+    }
+    if (before.moderation != after.moderation) {
+      return '调整审核强度为 ${imageModerationLabel(after.moderation)}';
+    }
+    if (before.inputFidelity != after.inputFidelity) {
+      return '调整参考图保真度为 ${after.inputFidelity == 'high' ? '高' : '低'}';
+    }
+    if (before.user != after.user) {
+      return '修改最终用户 ID';
+    }
+    return '调整高级输出参数';
+  }
+
+  Future<void> _savePreset(AppPresetKind kind) async {
+    final preset = switch (kind) {
+      AppPresetKind.localGeneration => AppPreset(
+        id: AppPreset.newId(),
+        name: '文本生图 ${_appPresets.length + 1}',
+        kind: kind,
+        prompt: _promptController.text,
+        negativePrompt: _negativePromptController.text,
+        size: _size,
+        imageCount: _imageCount,
+      ),
+      AppPresetKind.spriteSheet => AppPreset(
+        id: AppPreset.newId(),
+        name: '帧动画 ${_appPresets.length + 1}',
+        kind: kind,
+        prompt: _animationPromptController.text,
+        negativePrompt: _negativePromptController.text,
+        size: _size,
+        rows: _animationRows,
+        columns: _animationColumns,
+      ),
+      AppPresetKind.gif => AppPreset(
+        id: AppPreset.newId(),
+        name: 'GIF ${_appPresets.length + 1}',
+        kind: kind,
+        gifDelayMs: _gifDefaultFrameDelayMs,
+        gifLoopCount: _gifLoopCount,
+        playbackMode: _gifPlaybackMode,
+      ),
+    };
+
+    await _store.addPreset(preset);
+    final presets = await _store.loadPresets();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _appPresets = presets);
+    _showMessage('已保存预设：${preset.name}');
+  }
+
+  Future<void> _applyPreset(AppPreset preset) async {
+    _flushPendingGenerationTextHistory();
+
+    switch (preset.kind) {
+      case AppPresetKind.localGeneration:
+        final before = _captureLocalGenerationPresetSnapshot();
+        final after = _LocalGenerationPresetSnapshot(
+          prompt: preset.prompt,
+          negativePrompt: preset.negativePrompt,
+          size: safeImageSizeForModel(
+            size: preset.size,
+            providerKind: _apiConfigProviderKind,
+            model: _modelController.text,
+            capabilityOverride: _imageSizeCapabilityOverride,
+          ),
+          imageCount: preset.imageCount,
+        );
+        await _restoreLocalGenerationPresetSnapshot(after);
+        _pushPresetHistory<_LocalGenerationPresetSnapshot>(
+          label: '应用预设：${preset.name}',
+          before: before,
+          after: after,
+          restore: _restoreLocalGenerationPresetSnapshot,
+        );
+      case AppPresetKind.spriteSheet:
+        final before = _captureSpriteSheetPresetSnapshot();
+        final after = _SpriteSheetPresetSnapshot(
+          prompt: preset.prompt,
+          negativePrompt: preset.negativePrompt,
+          size: safeImageSizeForModel(
+            size: preset.size,
+            providerKind: _apiConfigProviderKind,
+            model: _modelController.text,
+            capabilityOverride: _imageSizeCapabilityOverride,
+          ),
+          rows: preset.rows,
+          columns: preset.columns,
+          gridSpec: before.gridSpec.copyWith(
+            rows: preset.rows,
+            columns: preset.columns,
+          ),
+        );
+        await _restoreSpriteSheetPresetSnapshot(after);
+        _pushPresetHistory<_SpriteSheetPresetSnapshot>(
+          label: '应用预设：${preset.name}',
+          before: before,
+          after: after,
+          restore: _restoreSpriteSheetPresetSnapshot,
+        );
+      case AppPresetKind.gif:
+        final before = _captureGifPresetSnapshot();
+        final after = _GifPresetSnapshot(
+          delayMs: preset.gifDelayMs,
+          loopCount: preset.gifLoopCount,
+          playbackMode: preset.playbackMode,
+        );
+        await _restoreGifPresetSnapshot(after);
+        _pushPresetHistory<_GifPresetSnapshot>(
+          label: '应用预设：${preset.name}',
+          before: before,
+          after: after,
+          restore: _restoreGifPresetSnapshot,
+        );
+    }
+    _showMessage('已应用预设：${preset.name}');
+  }
+
+  _LocalGenerationPresetSnapshot _captureLocalGenerationPresetSnapshot() {
+    return _LocalGenerationPresetSnapshot(
+      prompt: _promptController.text,
+      negativePrompt: _negativePromptController.text,
+      size: _size,
+      imageCount: _imageCount,
+    );
+  }
+
+  _SpriteSheetPresetSnapshot _captureSpriteSheetPresetSnapshot() {
+    return _SpriteSheetPresetSnapshot(
+      prompt: _animationPromptController.text,
+      negativePrompt: _negativePromptController.text,
+      size: _size,
+      rows: _animationRows,
+      columns: _animationColumns,
+      gridSpec: _animationGridSpec,
+    );
+  }
+
+  _GifPresetSnapshot _captureGifPresetSnapshot() {
+    return _GifPresetSnapshot(
+      delayMs: _gifDefaultFrameDelayMs,
+      loopCount: _gifLoopCount,
+      playbackMode: _gifPlaybackMode,
+    );
+  }
+
+  void _pushPresetHistory<T>({
+    required String label,
+    required T before,
+    required T after,
+    required FutureOr<void> Function(T value) restore,
+  }) {
+    if (before == after) {
+      return;
+    }
+
+    _pushHistory(
+      WorkspaceFeature.localSettings,
+      HistoryAction(
+        label: label,
+        apply: () => restore(after),
+        revert: () => restore(before),
+      ),
+    );
+  }
+
+  Future<void> _restoreLocalGenerationPresetSnapshot(
+    _LocalGenerationPresetSnapshot snapshot,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+
+    _isRestoringState = true;
+    try {
+      setState(() {
+        _setControllerText(
+          controller: _promptController,
+          value: snapshot.prompt,
+          remember: (value) => _lastPromptText = value,
+        );
+        _setControllerText(
+          controller: _negativePromptController,
+          value: snapshot.negativePrompt,
+          remember: (value) => _lastNegativePromptText = value,
+        );
+        _size = safeImageSizeForModel(
+          size: snapshot.size,
+          providerKind: _apiConfigProviderKind,
+          model: _modelController.text,
+          capabilityOverride: _imageSizeCapabilityOverride,
+        );
+        _imageCount = snapshot.imageCount;
+      });
+    } finally {
+      _isRestoringState = false;
+    }
+    await _saveSettings();
+  }
+
+  Future<void> _restoreSpriteSheetPresetSnapshot(
+    _SpriteSheetPresetSnapshot snapshot,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+
+    _isRestoringState = true;
+    try {
+      setState(() {
+        _setControllerText(
+          controller: _animationPromptController,
+          value: snapshot.prompt,
+          remember: (value) => _lastAnimationPromptText = value,
+        );
+        _setControllerText(
+          controller: _negativePromptController,
+          value: snapshot.negativePrompt,
+          remember: (value) => _lastNegativePromptText = value,
+        );
+        _size = safeImageSizeForModel(
+          size: snapshot.size,
+          providerKind: _apiConfigProviderKind,
+          model: _modelController.text,
+          capabilityOverride: _imageSizeCapabilityOverride,
+        );
+        _animationRows = snapshot.rows;
+        _animationColumns = snapshot.columns;
+        _animationGridSpec = snapshot.gridSpec;
+      });
+    } finally {
+      _isRestoringState = false;
+    }
+    await _saveSettings();
+  }
+
+  Future<void> _restoreGifPresetSnapshot(_GifPresetSnapshot snapshot) async {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _gifDefaultFrameDelayMs = snapshot.delayMs;
+      _gifLoopCount = snapshot.loopCount;
+      _gifPlaybackMode = snapshot.playbackMode;
+    });
+  }
+
+  void _setControllerText({
+    required TextEditingController controller,
+    required String value,
+    required ValueChanged<String> remember,
+  }) {
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+    remember(value);
+  }
+
+  Future<void> _deletePreset(AppPreset preset) async {
+    await _store.deletePreset(preset.id);
+    final presets = await _store.loadPresets();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _appPresets = presets);
+    _showMessage('已删除预设：${preset.name}');
   }
 
   Future<void> _cleanupLocalStorage() async {
@@ -133,15 +954,21 @@ mixin _LocalSettingsStateMixin
       generatedPreviewCount: _generatedImages.length + _animationFrames.length,
       isCleaningStorage: _isCleaningStorage,
       providerKind: _apiConfigProviderKind,
+      model: _modelController.text,
+      imageSizeCapabilityOverride: _imageSizeCapabilityOverride,
       promptController: _promptController,
       negativePromptController: _negativePromptController,
       size: _size,
       imageCount: _imageCount,
       advancedSettings: _advancedSettings,
+      presets: _appPresets,
       userController: _userController,
       onSizeChanged: _setSize,
       onImageCountChanged: _setImageCount,
       onAdvancedSettingsChanged: _setAdvancedSettings,
+      onSavePreset: (kind) => unawaited(_savePreset(kind)),
+      onApplyPreset: (preset) => unawaited(_applyPreset(preset)),
+      onDeletePreset: (preset) => unawaited(_deletePreset(preset)),
       onOpenApiSettings: () =>
           unawaited(_selectFeature(WorkspaceFeature.apiSettings)),
       onCleanupStorage: () => unawaited(_cleanupLocalStorage()),

@@ -20,6 +20,12 @@ class ImageLibraryPanel extends StatelessWidget {
     required this.onClearSearch,
     required this.selectedFilter,
     required this.onFilterChanged,
+    required this.availableProjects,
+    required this.selectedProject,
+    required this.onProjectChanged,
+    required this.availableTags,
+    required this.selectedTag,
+    required this.onTagChanged,
     required this.sortOrder,
     required this.onSortOrderChanged,
     required this.selectedItemIds,
@@ -30,6 +36,7 @@ class ImageLibraryPanel extends StatelessWidget {
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
+    required this.onMakeBackgroundTransparent,
     required this.onEditMetadata,
     required this.onCopyPath,
     required this.onOpenLocation,
@@ -50,6 +57,12 @@ class ImageLibraryPanel extends StatelessWidget {
   final VoidCallback onClearSearch;
   final ImageLibraryKindFilter selectedFilter;
   final ValueChanged<ImageLibraryKindFilter> onFilterChanged;
+  final List<String> availableProjects;
+  final String selectedProject;
+  final ValueChanged<String> onProjectChanged;
+  final List<String> availableTags;
+  final String selectedTag;
+  final ValueChanged<String> onTagChanged;
   final ImageLibrarySortOrder sortOrder;
   final ValueChanged<ImageLibrarySortOrder> onSortOrderChanged;
   final Set<String> selectedItemIds;
@@ -60,6 +73,7 @@ class ImageLibraryPanel extends StatelessWidget {
   final ValueChanged<ImageLibraryItem> onUseInEditor;
   final ValueChanged<ImageLibraryItem> onReuseGeneration;
   final ValueChanged<ImageLibraryItem> onCopyGeneration;
+  final ValueChanged<ImageLibraryItem> onMakeBackgroundTransparent;
   final ValueChanged<ImageLibraryItem> onEditMetadata;
   final ValueChanged<ImageLibraryItem> onCopyPath;
   final ValueChanged<ImageLibraryItem> onOpenLocation;
@@ -107,6 +121,39 @@ class ImageLibraryPanel extends StatelessWidget {
             onChanged: onSearchChanged,
           ),
           const SizedBox(height: fieldGap),
+          if (availableProjects.isNotEmpty || availableTags.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (availableProjects.isNotEmpty)
+                  SizedBox(
+                    width: 180,
+                    child: OptionDropdown<String>(
+                      label: '项目',
+                      value: selectedProject,
+                      options: ['', ...availableProjects],
+                      labelBuilder: (value) => value.isEmpty ? '全部项目' : value,
+                      onChanged: onProjectChanged,
+                      isDense: true,
+                    ),
+                  ),
+                if (availableTags.isNotEmpty)
+                  SizedBox(
+                    width: 180,
+                    child: OptionDropdown<String>(
+                      label: '标签',
+                      value: selectedTag,
+                      options: ['', ...availableTags],
+                      labelBuilder: (value) => value.isEmpty ? '全部标签' : value,
+                      onChanged: onTagChanged,
+                      isDense: true,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: fieldGap),
+          ],
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -206,6 +253,8 @@ class ImageLibraryPanel extends StatelessWidget {
                   onUseInEditor: () => onUseInEditor(item),
                   onReuseGeneration: () => onReuseGeneration(item),
                   onCopyGeneration: () => onCopyGeneration(item),
+                  onMakeBackgroundTransparent: () =>
+                      onMakeBackgroundTransparent(item),
                   onEditMetadata: () => onEditMetadata(item),
                   onCopyPath: () => onCopyPath(item),
                   onOpenLocation: () => onOpenLocation(item),

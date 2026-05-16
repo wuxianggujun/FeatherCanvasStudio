@@ -29,6 +29,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
     required this.onImageCountChanged,
     required this.onAdvancedSettingsChanged,
     required this.onGenerate,
+    required this.onMakeBackgroundTransparent,
     super.key,
   });
 
@@ -51,6 +52,8 @@ class ImageGenerationWorkspace extends StatelessWidget {
   final ValueChanged<int> onImageCountChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final VoidCallback onGenerate;
+  final void Function(int index, GeneratedImage image)
+  onMakeBackgroundTransparent;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +67,9 @@ class ImageGenerationWorkspace extends StatelessWidget {
             apiConfigs: apiConfigs,
             selectedApiConfigId: selectedApiConfig.id,
             providerKind: selectedApiConfig.providerKind,
+            model: selectedApiConfig.model,
+            imageSizeCapabilityOverride:
+                selectedApiConfig.imageSizeCapabilityOverride,
             promptController: promptController,
             negativePromptController: negativePromptController,
             size: size,
@@ -84,6 +90,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
             isGenerating: isGenerating,
             debugRecord: debugRecord,
             onRetry: onGenerate,
+            onMakeBackgroundTransparent: onMakeBackgroundTransparent,
           ),
         ),
       ],
