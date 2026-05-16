@@ -139,6 +139,7 @@ class ApiSettingsPanel extends StatelessWidget {
     required this.baseUrlController,
     required this.apiKeyController,
     required this.modelController,
+    required this.timeoutController,
     required this.providerKind,
     required this.showApiKey,
     required this.availableModels,
@@ -168,6 +169,7 @@ class ApiSettingsPanel extends StatelessWidget {
   final TextEditingController baseUrlController;
   final TextEditingController apiKeyController;
   final TextEditingController modelController;
+  final TextEditingController timeoutController;
   final ApiProviderKind providerKind;
   final bool showApiKey;
   final List<ApiModelInfo> availableModels;
@@ -237,6 +239,8 @@ class ApiSettingsPanel extends StatelessWidget {
             onModelSelected: onModelSelected,
             onToggleApiKeyVisibility: onToggleApiKeyVisibility,
           ),
+          const SizedBox(height: fieldGap),
+          _GenerationTimeoutField(controller: timeoutController),
           const SizedBox(height: fieldGap),
           _ApiConfigActions(
             saveStatus: saveStatus,

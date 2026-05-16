@@ -23,8 +23,12 @@ ApiConfig buildApiConfigDraft({
   required String apiKeyText,
   required String modelText,
   required ApiProviderKind providerKind,
+  String? timeoutText,
 }) {
   final name = nameText.trim();
+  final parsedTimeout = timeoutText == null
+      ? null
+      : int.tryParse(timeoutText.trim());
   return ApiConfig(
     id: selectedId ?? ApiConfig.newId(),
     name: name.isEmpty ? unnamedApiConfigName : name,
@@ -32,6 +36,9 @@ ApiConfig buildApiConfigDraft({
     apiKey: apiKeyText,
     model: modelText.trim(),
     providerKind: providerKind,
+    generationTimeoutSeconds: ApiConfig.clampGenerationTimeoutSeconds(
+      parsedTimeout,
+    ),
   );
 }
 
@@ -162,6 +169,7 @@ OpenAIImageRequest buildApiConfigTestRequest({
     imageCount: 1,
     providerKind: providerKind,
     advancedSettings: apiConfigTestAdvancedSettings(basic: basic),
+    generationTimeout: apiConfig.generationTimeout,
   );
 }
 

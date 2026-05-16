@@ -19,6 +19,7 @@ class OpenAIImageRequest {
     this.advancedSettings = const ImageAdvancedSettings(),
     this.templateImagePath,
     this.providerKind = ApiProviderKind.official,
+    this.generationTimeout,
   });
 
   final String baseUrl;
@@ -31,6 +32,7 @@ class OpenAIImageRequest {
   final ImageAdvancedSettings advancedSettings;
   final String? templateImagePath;
   final ApiProviderKind providerKind;
+  final Duration? generationTimeout;
 
   bool get hasTemplateImage =>
       templateImagePath != null && templateImagePath!.trim().isNotEmpty;

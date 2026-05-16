@@ -769,4 +769,80 @@ void main() {
     expect(models.single.id, 'gemini-2.5-flash-image');
     expect(models.single.ownedBy, 'Gemini 2.5 Flash Image');
   });
+
+  test('elides large base64 payloads from debug record', () async {
+    final largeBase64 = 'A' * 4096;
+    ImageRequestDebugRecord? debugRecord;
+    final client = OpenAICompatibleImageClient(
+      httpClient: MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {'b64_json': largeBase64},
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    await client.generate(
+      const OpenAIImageRequest(
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'token',
+        model: 'gpt-image-2',
+        prompt: 'hello',
+        negativePrompt: '',
+        size: '1024x1024',
+        imageCount: 1,
+      ),
+      onDebugRecord: (record) => debugRecord = record,
+    );
+
+    final json = debugRecord!.toJson();
+    final decoded = json['response']['json'] as Map<String, dynamic>;
+    final first = (decoded['data'] as List).first as Map<String, dynamic>;
+    expect(first['b64_json'], '<base64 elided: 4096 chars>');
+
+    final rawBody = json['response']['body'] as String;
+    expect(rawBody, isNot(contains(largeBase64)));
+    expect(rawBody, contains('<base64 elided: 4096 chars>'));
+    expect(debugRecord!.formattedJson, isNot(contains(largeBase64)));
+  });
+
+  test('honors per-request generation timeout', () async {
+    var requestStarted = false;
+    final client = OpenAICompatibleImageClient(
+      generationTimeout: const Duration(minutes: 8),
+      httpClient: MockClient((request) async {
+        requestStarted = true;
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await expectLater(
+      () => client.generate(
+        const OpenAIImageRequest(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'token',
+          model: 'gpt-image-2',
+          prompt: 'hello',
+          negativePrompt: '',
+          size: '1024x1024',
+          imageCount: 1,
+          generationTimeout: Duration(milliseconds: 50),
+        ),
+      ),
+      throwsA(
+        isA<ImageGenerationException>().having(
+          (error) => error.message,
+          'message',
+          contains('生图请求超时'),
+        ),
+      ),
+    );
+
+    expect(requestStarted, isTrue);
+  });
 }

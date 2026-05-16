@@ -9,7 +9,12 @@ class ApiConfig {
     required this.apiKey,
     required this.model,
     this.providerKind = ApiProviderKind.compatible,
+    this.generationTimeoutSeconds = defaultGenerationTimeoutSeconds,
   });
+
+  static const int defaultGenerationTimeoutSeconds = 480;
+  static const int minGenerationTimeoutSeconds = 60;
+  static const int maxGenerationTimeoutSeconds = 1800;
 
   factory ApiConfig.defaults() {
     return const ApiConfig(
@@ -35,10 +40,26 @@ class ApiConfig {
         json['providerKind'],
         fallback: defaults.providerKind,
       ),
+      generationTimeoutSeconds: clampGenerationTimeoutSeconds(
+        (json['generationTimeoutSeconds'] as num?)?.toInt(),
+      ),
     );
   }
 
   static String newId() => DateTime.now().microsecondsSinceEpoch.toString();
+
+  static int clampGenerationTimeoutSeconds(int? value) {
+    if (value == null || value <= 0) {
+      return defaultGenerationTimeoutSeconds;
+    }
+    if (value < minGenerationTimeoutSeconds) {
+      return minGenerationTimeoutSeconds;
+    }
+    if (value > maxGenerationTimeoutSeconds) {
+      return maxGenerationTimeoutSeconds;
+    }
+    return value;
+  }
 
   final String id;
   final String name;
@@ -46,6 +67,10 @@ class ApiConfig {
   final String apiKey;
   final String model;
   final ApiProviderKind providerKind;
+  final int generationTimeoutSeconds;
+
+  Duration get generationTimeout =>
+      Duration(seconds: generationTimeoutSeconds);
 
   ApiConfig copyWith({
     String? id,
@@ -54,6 +79,7 @@ class ApiConfig {
     String? apiKey,
     String? model,
     ApiProviderKind? providerKind,
+    int? generationTimeoutSeconds,
   }) {
     return ApiConfig(
       id: id ?? this.id,
@@ -62,6 +88,8 @@ class ApiConfig {
       apiKey: apiKey ?? this.apiKey,
       model: model ?? this.model,
       providerKind: providerKind ?? this.providerKind,
+      generationTimeoutSeconds:
+          generationTimeoutSeconds ?? this.generationTimeoutSeconds,
     );
   }
 
@@ -73,6 +101,7 @@ class ApiConfig {
       'apiKey': apiKey,
       'model': model,
       'providerKind': serializeApiProviderKind(providerKind),
+      'generationTimeoutSeconds': generationTimeoutSeconds,
     };
   }
 }

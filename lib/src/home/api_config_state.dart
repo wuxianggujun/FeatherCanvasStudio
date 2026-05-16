@@ -19,6 +19,10 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
   final TextEditingController _apiConfigNameController = TextEditingController(
     text: '默认配置',
   );
+  final TextEditingController _generationTimeoutController =
+      TextEditingController(
+        text: ApiConfig.defaultGenerationTimeoutSeconds.toString(),
+      );
 
   bool _isTestingApiConfig = false;
   bool _showApiKey = false;
@@ -47,6 +51,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
       apiKeyText: _apiKeyController.text,
       modelText: _modelController.text,
       providerKind: _apiConfigProviderKind,
+      timeoutText: _generationTimeoutController.text,
     );
   }
 
@@ -70,6 +75,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
     _baseUrlController.addListener(_markApiConfigDirty);
     _apiKeyController.addListener(_markApiConfigDirty);
     _modelController.addListener(_markApiConfigDirty);
+    _generationTimeoutController.addListener(_markApiConfigDirty);
   }
 
   void _disposeApiConfigState() {
@@ -78,6 +84,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
     _baseUrlController.dispose();
     _apiKeyController.dispose();
     _modelController.dispose();
+    _generationTimeoutController.dispose();
   }
 
   Future<ApiConfig> _prepareSelectedApiConfigForRequest() async {
@@ -115,6 +122,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
       apiKeyText: _apiKeyController.text,
       modelText: _modelController.text,
       providerKind: _apiConfigProviderKind,
+      timeoutText: _generationTimeoutController.text,
     );
 
     final nextConfigs = upsertApiConfig(_apiConfigs, nextConfig);
@@ -251,6 +259,8 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
     _baseUrlController.text = nextConfig.baseUrl;
     _apiKeyController.text = nextConfig.apiKey;
     _modelController.text = nextConfig.model;
+    _generationTimeoutController.text =
+        nextConfig.generationTimeoutSeconds.toString();
     if (mounted) {
       setState(() {
         _selectedApiConfigId = nextConfig.id;
@@ -325,6 +335,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
       baseUrlController: _baseUrlController,
       apiKeyController: _apiKeyController,
       modelController: _modelController,
+      timeoutController: _generationTimeoutController,
       providerKind: _apiConfigProviderKind,
       showApiKey: _showApiKey,
       availableModels: _visibleApiModels,

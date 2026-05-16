@@ -1,5 +1,31 @@
 part of 'api_settings_widgets.dart';
 
+class _GenerationTimeoutField extends StatelessWidget {
+  const _GenerationTimeoutField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: false),
+      decoration: InputDecoration(
+        labelText: '请求超时（秒）',
+        hintText: '${ApiConfig.defaultGenerationTimeoutSeconds}',
+        helperText:
+            '默认 ${ApiConfig.defaultGenerationTimeoutSeconds} 秒，范围 '
+            '${ApiConfig.minGenerationTimeoutSeconds}–'
+            '${ApiConfig.maxGenerationTimeoutSeconds}；image-2 等慢模型可调大',
+        helperMaxLines: 2,
+        prefixIcon: const Icon(Icons.timer_outlined),
+      ),
+      style: theme.textTheme.bodyMedium,
+    );
+  }
+}
+
 class _ApiConfigNameField extends StatelessWidget {
   const _ApiConfigNameField({
     required this.apiConfigs,

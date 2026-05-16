@@ -19,6 +19,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
     required this.baseUrlController,
     required this.apiKeyController,
     required this.modelController,
+    required this.timeoutController,
     required this.providerKind,
     required this.showApiKey,
     required this.availableModels,
@@ -48,6 +49,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
   final TextEditingController baseUrlController;
   final TextEditingController apiKeyController;
   final TextEditingController modelController;
+  final TextEditingController timeoutController;
   final ApiProviderKind providerKind;
   final bool showApiKey;
   final List<ApiModelInfo> availableModels;
@@ -82,6 +84,7 @@ class ApiSettingsWorkspace extends StatelessWidget {
           baseUrlController: baseUrlController,
           apiKeyController: apiKeyController,
           modelController: modelController,
+          timeoutController: timeoutController,
           providerKind: providerKind,
           showApiKey: showApiKey,
           availableModels: availableModels,

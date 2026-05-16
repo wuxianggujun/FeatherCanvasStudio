@@ -23,6 +23,7 @@ OpenAIImageRequest buildImageGenerationRequest({
     providerKind: apiConfig.providerKind,
     advancedSettings: advancedSettings.copyWith(user: user.trim()),
     templateImagePath: templateImagePath,
+    generationTimeout: apiConfig.generationTimeout,
   );
 }
 

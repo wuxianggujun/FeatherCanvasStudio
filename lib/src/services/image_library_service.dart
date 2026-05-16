@@ -41,20 +41,17 @@ class ImageLibraryService {
     required String groupId,
     required List<GeneratedImage> images,
     required Future<Uint8List> Function(GeneratedImage image) resolveImageBytes,
-  }) async {
-    final cachedImages = <GeneratedImage>[];
-    for (var index = 0; index < images.length; index++) {
-      cachedImages.add(
-        await cacheGeneratedImage(
+  }) {
+    return Future.wait([
+      for (var index = 0; index < images.length; index++)
+        cacheGeneratedImage(
           store: store,
           groupId: groupId,
           index: index,
           image: images[index],
           resolveImageBytes: resolveImageBytes,
         ),
-      );
-    }
-    return cachedImages;
+    ]);
   }
 
   Future<List<ImageLibraryItem>> addGeneratedImages({

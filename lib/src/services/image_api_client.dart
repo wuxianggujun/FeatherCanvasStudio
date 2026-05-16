@@ -118,7 +118,7 @@ class OpenAICompatibleImageClient {
           },
           body: jsonEncode(await request.toGeminiJson()),
         )
-        .timeout(_generationTimeout);
+        .timeout(request.generationTimeout ?? _generationTimeout);
   }
 
   Future<http.Response> _postImageGeneration(OpenAIImageRequest request) {
@@ -131,7 +131,7 @@ class OpenAICompatibleImageClient {
           },
           body: jsonEncode(request.toJson()),
         )
-        .timeout(_generationTimeout);
+        .timeout(request.generationTimeout ?? _generationTimeout);
   }
 
   Future<http.Response> _postImageEdit(OpenAIImageRequest request) async {
@@ -142,12 +142,11 @@ class OpenAICompatibleImageClient {
         await http.MultipartFile.fromPath('image', request.templateImagePath!),
       );
 
+    final timeout = request.generationTimeout ?? _generationTimeout;
     final streamedResponse = await _httpClient
         .send(multipartRequest)
-        .timeout(_generationTimeout);
-    return http.Response.fromStream(
-      streamedResponse,
-    ).timeout(_generationTimeout);
+        .timeout(timeout);
+    return http.Response.fromStream(streamedResponse).timeout(timeout);
   }
 
   Future<List<ApiModelInfo>> fetchAvailableModels({
