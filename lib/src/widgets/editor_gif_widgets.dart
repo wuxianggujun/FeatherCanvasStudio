@@ -61,6 +61,7 @@ class SpriteSheetEditorPanel extends StatelessWidget {
 
     return AppPanel(
       title: '编辑配置',
+      trailing: FrameCountBadge(count: frameTotal),
       child: Column(
         children: [
           TemplateImagePicker(
@@ -85,7 +86,6 @@ class SpriteSheetEditorPanel extends StatelessWidget {
               value: columns,
               options: _gridSizes,
               labelBuilder: (value) => '$value 列',
-              helperText: '共 $frameTotal 帧',
               onChanged: onColumnsChanged,
             ),
           ),

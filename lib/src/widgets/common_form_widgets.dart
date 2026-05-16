@@ -49,6 +49,52 @@ class AppPanel extends StatelessWidget {
   }
 }
 
+class FrameCountBadge extends StatelessWidget {
+  const FrameCountBadge({required this.count, this.label = '帧', super.key});
+
+  final int count;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Tooltip(
+      message: '共 $count $label',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.secondaryContainer.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.grid_view_outlined,
+                size: 16,
+                color: colorScheme.onSecondaryContainer,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '$count $label',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class OptionDropdown<T> extends StatelessWidget {
   const OptionDropdown({
     required this.label,

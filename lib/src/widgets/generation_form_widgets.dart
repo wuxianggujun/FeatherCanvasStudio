@@ -173,6 +173,7 @@ class FrameAnimationPanel extends StatelessWidget {
 
     return AppPanel(
       title: '帧动画配置',
+      trailing: FrameCountBadge(count: frameTotal, label: '格'),
       child: Column(
         children: [
           ApiConfigSelector(
@@ -239,8 +240,6 @@ class FrameAnimationPanel extends StatelessWidget {
               value: columns,
               options: _gridSizes,
               labelBuilder: (value) => '$value 列',
-              helperText:
-                  '生成 1 张 $rows x $columns 的 Sprite Sheet，共 $frameTotal 格',
               onChanged: onColumnsChanged,
             ),
           ),
