@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/api_provider.dart';
 import '../../models/app_config.dart';
@@ -6,6 +7,7 @@ import '../../models/batch_generation_job.dart';
 import '../../models/generated_image.dart';
 import '../../models/image_advanced_settings.dart';
 import '../../services/image_request_debug_record.dart';
+import '../../state/batch_generation_notifier.dart';
 import '../../theme/layout_constants.dart';
 import '../../utils/generation_limits.dart';
 import '../../utils/image_dimensions.dart';
@@ -28,11 +30,6 @@ class BatchGenerationWorkspace extends StatelessWidget {
     required this.imageSizeCapabilityOverride,
     required this.size,
     required this.advancedSettings,
-    required this.jobs,
-    required this.targetCount,
-    required this.requestCount,
-    required this.isRunning,
-    required this.isPausing,
     required this.onApiConfigChanged,
     required this.onOpenApiSettings,
     required this.onSizeChanged,
@@ -64,11 +61,6 @@ class BatchGenerationWorkspace extends StatelessWidget {
   final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final String size;
   final ImageAdvancedSettings advancedSettings;
-  final List<BatchGenerationJob> jobs;
-  final int targetCount;
-  final int requestCount;
-  final bool isRunning;
-  final bool isPausing;
   final ValueChanged<String> onApiConfigChanged;
   final VoidCallback onOpenApiSettings;
   final ValueChanged<String> onSizeChanged;
@@ -91,25 +83,6 @@ class BatchGenerationWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final previewImages = [
-      for (final job in jobs)
-        if (job.resultImages.isNotEmpty) ...job.resultImages,
-    ];
-    final targetImageCount = jobs.fold<int>(
-      previewImages.length,
-      (total, job) => job.isRunning ? total + job.imageCount : total,
-    );
-    final previewAspectRatio = _batchPreviewAspectRatio(
-      jobs: jobs,
-      fallbackSize: size,
-    );
-    ImageRequestDebugRecord? latestDebugRecord;
-    for (final job in jobs) {
-      if (job.debugRecord != null) {
-        latestDebugRecord = job.debugRecord;
-      }
-    }
-
     return WorkspacePage(
       title: '批量生成',
       description: '把多条文本生图任务排队串行执行，成功结果会自动进入作品库。',
@@ -127,11 +100,6 @@ class BatchGenerationWorkspace extends StatelessWidget {
             imageSizeCapabilityOverride: imageSizeCapabilityOverride,
             size: size,
             advancedSettings: advancedSettings,
-            jobs: jobs,
-            targetCount: targetCount,
-            requestCount: requestCount,
-            isRunning: isRunning,
-            isPausing: isPausing,
             onApiConfigChanged: onApiConfigChanged,
             onOpenApiSettings: onOpenApiSettings,
             onSizeChanged: onSizeChanged,
@@ -146,27 +114,51 @@ class BatchGenerationWorkspace extends StatelessWidget {
             onRetryFailed: onRetryFailed,
             onClearFinished: onClearFinished,
           ),
-          preview: Column(
-            children: [
-              _BatchGenerationJobList(
+          preview: Consumer<BatchGenerationNotifier>(
+            builder: (context, notifier, _) {
+              final jobs = notifier.jobs;
+              final isRunning = notifier.isRunning;
+              final previewImages = [
+                for (final job in jobs)
+                  if (job.resultImages.isNotEmpty) ...job.resultImages,
+              ];
+              final targetImageCount = jobs.fold<int>(
+                previewImages.length,
+                (total, job) => job.isRunning ? total + job.imageCount : total,
+              );
+              final previewAspectRatio = _batchPreviewAspectRatio(
                 jobs: jobs,
-                onRemoveJob: onRemoveJob,
-                onRetryJob: onRetryJob,
-              ),
-              const SizedBox(height: 16),
-              PreviewPanel(
-                errorMessage: null,
-                generatedImages: previewImages,
-                isGenerating: isRunning,
-                targetImageCount: targetImageCount,
-                targetAspectRatio: previewAspectRatio,
-                debugRecord: latestDebugRecord,
-                onRetry: onStart,
-                onCopyImage: onCopyImage,
-                onExportImage: onExportImage,
-                onMakeBackgroundTransparent: onMakeBackgroundTransparent,
-              ),
-            ],
+                fallbackSize: size,
+              );
+              ImageRequestDebugRecord? latestDebugRecord;
+              for (final job in jobs) {
+                if (job.debugRecord != null) {
+                  latestDebugRecord = job.debugRecord;
+                }
+              }
+              return Column(
+                children: [
+                  _BatchGenerationJobList(
+                    jobs: jobs,
+                    onRemoveJob: onRemoveJob,
+                    onRetryJob: onRetryJob,
+                  ),
+                  const SizedBox(height: 16),
+                  PreviewPanel(
+                    errorMessage: null,
+                    generatedImages: previewImages,
+                    isGenerating: isRunning,
+                    targetImageCount: targetImageCount,
+                    targetAspectRatio: previewAspectRatio,
+                    debugRecord: latestDebugRecord,
+                    onRetry: onStart,
+                    onCopyImage: onCopyImage,
+                    onExportImage: onExportImage,
+                    onMakeBackgroundTransparent: onMakeBackgroundTransparent,
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ],
@@ -198,11 +190,6 @@ class _BatchGenerationControls extends StatelessWidget {
     required this.imageSizeCapabilityOverride,
     required this.size,
     required this.advancedSettings,
-    required this.jobs,
-    required this.targetCount,
-    required this.requestCount,
-    required this.isRunning,
-    required this.isPausing,
     required this.onApiConfigChanged,
     required this.onOpenApiSettings,
     required this.onSizeChanged,
@@ -228,11 +215,6 @@ class _BatchGenerationControls extends StatelessWidget {
   final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final String size;
   final ImageAdvancedSettings advancedSettings;
-  final List<BatchGenerationJob> jobs;
-  final int targetCount;
-  final int requestCount;
-  final bool isRunning;
-  final bool isPausing;
   final ValueChanged<String> onApiConfigChanged;
   final VoidCallback onOpenApiSettings;
   final ValueChanged<String> onSizeChanged;
@@ -249,6 +231,12 @@ class _BatchGenerationControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final notifier = context.watch<BatchGenerationNotifier>();
+    final jobs = notifier.jobs;
+    final targetCount = notifier.targetCount;
+    final requestCount = notifier.requestCount;
+    final isRunning = notifier.isRunning;
+    final isPausing = notifier.pauseAfterCurrent;
     final queuedCount = jobs.where((job) => job.isPending).length;
     final runningCount = jobs.where((job) => job.isRunning).length;
     final finishedCount = jobs.where((job) => job.isTerminal).length;

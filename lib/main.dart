@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/l10n/generated/app_localizations.dart';
+import 'src/state/batch_generation_notifier.dart';
 import 'src/state/image_generation_notifier.dart';
 import 'src/theme/app_theme.dart';
 import 'src/theme/layout_constants.dart';
@@ -206,6 +207,10 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
       ImageGenerationNotifier();
 
   @override
+  final BatchGenerationNotifier _batchGenerationNotifier =
+      BatchGenerationNotifier();
+
+  @override
   WorkspaceFeature _selectedFeature = WorkspaceFeature.imageGeneration;
   @override
   int _animationRows = defaultAnimationRows;
@@ -360,6 +365,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     _scrollController.dispose();
     _animationPromptController.dispose();
     _imageGenerationNotifier.dispose();
+    _batchGenerationNotifier.dispose();
     for (final path in _ephemeralTemplatePaths) {
       unawaited(_fileService.safeDeleteFile(path));
     }

@@ -1,6 +1,24 @@
 import 'package:feather_canvas_studio/feather_canvas_studio.dart';
+import 'package:feather_canvas_studio/src/state/batch_generation_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+
+BatchGenerationNotifier _seededNotifier({
+  List<BatchGenerationJob> jobs = const [],
+  int targetCount = 1,
+  int requestCount = 1,
+  bool isRunning = false,
+  bool pauseAfterCurrent = false,
+}) {
+  final notifier = BatchGenerationNotifier();
+  notifier.jobs = jobs;
+  notifier.targetCount = targetCount;
+  notifier.requestCount = requestCount;
+  notifier.isRunning = isRunning;
+  notifier.pauseAfterCurrent = pauseAfterCurrent;
+  return notifier;
+}
 
 void main() {
   testWidgets(
@@ -28,10 +46,16 @@ void main() {
       final promptController = TextEditingController();
       final negativePromptController = TextEditingController();
       final userController = TextEditingController();
+      final notifier = _seededNotifier(
+        jobs: jobs,
+        targetCount: 100,
+        requestCount: 4,
+      );
       addTearDown(() {
         promptController.dispose();
         negativePromptController.dispose();
         userController.dispose();
+        notifier.dispose();
       });
 
       await tester.pumpWidget(
@@ -40,40 +64,39 @@ void main() {
             body: SizedBox(
               width: 1200,
               height: 800,
-              child: BatchGenerationWorkspace(
-                promptController: promptController,
-                negativePromptController: negativePromptController,
-                userController: userController,
-                apiConfigs: const [config],
-                selectedApiConfig: config,
-                selectedApiConfigId: config.id,
-                providerKind: config.providerKind,
-                imageSizeCapabilityOverride: config.imageSizeCapabilityOverride,
-                size: '1024x1024',
-                advancedSettings: const ImageAdvancedSettings(),
-                jobs: jobs,
-                targetCount: 100,
-                requestCount: 4,
-                isRunning: false,
-                isPausing: false,
-                onApiConfigChanged: (_) {},
-                onOpenApiSettings: () {},
-                onSizeChanged: (_) {},
-                onAdvancedSettingsChanged: (_) {},
-                onTargetCountChanged: (_) {},
-                onRequestCountChanged: (_) {},
-                onAddPrompts: () {},
-                onStart: () {},
-                onPause: () {},
-                onResume: () {},
-                onCancelQueued: () {},
-                onRetryFailed: () {},
-                onRemoveJob: (_) {},
-                onRetryJob: (_) {},
-                onClearFinished: () {},
-                onCopyImage: (_, _) {},
-                onExportImage: (_, _) {},
-                onMakeBackgroundTransparent: (_, _) {},
+              child: ChangeNotifierProvider<BatchGenerationNotifier>.value(
+                value: notifier,
+                child: BatchGenerationWorkspace(
+                  promptController: promptController,
+                  negativePromptController: negativePromptController,
+                  userController: userController,
+                  apiConfigs: const [config],
+                  selectedApiConfig: config,
+                  selectedApiConfigId: config.id,
+                  providerKind: config.providerKind,
+                  imageSizeCapabilityOverride:
+                      config.imageSizeCapabilityOverride,
+                  size: '1024x1024',
+                  advancedSettings: const ImageAdvancedSettings(),
+                  onApiConfigChanged: (_) {},
+                  onOpenApiSettings: () {},
+                  onSizeChanged: (_) {},
+                  onAdvancedSettingsChanged: (_) {},
+                  onTargetCountChanged: (_) {},
+                  onRequestCountChanged: (_) {},
+                  onAddPrompts: () {},
+                  onStart: () {},
+                  onPause: () {},
+                  onResume: () {},
+                  onCancelQueued: () {},
+                  onRetryFailed: () {},
+                  onRemoveJob: (_) {},
+                  onRetryJob: (_) {},
+                  onClearFinished: () {},
+                  onCopyImage: (_, _) {},
+                  onExportImage: (_, _) {},
+                  onMakeBackgroundTransparent: (_, _) {},
+                ),
               ),
             ),
           ),
@@ -131,12 +154,18 @@ void main() {
     final promptController = TextEditingController();
     final negativePromptController = TextEditingController();
     final userController = TextEditingController();
+    final notifier = _seededNotifier(
+      jobs: jobs,
+      targetCount: 2,
+      requestCount: 1,
+    );
     var retriedAll = false;
     BatchGenerationJob? retriedJob;
     addTearDown(() {
       promptController.dispose();
       negativePromptController.dispose();
       userController.dispose();
+      notifier.dispose();
     });
 
     await tester.pumpWidget(
@@ -145,40 +174,38 @@ void main() {
           body: SizedBox(
             width: 1200,
             height: 800,
-            child: BatchGenerationWorkspace(
-              promptController: promptController,
-              negativePromptController: negativePromptController,
-              userController: userController,
-              apiConfigs: const [config],
-              selectedApiConfig: config,
-              selectedApiConfigId: config.id,
-              providerKind: config.providerKind,
-              imageSizeCapabilityOverride: config.imageSizeCapabilityOverride,
-              size: '1024x1024',
-              advancedSettings: const ImageAdvancedSettings(),
-              jobs: jobs,
-              targetCount: 2,
-              requestCount: 1,
-              isRunning: false,
-              isPausing: false,
-              onApiConfigChanged: (_) {},
-              onOpenApiSettings: () {},
-              onSizeChanged: (_) {},
-              onAdvancedSettingsChanged: (_) {},
-              onTargetCountChanged: (_) {},
-              onRequestCountChanged: (_) {},
-              onAddPrompts: () {},
-              onStart: () {},
-              onPause: () {},
-              onResume: () {},
-              onCancelQueued: () {},
-              onRetryFailed: () => retriedAll = true,
-              onRemoveJob: (_) {},
-              onRetryJob: (job) => retriedJob = job,
-              onClearFinished: () {},
-              onCopyImage: (_, _) {},
-              onExportImage: (_, _) {},
-              onMakeBackgroundTransparent: (_, _) {},
+            child: ChangeNotifierProvider<BatchGenerationNotifier>.value(
+              value: notifier,
+              child: BatchGenerationWorkspace(
+                promptController: promptController,
+                negativePromptController: negativePromptController,
+                userController: userController,
+                apiConfigs: const [config],
+                selectedApiConfig: config,
+                selectedApiConfigId: config.id,
+                providerKind: config.providerKind,
+                imageSizeCapabilityOverride: config.imageSizeCapabilityOverride,
+                size: '1024x1024',
+                advancedSettings: const ImageAdvancedSettings(),
+                onApiConfigChanged: (_) {},
+                onOpenApiSettings: () {},
+                onSizeChanged: (_) {},
+                onAdvancedSettingsChanged: (_) {},
+                onTargetCountChanged: (_) {},
+                onRequestCountChanged: (_) {},
+                onAddPrompts: () {},
+                onStart: () {},
+                onPause: () {},
+                onResume: () {},
+                onCancelQueued: () {},
+                onRetryFailed: () => retriedAll = true,
+                onRemoveJob: (_) {},
+                onRetryJob: (job) => retriedJob = job,
+                onClearFinished: () {},
+                onCopyImage: (_, _) {},
+                onExportImage: (_, _) {},
+                onMakeBackgroundTransparent: (_, _) {},
+              ),
             ),
           ),
         ),
@@ -223,6 +250,12 @@ void main() {
     final promptController = TextEditingController();
     final negativePromptController = TextEditingController();
     final userController = TextEditingController(text: 'locked-user');
+    final notifier = _seededNotifier(
+      jobs: const [],
+      targetCount: 2,
+      requestCount: 1,
+      isRunning: true,
+    );
     var apiConfigChanges = 0;
     var sizeChanges = 0;
     var advancedChanges = 0;
@@ -230,6 +263,7 @@ void main() {
       promptController.dispose();
       negativePromptController.dispose();
       userController.dispose();
+      notifier.dispose();
     });
 
     await tester.pumpWidget(
@@ -238,41 +272,39 @@ void main() {
           body: SizedBox(
             width: 1200,
             height: 900,
-            child: BatchGenerationWorkspace(
-              promptController: promptController,
-              negativePromptController: negativePromptController,
-              userController: userController,
-              apiConfigs: const [firstConfig, secondConfig],
-              selectedApiConfig: firstConfig,
-              selectedApiConfigId: firstConfig.id,
-              providerKind: firstConfig.providerKind,
-              imageSizeCapabilityOverride:
-                  firstConfig.imageSizeCapabilityOverride,
-              size: '1024x1024',
-              advancedSettings: const ImageAdvancedSettings(),
-              jobs: const [],
-              targetCount: 2,
-              requestCount: 1,
-              isRunning: true,
-              isPausing: false,
-              onApiConfigChanged: (_) => apiConfigChanges++,
-              onOpenApiSettings: () {},
-              onSizeChanged: (_) => sizeChanges++,
-              onAdvancedSettingsChanged: (_) => advancedChanges++,
-              onTargetCountChanged: (_) {},
-              onRequestCountChanged: (_) {},
-              onAddPrompts: () {},
-              onStart: () {},
-              onPause: () {},
-              onResume: () {},
-              onCancelQueued: () {},
-              onRetryFailed: () {},
-              onRemoveJob: (_) {},
-              onRetryJob: (_) {},
-              onClearFinished: () {},
-              onCopyImage: (_, _) {},
-              onExportImage: (_, _) {},
-              onMakeBackgroundTransparent: (_, _) {},
+            child: ChangeNotifierProvider<BatchGenerationNotifier>.value(
+              value: notifier,
+              child: BatchGenerationWorkspace(
+                promptController: promptController,
+                negativePromptController: negativePromptController,
+                userController: userController,
+                apiConfigs: const [firstConfig, secondConfig],
+                selectedApiConfig: firstConfig,
+                selectedApiConfigId: firstConfig.id,
+                providerKind: firstConfig.providerKind,
+                imageSizeCapabilityOverride:
+                    firstConfig.imageSizeCapabilityOverride,
+                size: '1024x1024',
+                advancedSettings: const ImageAdvancedSettings(),
+                onApiConfigChanged: (_) => apiConfigChanges++,
+                onOpenApiSettings: () {},
+                onSizeChanged: (_) => sizeChanges++,
+                onAdvancedSettingsChanged: (_) => advancedChanges++,
+                onTargetCountChanged: (_) {},
+                onRequestCountChanged: (_) {},
+                onAddPrompts: () {},
+                onStart: () {},
+                onPause: () {},
+                onResume: () {},
+                onCancelQueued: () {},
+                onRetryFailed: () {},
+                onRemoveJob: (_) {},
+                onRetryJob: (_) {},
+                onClearFinished: () {},
+                onCopyImage: (_, _) {},
+                onExportImage: (_, _) {},
+                onMakeBackgroundTransparent: (_, _) {},
+              ),
             ),
           ),
         ),

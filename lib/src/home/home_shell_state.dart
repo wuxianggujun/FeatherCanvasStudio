@@ -115,6 +115,7 @@ mixin _HomeShellStateMixin
   @override
   AppLocalStore get _store;
   ImageGenerationNotifier get _imageGenerationNotifier;
+  BatchGenerationNotifier get _batchGenerationNotifier;
   @override
   bool get _isBootstrapping;
   set _isBootstrapping(bool value);
@@ -660,8 +661,15 @@ mixin _HomeShellStateMixin
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return ChangeNotifierProvider<ImageGenerationNotifier>.value(
-      value: _imageGenerationNotifier,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ImageGenerationNotifier>.value(
+          value: _imageGenerationNotifier,
+        ),
+        ChangeNotifierProvider<BatchGenerationNotifier>.value(
+          value: _batchGenerationNotifier,
+        ),
+      ],
       child: Shortcuts(
         shortcuts: AppShortcuts.global,
         child: Actions(

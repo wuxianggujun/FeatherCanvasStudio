@@ -401,6 +401,36 @@ void _showMessage(String message) {
 
 每次改动后 `flutter analyze` 均通过（No issues found）。
 
+**Phase 8：P0-1 第二个 Notifier（BatchGenerationNotifier，删除兼容接口）**
+
+| 改动 | 文件 | 对应评审项 |
+|---|---|---|
+| 新建 `BatchGenerationNotifier`（ChangeNotifier，托管 `jobs` / `targetCount` / `requestCount` / `isRunning` / `pauseAfterCurrent`） | [lib/src/state/batch_generation_notifier.dart](lib/src/state/batch_generation_notifier.dart) | P0-1 |
+| `_FeatherCanvasHomePageState` 加 notifier 字段，`MultiProvider` 包两个 ChangeNotifierProvider | [lib/main.dart](lib/main.dart)、[lib/src/home/home_shell_state.dart](lib/src/home/home_shell_state.dart) | P0-1 |
+| `_BatchGenerationStateMixin` 5 个字段全部改为委托 getter/setter，加 `BatchGenerationNotifier get _batchGenerationNotifier` 抽象 getter；mixin 内业务方法保持 `_batchJobs = ...` 写法不变 | [lib/src/home/batch_generation_state.dart](lib/src/home/batch_generation_state.dart) | P0-1 |
+| **删除兼容接口**：`BatchGenerationWorkspace` 移除 `jobs` / `targetCount` / `requestCount` / `isRunning` / `isPausing` 5 个 prop，强制走 notifier。`_BatchGenerationControls` 内 `context.watch<BatchGenerationNotifier>()`；preview Column 用 `Consumer` 包装。 | [lib/src/widgets/workspaces/batch_generation_workspace.dart](lib/src/widgets/workspaces/batch_generation_workspace.dart) | P0-1 |
+| 调用方 `_buildBatchGenerationWorkspace` 同步移除 5 个 prop 透传 | [lib/src/home/batch_generation_state.dart](lib/src/home/batch_generation_state.dart) | P0-1 |
+| 3 个 batch 测试改为 `ChangeNotifierProvider<BatchGenerationNotifier>.value` 包装；新增 `_seededNotifier` helper；测试也移除 5 个 prop | [test/batch_generation_workspace_test.dart](test/batch_generation_workspace_test.dart) | P0-1 |
+
+**Phase 7 vs Phase 8 的关键差异**：
+- Phase 7（ImageGeneration）：4 个字段被 `_ResetDefaultsSnapshot` 跨 mixin 引用，必须保留 setter 兼容性，workspace 暂不删 prop（双轨过渡）。
+- Phase 8（BatchGeneration）：5 个字段全是 mixin 内部状态，无跨 mixin 读取、无 snapshot 捕获，**直接删 workspace 的 5 个 prop 实现单一数据源**。这是更激进、更彻底的迁移模式。
+
+**Pilot 收益验证**：
+- `flutter analyze` 通过（No issues found）。
+- `flutter test` 191/191 全绿。
+- 所有 5 个字段的变化都只触发 `Consumer<BatchGenerationNotifier>` 与 `context.watch` 的局部 rebuild，不再走 `_FeatherCanvasHomePageState.setState` 全树重建。批量队列运行时（频繁更新 jobs）切到其他工作区不会让那些工作区跟着重渲染。
+- 调用方零业务侵入：mixin 内 `_batchJobs = [...]`、`_isBatchGenerationRunning = true` 等代码完全没改，setter 透明转发到 notifier 自动通知监听者。
+
+**剩余 mixin（按依赖复杂度由低到高）**：
+- `_EditorGifStateMixin`（编辑器 + GIF 字段）：大概 10+ 个字段，部分被 snapshot 捕获，需要混合策略。
+- `_ImageLibraryStateMixin`：`_imageLibrary` 是核心字段，被多个 mixin 跨读，迁移影响面大。
+- `_LocalSettingsStateMixin`：表单字段为主，snapshot 强引用。
+- `_ApiConfigStateMixin`：表单字段 + 网络状态，snapshot 强引用。
+- `_HistoryStateMixin`：每工作区一个 HistoryStack，已经是局部状态，可能不需要 notifier。
+
+每次改动后 `flutter analyze` 均通过（No issues found）。
+
 ### 未完成（建议下个分支单独做）
 
 | 评审项 | 优先级 | 工作量 |

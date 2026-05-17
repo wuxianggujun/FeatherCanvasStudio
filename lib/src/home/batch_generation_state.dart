@@ -50,15 +50,33 @@ mixin _BatchGenerationStateMixin
   @override
   void _showMessage(String message);
 
+  BatchGenerationNotifier get _batchGenerationNotifier;
+
   final TextEditingController _batchPromptController = TextEditingController();
   final BatchImageGenerationService _batchGenerationService =
       const BatchImageGenerationService();
 
-  List<BatchGenerationJob> _batchJobs = const [];
-  int _batchTargetCount = defaultBatchGenerationTargetCount;
-  int _batchRequestCount = defaultBatchGenerationRequestCount;
-  bool _isBatchGenerationRunning = false;
-  bool _pauseBatchGenerationAfterCurrent = false;
+  // ignore: unused_element
+  List<BatchGenerationJob> get _batchJobs => _batchGenerationNotifier.jobs;
+  set _batchJobs(List<BatchGenerationJob> value) =>
+      _batchGenerationNotifier.jobs = value;
+  // ignore: unused_element
+  int get _batchTargetCount => _batchGenerationNotifier.targetCount;
+  set _batchTargetCount(int value) =>
+      _batchGenerationNotifier.targetCount = value;
+  // ignore: unused_element
+  int get _batchRequestCount => _batchGenerationNotifier.requestCount;
+  set _batchRequestCount(int value) =>
+      _batchGenerationNotifier.requestCount = value;
+  // ignore: unused_element
+  bool get _isBatchGenerationRunning => _batchGenerationNotifier.isRunning;
+  set _isBatchGenerationRunning(bool value) =>
+      _batchGenerationNotifier.isRunning = value;
+  // ignore: unused_element
+  bool get _pauseBatchGenerationAfterCurrent =>
+      _batchGenerationNotifier.pauseAfterCurrent;
+  set _pauseBatchGenerationAfterCurrent(bool value) =>
+      _batchGenerationNotifier.pauseAfterCurrent = value;
 
   void _disposeBatchGenerationState() {
     _batchPromptController.dispose();
@@ -496,11 +514,6 @@ mixin _BatchGenerationStateMixin
       imageSizeCapabilityOverride: _imageSizeCapabilityOverride,
       size: _size,
       advancedSettings: _advancedSettings,
-      jobs: _batchJobs,
-      targetCount: _batchTargetCount,
-      requestCount: _batchRequestCount,
-      isRunning: _isBatchGenerationRunning,
-      isPausing: _pauseBatchGenerationAfterCurrent,
       onApiConfigChanged: _selectApiConfig,
       onOpenApiSettings: () =>
           unawaited(_selectFeature(WorkspaceFeature.apiSettings)),
