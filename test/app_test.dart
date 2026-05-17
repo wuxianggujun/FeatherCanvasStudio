@@ -112,9 +112,9 @@ void main() {
     await tester.tap(find.text('图片编辑器'));
     await _pumpBoundedSettle(tester);
 
-    expect(find.text('通用编辑'), findsOneWidget);
+    expect(find.text('通用图片编辑'), findsOneWidget);
     expect(find.text('待编辑图片'), findsOneWidget);
-    expect(find.text('预览效果'), findsOneWidget);
+    expect(find.text('编辑预览'), findsWidgets);
     expect(find.text('标注'), findsOneWidget);
     expect(find.text('输出'), findsOneWidget);
 

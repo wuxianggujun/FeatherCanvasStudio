@@ -285,7 +285,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     final disabledDropdowns = tester.widgetList<DropdownButtonFormField>(
-      find.byType(DropdownButtonFormField),
+      find.byWidgetPredicate((widget) => widget is DropdownButtonFormField),
     );
     expect(disabledDropdowns.length, greaterThanOrEqualTo(5));
     expect(
