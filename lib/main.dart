@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'src/l10n/generated/app_localizations.dart';
 import 'src/state/batch_generation_notifier.dart';
 import 'src/state/gif_composer_notifier.dart';
+import 'src/state/image_editor_notifier.dart';
 import 'src/state/image_generation_notifier.dart';
 import 'src/theme/app_theme.dart';
 import 'src/theme/layout_constants.dart';
@@ -223,19 +224,6 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     columns: defaultAnimationColumns,
   );
   @override
-  int _editorRows = defaultEditorRows;
-  @override
-  int _editorColumns = defaultEditorColumns;
-  @override
-  SpriteSheetGridSpec _editorGridSpec = const SpriteSheetGridSpec(
-    rows: defaultEditorRows,
-    columns: defaultEditorColumns,
-  );
-  @override
-  int _editorTargetFrameIndex = defaultEditorTargetFrameIndex;
-  @override
-  SpriteSheetFrameFit _editorFrameFit = defaultEditorFrameFit;
-  @override
   // ignore: unused_element
   bool get _isGenerating => _imageGenerationNotifier.isGenerating;
   @override
@@ -246,8 +234,6 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   bool _isGeneratingAnimation = false;
   @override
   bool _isAnimationProjectBusy = false;
-  @override
-  bool _isReplacingEditorFrame = false;
   @override
   bool _isBootstrapping = true;
   @override
@@ -287,20 +273,6 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   final Set<String> _ephemeralTemplatePaths = <String>{};
   @override
   String? _animationTemplateImagePath;
-  @override
-  String? _editorImagePath;
-  @override
-  String? _editorPatchImagePath;
-  @override
-  String? _editorErrorMessage;
-  @override
-  String? _generalEditorImagePath;
-  @override
-  ImageInspectionResult? _generalEditorImageInfo;
-  @override
-  String? _generalEditorErrorMessage;
-  @override
-  bool _isProcessingGeneralImage = false;
   WorkspaceFeature? _focusedFeature;
   @override
   bool get _isImageEditorFocusMode =>
@@ -330,6 +302,9 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   final GifComposerNotifier _gifComposerNotifier = GifComposerNotifier();
 
   @override
+  final ImageEditorNotifier _imageEditorNotifier = ImageEditorNotifier();
+
+  @override
   int get _animationFrameCount => _animationRows * _animationColumns;
   @override
   int get _editorFrameCount => _editorRows * _editorColumns;
@@ -357,6 +332,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     _imageGenerationNotifier.dispose();
     _batchGenerationNotifier.dispose();
     _gifComposerNotifier.dispose();
+    _imageEditorNotifier.dispose();
     for (final path in _ephemeralTemplatePaths) {
       unawaited(_fileService.safeDeleteFile(path));
     }

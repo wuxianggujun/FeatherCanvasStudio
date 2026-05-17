@@ -131,28 +131,65 @@ mixin _EditorGifStateMixin
   ImageLibraryService get _imageLibraryService;
   Set<String> get _ephemeralTemplatePaths;
   set _animationErrorMessage(String? value);
-  int get _editorRows;
-  set _editorRows(int value);
-  int get _editorColumns;
-  set _editorColumns(int value);
-  SpriteSheetGridSpec get _editorGridSpec;
-  set _editorGridSpec(SpriteSheetGridSpec value);
-  int get _editorTargetFrameIndex;
-  set _editorTargetFrameIndex(int value);
-  SpriteSheetFrameFit get _editorFrameFit;
-  set _editorFrameFit(SpriteSheetFrameFit value);
+  ImageEditorNotifier get _imageEditorNotifier;
+  // ignore: unused_element
+  int get _editorRows => _imageEditorNotifier.editorRows;
+  set _editorRows(int value) => _imageEditorNotifier.editorRows = value;
+  // ignore: unused_element
+  int get _editorColumns => _imageEditorNotifier.editorColumns;
+  set _editorColumns(int value) => _imageEditorNotifier.editorColumns = value;
+  // ignore: unused_element
+  SpriteSheetGridSpec get _editorGridSpec => _imageEditorNotifier.editorGridSpec;
+  set _editorGridSpec(SpriteSheetGridSpec value) =>
+      _imageEditorNotifier.editorGridSpec = value;
+  // ignore: unused_element
+  int get _editorTargetFrameIndex =>
+      _imageEditorNotifier.editorTargetFrameIndex;
+  set _editorTargetFrameIndex(int value) =>
+      _imageEditorNotifier.editorTargetFrameIndex = value;
+  // ignore: unused_element
+  SpriteSheetFrameFit get _editorFrameFit =>
+      _imageEditorNotifier.editorFrameFit;
+  set _editorFrameFit(SpriteSheetFrameFit value) =>
+      _imageEditorNotifier.editorFrameFit = value;
   int get _editorFrameCount;
-  String? get _editorErrorMessage;
-  String? get _generalEditorImagePath;
-  set _generalEditorImagePath(String? value);
-  ImageInspectionResult? get _generalEditorImageInfo;
-  set _generalEditorImageInfo(ImageInspectionResult? value);
-  String? get _generalEditorErrorMessage;
-  set _generalEditorErrorMessage(String? value);
-  bool get _isProcessingGeneralImage;
-  set _isProcessingGeneralImage(bool value);
-  bool get _isReplacingEditorFrame;
-  set _isReplacingEditorFrame(bool value);
+  // ignore: unused_element
+  String? get _editorImagePath => _imageEditorNotifier.editorImagePath;
+  set _editorImagePath(String? value) =>
+      _imageEditorNotifier.editorImagePath = value;
+  // ignore: unused_element
+  String? get _editorPatchImagePath => _imageEditorNotifier.editorPatchImagePath;
+  set _editorPatchImagePath(String? value) =>
+      _imageEditorNotifier.editorPatchImagePath = value;
+  // ignore: unused_element
+  String? get _editorErrorMessage => _imageEditorNotifier.editorErrorMessage;
+  set _editorErrorMessage(String? value) =>
+      _imageEditorNotifier.editorErrorMessage = value;
+  // ignore: unused_element
+  bool get _isReplacingEditorFrame =>
+      _imageEditorNotifier.isReplacingEditorFrame;
+  set _isReplacingEditorFrame(bool value) =>
+      _imageEditorNotifier.isReplacingEditorFrame = value;
+  // ignore: unused_element
+  String? get _generalEditorImagePath =>
+      _imageEditorNotifier.generalEditorImagePath;
+  set _generalEditorImagePath(String? value) =>
+      _imageEditorNotifier.generalEditorImagePath = value;
+  // ignore: unused_element
+  ImageInspectionResult? get _generalEditorImageInfo =>
+      _imageEditorNotifier.generalEditorImageInfo;
+  set _generalEditorImageInfo(ImageInspectionResult? value) =>
+      _imageEditorNotifier.generalEditorImageInfo = value;
+  // ignore: unused_element
+  String? get _generalEditorErrorMessage =>
+      _imageEditorNotifier.generalEditorErrorMessage;
+  set _generalEditorErrorMessage(String? value) =>
+      _imageEditorNotifier.generalEditorErrorMessage = value;
+  // ignore: unused_element
+  bool get _isProcessingGeneralImage =>
+      _imageEditorNotifier.isProcessingGeneralImage;
+  set _isProcessingGeneralImage(bool value) =>
+      _imageEditorNotifier.isProcessingGeneralImage = value;
   bool get _isImageEditorFocusMode;
   set _isImageEditorFocusMode(bool value);
   GifComposerNotifier get _gifComposerNotifier;
@@ -1972,24 +2009,11 @@ mixin _EditorGifStateMixin
 
   Widget _buildImageEditorWorkspace() {
     return ImageEditorWorkspace(
-      generalImagePath: _generalEditorImagePath,
-      generalImageInfo: _generalEditorImageInfo,
-      isProcessingGeneralImage: _isProcessingGeneralImage,
-      generalImageErrorMessage: _generalEditorErrorMessage,
       onPickGeneralImage: () => unawaited(_pickGeneralEditorImage()),
       onClearGeneralImage: _clearGeneralEditorImage,
       onApplyGeneralImageEdit: _applyGeneralImageEdit,
-      imagePath: _editorImagePath,
-      patchImagePath: _editorPatchImagePath,
-      rows: _editorRows,
-      columns: _editorColumns,
-      gridSpec: _editorGridSpec,
-      targetFrameIndex: _editorTargetFrameIndex.clamp(0, _editorFrameCount - 1),
-      frameFit: _editorFrameFit,
-      isReplacingFrame: _isReplacingEditorFrame,
       isFocusMode: _isImageEditorFocusMode,
       historyControls: _buildCompactHistoryControls(),
-      errorMessage: _editorErrorMessage,
       onPickImage: _pickEditorImage,
       onClearImage: _clearEditorImage,
       onPickPatchImage: _pickEditorPatchImage,

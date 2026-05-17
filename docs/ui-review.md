@@ -456,7 +456,30 @@ void _showMessage(String message) {
 
 每次改动后 `flutter analyze` 均通过（No issues found）。
 
-### 未完成（建议下个分支单独做）
+**Phase 10：P0-1 第四个 Notifier（ImageEditorNotifier，混合策略）**
+
+| 改动 | 文件 | 对应评审项 |
+|---|---|---|
+| 新建 `ImageEditorNotifier`（ChangeNotifier，托管 13 个图片编辑器字段：Sprite Sheet 子系统 9 个 + General 子系统 4 个） | [lib/src/state/image_editor_notifier.dart](lib/src/state/image_editor_notifier.dart) | P0-1 |
+| `_FeatherCanvasHomePageState` 加 notifier 字段，`MultiProvider` 加第四个 `ChangeNotifierProvider`，dispose 释放，**删除 main.dart 中 13 个原始编辑器字段** | [lib/main.dart](lib/main.dart) | P0-1 |
+| `_EditorGifStateMixin` 13 个编辑器字段全部改为委托 getter/setter（含 `_editorImagePath`、`_editorPatchImagePath`、`_isReplacingEditorFrame`、`_isProcessingGeneralImage` 等），加 `ImageEditorNotifier get _imageEditorNotifier` 抽象 getter | [lib/src/home/editor_gif_state.dart](lib/src/home/editor_gif_state.dart) | P0-1 |
+| `_HomeShellStateMixin` 加 `ImageEditorNotifier get _imageEditorNotifier` 抽象 getter | [lib/src/home/home_shell_state.dart](lib/src/home/home_shell_state.dart) | P0-1 |
+| **删除兼容接口**：`ImageEditorWorkspace` 移除 13 个 prop，General 子系统用 `Selector` 订阅 4 个字段；Sprite Sheet 子系统 controls 用 `Selector` 订阅 8 个字段，preview 用 `Selector` 订阅 6 个字段；模式切换从 `didUpdateWidget` 改为 `addListener` 监听 notifier 路径变化 | [lib/src/widgets/workspaces/image_editor_workspace.dart](lib/src/widgets/workspaces/image_editor_workspace.dart) | P0-1 |
+| 调用方 `_buildImageEditorWorkspace` 同步移除 13 个 prop 透传 | [lib/src/home/editor_gif_state.dart](lib/src/home/editor_gif_state.dart) | P0-1 |
+
+**Phase 10 关键设计决策**：
+- 两个子系统（Sprite Sheet 9 字段 + General 4 字段）合并到一个 `ImageEditorNotifier`，因为它们共享同一个 `ImageEditorWorkspace` 渲染入口，避免 Provider 套娃。
+- 模式自动切换：原 `didUpdateWidget` 比较 `oldWidget.generalImagePath` / `widget.imagePath` 的逻辑改为 `_ImageEditorWorkspaceState.didChangeDependencies` 注册 `_imageEditorNotifier.addListener`，listener 内缓存上一次路径并比较，触发 `setState(() => _mode = ...)`。`dispose` 中 `removeListener`。
+- `Selector` 粒度：General 内容 4 字段一组、Sprite Sheet controls 8 字段一组、preview 6 字段一组——各自独立 rebuild，互不干扰。
+
+**Pilot 收益验证**：
+- `flutter analyze` 通过（No issues found）。
+- `flutter test` 191/191 全绿。
+- 13 字段变化只触发对应 `Selector` 局部 rebuild。General 图片加载（`isProcessingGeneralImage` 翻转）只刷新 General 面板；Sprite Sheet 行列调整只刷新 controls + preview；`isReplacingEditorFrame` 只刷新 controls。
+
+**已验证：snapshot 透写路径完整**。`_HomeShellStateMixin._restoreResetDefaultsSnapshot` 中 `_editorRows = snapshot.editorRows` 等 13 行写入依然有效——由 `_EditorGifStateMixin` 的 delegating setter 接管，自动通知 notifier listeners，UI 无延迟刷新。
+
+每次改动后 `flutter analyze` 均通过（No issues found）。
 
 | 评审项 | 优先级 | 工作量 |
 |---|---|---|
