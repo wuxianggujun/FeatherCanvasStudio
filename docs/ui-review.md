@@ -481,6 +481,27 @@ void _showMessage(String message) {
 
 每次改动后 `flutter analyze` 均通过（No issues found）。
 
+**Phase 11：P0-1 第五个 Notifier（ImageLibraryNotifier，存储委托模式）**
+
+| 改动 | 文件 | 对应评审项 |
+|---|---|---|
+| 新建 `ImageLibraryNotifier`（ChangeNotifier，纯托管 `List<ImageLibraryItem>`） | [lib/src/state/image_library_notifier.dart](lib/src/state/image_library_notifier.dart) | P0-1 |
+| `_FeatherCanvasHomePageState` 加 notifier 字段，`MultiProvider` 加第五个 `ChangeNotifierProvider`，dispose 释放 | [lib/main.dart](lib/main.dart) | P0-1 |
+| `_HomeShellStateMixin` 加 `ImageLibraryNotifier get _imageLibraryNotifier` 抽象 getter | [lib/src/home/home_shell_state.dart](lib/src/home/home_shell_state.dart) | P0-1 |
+| `_ImageLibraryStateMixin` 删除 `_imageLibraryValue` 字段，`_imageLibrary` getter/setter 改为读写 `_imageLibraryNotifier.items`；存在性缓存逻辑（`_existingImageLibraryPaths` 等）保留在 mixin | [lib/src/home/image_library_state.dart](lib/src/home/image_library_state.dart) | P0-1 |
+
+**Phase 11 关键设计决策**：
+- `_imageLibrary` 跨 5 个 mixin 共享（生成、批量、编辑、GIF、库自身共 14+ 处写入），且**不在 `_ResetDefaultsSnapshot`** 里——重置不触库，所以纯激进迁移，无需 Hybrid。
+- 存储委托模式：mixin 的 setter 保留存在性缓存的副作用逻辑（`_updateImageLibraryExistenceCacheAfterAssignment`），仅把存储底层从私有字段改为 notifier。其他 mixin 的 `_imageLibrary = [item, ..._imageLibrary]` 写法不变。
+- 库 workspace 暂未改用 Consumer（仍由 `_buildImageLibraryWorkspace` 把 `viewData` 作为 prop 传入），因为 filter / sort / selection 仍在 mixin 内 setState；下一阶段 11B 可考虑把 viewData 计算移到 workspace 内的 Selector。
+
+**Pilot 收益验证**：
+- `flutter analyze` 通过（No issues found）。
+- `flutter test` 191/191 全绿。
+- 5 个 ChangeNotifier 全部接入 `MultiProvider`：图片生成、批量生成、GIF 合成、图片编辑、作品库。后续 phase 可基于 notifier 解耦各 workspace 的 prop 链。
+
+每次改动后 `flutter analyze` 均通过（No issues found）。
+
 | 评审项 | 优先级 | 工作量 |
 |---|---|---|
 | 1. 拆分上帝类 State：pilot 已完成（文本生图），剩余 7 个 mixin 按同一模式推广 | P0 | 1.5-2 周 |

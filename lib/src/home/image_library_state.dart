@@ -163,24 +163,24 @@ mixin _ImageLibraryStateMixin
   @override
   void _pushHistory(WorkspaceFeature feature, HistoryAction action);
 
+  ImageLibraryNotifier get _imageLibraryNotifier;
   final TextEditingController _imageLibrarySearchController =
       TextEditingController();
   final ImageLibraryFileService _fileService = const ImageLibraryFileService();
   final ImageLibraryService _imageLibraryService = const ImageLibraryService();
 
-  List<ImageLibraryItem> _imageLibraryValue = const [];
   Set<String>? _existingImageLibraryPaths;
   Set<String> _imageLibraryExistenceRefreshPaths = const <String>{};
   int _imageLibraryExistenceRefreshToken = 0;
 
   @override
-  List<ImageLibraryItem> get _imageLibrary => _imageLibraryValue;
+  List<ImageLibraryItem> get _imageLibrary => _imageLibraryNotifier.items;
 
   @override
   set _imageLibrary(List<ImageLibraryItem> value) {
-    final previousPaths = _imageLibraryPathSet(_imageLibraryValue);
+    final previousPaths = _imageLibraryPathSet(_imageLibraryNotifier.items);
     final nextPaths = _imageLibraryPathSet(value);
-    _imageLibraryValue = value;
+    _imageLibraryNotifier.items = value;
     _updateImageLibraryExistenceCacheAfterAssignment(
       previousPaths: previousPaths,
       nextPaths: nextPaths,
@@ -244,7 +244,7 @@ mixin _ImageLibraryStateMixin
         if (!mounted || refreshToken != _imageLibraryExistenceRefreshToken) {
           return;
         }
-        final currentPaths = _imageLibraryPathSet(_imageLibraryValue);
+        final currentPaths = _imageLibraryPathSet(_imageLibraryNotifier.items);
         final currentCachedPaths = _existingImageLibraryPaths;
         final nextExistingPaths = {
           if (cachedExistingPaths != null && currentCachedPaths != null)

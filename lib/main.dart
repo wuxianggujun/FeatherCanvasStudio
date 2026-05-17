@@ -13,6 +13,7 @@ import 'src/state/batch_generation_notifier.dart';
 import 'src/state/gif_composer_notifier.dart';
 import 'src/state/image_editor_notifier.dart';
 import 'src/state/image_generation_notifier.dart';
+import 'src/state/image_library_notifier.dart';
 import 'src/theme/app_theme.dart';
 import 'src/theme/layout_constants.dart';
 
@@ -305,6 +306,9 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   final ImageEditorNotifier _imageEditorNotifier = ImageEditorNotifier();
 
   @override
+  final ImageLibraryNotifier _imageLibraryNotifier = ImageLibraryNotifier();
+
+  @override
   int get _animationFrameCount => _animationRows * _animationColumns;
   @override
   int get _editorFrameCount => _editorRows * _editorColumns;
@@ -333,6 +337,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     _batchGenerationNotifier.dispose();
     _gifComposerNotifier.dispose();
     _imageEditorNotifier.dispose();
+    _imageLibraryNotifier.dispose();
     for (final path in _ephemeralTemplatePaths) {
       unawaited(_fileService.safeDeleteFile(path));
     }

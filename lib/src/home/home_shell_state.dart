@@ -118,6 +118,7 @@ mixin _HomeShellStateMixin
   BatchGenerationNotifier get _batchGenerationNotifier;
   GifComposerNotifier get _gifComposerNotifier;
   ImageEditorNotifier get _imageEditorNotifier;
+  ImageLibraryNotifier get _imageLibraryNotifier;
   @override
   bool get _isBootstrapping;
   set _isBootstrapping(bool value);
@@ -676,6 +677,9 @@ mixin _HomeShellStateMixin
         ),
         ChangeNotifierProvider<ImageEditorNotifier>.value(
           value: _imageEditorNotifier,
+        ),
+        ChangeNotifierProvider<ImageLibraryNotifier>.value(
+          value: _imageLibraryNotifier,
         ),
       ],
       child: Shortcuts(
