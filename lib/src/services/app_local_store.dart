@@ -368,7 +368,7 @@ class AppLocalStore {
         '_${twoDigits(timestamp.hour)}${twoDigits(timestamp.minute)}${twoDigits(timestamp.second)}';
     return File(
       '${directory.path}${Platform.pathSeparator}'
-      'sheet_${rows}x${columns}_$dateStamp.png',
+      'sheet_${rows}x${columns}_${dateStamp}_${timestamp.microsecondsSinceEpoch}.png',
     );
   }
 

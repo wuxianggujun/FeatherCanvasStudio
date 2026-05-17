@@ -7,10 +7,12 @@ import '../services/gif_composer_service.dart';
 List<ImageLibraryItem> availableImageLibraryItems(
   List<ImageLibraryItem> library, {
   List<ImageAssetKind>? allowedKinds,
+  bool Function(ImageLibraryItem item)? itemExists,
 }) {
+  final itemExistsPredicate = itemExists ?? (item) => item.existsSync;
   return [
     for (final item in library)
-      if (item.existsSync &&
+      if (itemExistsPredicate(item) &&
           item.isImageFile &&
           (allowedKinds == null || allowedKinds.contains(item.kind)))
         item,

@@ -343,6 +343,7 @@ void main() {
     final reuseButton = find.widgetWithText(OutlinedButton, '复用');
     expect(reuseButton, findsOneWidget);
     await tester.ensureVisible(reuseButton);
+    await tester.pumpAndSettle();
     await tester.tap(reuseButton);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));

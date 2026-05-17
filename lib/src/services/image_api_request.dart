@@ -41,9 +41,8 @@ class OpenAIImageRequest {
   bool get hasTemplateImage =>
       templateImagePath != null && templateImagePath!.trim().isNotEmpty;
 
-  int get normalizedImageCount => normalizeImageGenerationRequestCount(
-    imageCount,
-  );
+  int get normalizedImageCount =>
+      normalizeImageGenerationRequestCount(imageCount);
 
   void validateForGeneration() {
     if (model.trim().isEmpty) {

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as image_lib;
 
@@ -11,6 +11,7 @@ import '../models/generated_image.dart';
 import '../models/sprite_sheet_frame_fit.dart';
 import '../models/sprite_sheet_grid_spec.dart';
 import 'app_local_store.dart';
+import 'pixelation_service.dart';
 
 part 'sprite_sheet_preview_service.dart';
 part 'sprite_sheet_output_service.dart';

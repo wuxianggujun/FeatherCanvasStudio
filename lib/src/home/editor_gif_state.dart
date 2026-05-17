@@ -1663,6 +1663,149 @@ mixin _EditorGifStateMixin
     }
   }
 
+  Future<void> _pixelateEditorTargetFrame(int blockSize) async {
+    final sheetPath = _editorImagePath;
+    if (sheetPath == null) {
+      _showMessage('请先选择一张 Sprite Sheet');
+      return;
+    }
+
+    final frameIndex = _editorTargetFrameIndex
+        .clamp(0, _editorFrameCount - 1)
+        .toInt();
+    final safeBlockSize = PixelationService.normalizeBlockSize(blockSize);
+    setState(() {
+      _isReplacingEditorFrame = true;
+      _editorErrorMessage = null;
+    });
+
+    try {
+      final output = await SpriteSheetFileService.pixelateFrameAndSave(
+        store: _store,
+        readFileBytes: _fileService.readFileBytes,
+        sheetPath: sheetPath,
+        rows: _editorRows,
+        columns: _editorColumns,
+        frameIndex: frameIndex,
+        blockSize: safeBlockSize,
+        gridSpec: _editorGridSpec,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final item = await _imageLibraryService.addItem(
+        store: _store,
+        path: output.path,
+        kind: ImageAssetKind.editedImage,
+        title: '像素化 Sprite Sheet',
+        source: '图片编辑',
+        prompt:
+            '像素化第 ${frameIndex + 1} 帧 · 像素块 ${safeBlockSize}px · '
+            '$_editorRows x $_editorColumns',
+        rows: _editorRows,
+        columns: _editorColumns,
+        gridSpec: _editorGridSpec,
+        frameIndex: frameIndex,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _editorImagePath = output.path;
+        _imageLibrary = [item, ..._imageLibrary];
+      });
+      _pushEditorFrameHistory(
+        label: '像素化第 ${frameIndex + 1} 帧',
+        beforeSheetPath: sheetPath,
+        afterSheetPath: output.path,
+        appendedItem: item,
+      );
+      _showMessage(
+        '已像素化第 ${frameIndex + 1} 帧：${fileNameFromPath(output.path)} · '
+        '像素块 ${safeBlockSize}px',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _editorErrorMessage = '像素化当前帧失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isReplacingEditorFrame = false);
+      }
+    }
+  }
+
+  Future<void> _pixelateEditorSpriteSheet(int blockSize) async {
+    final sheetPath = _editorImagePath;
+    if (sheetPath == null) {
+      _showMessage('请先选择一张 Sprite Sheet');
+      return;
+    }
+
+    final safeBlockSize = PixelationService.normalizeBlockSize(blockSize);
+    setState(() {
+      _isReplacingEditorFrame = true;
+      _editorErrorMessage = null;
+    });
+
+    try {
+      final output = await SpriteSheetFileService.pixelateSheetAndSave(
+        store: _store,
+        readFileBytes: _fileService.readFileBytes,
+        sheetPath: sheetPath,
+        rows: _editorRows,
+        columns: _editorColumns,
+        blockSize: safeBlockSize,
+        gridSpec: _editorGridSpec,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final item = await _imageLibraryService.addItem(
+        store: _store,
+        path: output.path,
+        kind: ImageAssetKind.editedImage,
+        title: '像素化 Sprite Sheet',
+        source: '图片编辑',
+        prompt:
+            '像素化整张 · 像素块 ${safeBlockSize}px · '
+            '$_editorRows x $_editorColumns',
+        rows: _editorRows,
+        columns: _editorColumns,
+        gridSpec: _editorGridSpec,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _editorImagePath = output.path;
+        _imageLibrary = [item, ..._imageLibrary];
+      });
+      _pushEditorFrameHistory(
+        label: '像素化整张 Sprite Sheet',
+        beforeSheetPath: sheetPath,
+        afterSheetPath: output.path,
+        appendedItem: item,
+      );
+      _showMessage(
+        '已像素化整张 Sprite Sheet：${fileNameFromPath(output.path)} · '
+        '像素块 ${safeBlockSize}px',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _editorErrorMessage = '像素化整张失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isReplacingEditorFrame = false);
+      }
+    }
+  }
+
   Widget _buildImageEditorWorkspace() {
     return ImageEditorWorkspace(
       imagePath: _editorImagePath,
@@ -1683,6 +1826,10 @@ mixin _EditorGifStateMixin
       onAdjustPatchFraming: () => unawaited(_adjustEditorPatchFraming()),
       onMakePatchBackgroundTransparent: (tolerance) =>
           unawaited(_makeEditorPatchBackgroundTransparent(tolerance)),
+      onPixelateCurrentFrame: (blockSize) =>
+          unawaited(_pixelateEditorTargetFrame(blockSize)),
+      onPixelateWholeSheet: (blockSize) =>
+          unawaited(_pixelateEditorSpriteSheet(blockSize)),
       onRowsChanged: _setEditorRows,
       onColumnsChanged: _setEditorColumns,
       onGridSpecChanged: _setEditorGridSpec,

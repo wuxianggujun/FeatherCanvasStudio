@@ -18,6 +18,7 @@ class PreviewPanel extends StatelessWidget {
     required this.onExportImage,
     required this.onMakeBackgroundTransparent,
     this.targetImageCount,
+    this.targetAspectRatio = 1,
     super.key,
   });
 
@@ -31,6 +32,7 @@ class PreviewPanel extends StatelessWidget {
   final void Function(int index, GeneratedImage image)
   onMakeBackgroundTransparent;
   final int? targetImageCount;
+  final double targetAspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +81,9 @@ class PreviewPanel extends StatelessWidget {
       key: const ValueKey('images'),
       builder: (context, constraints) {
         final totalCount = generatedImages.length + pendingCount;
+        final tileAspectRatio = _normalizedPreviewAspectRatio(
+          targetAspectRatio,
+        );
         final isCompact = totalCount > 4 || pendingCount > 0;
         final minTileWidth = isCompact ? 112.0 : 260.0;
         final columns = totalCount <= 1 || constraints.maxWidth < minTileWidth
@@ -98,6 +103,7 @@ class PreviewPanel extends StatelessWidget {
                 child: _GeneratedImageTile(
                   image: generatedImages[index],
                   previewIndex: index,
+                  aspectRatio: tileAspectRatio,
                   onCopyImage: () => onCopyImage(index, generatedImages[index]),
                   onExportImage: () =>
                       onExportImage(index, generatedImages[index]),
@@ -111,7 +117,10 @@ class PreviewPanel extends StatelessWidget {
             for (var index = 0; index < pendingCount; index++)
               SizedBox(
                 width: width,
-                child: _PendingImageTile(index: generatedImages.length + index),
+                child: _PendingImageTile(
+                  index: generatedImages.length + index,
+                  aspectRatio: tileAspectRatio,
+                ),
               ),
           ],
         );
@@ -124,6 +133,7 @@ class _GeneratedImageTile extends StatelessWidget {
   const _GeneratedImageTile({
     required this.image,
     required this.previewIndex,
+    required this.aspectRatio,
     required this.onCopyImage,
     required this.onExportImage,
     required this.onMakeBackgroundTransparent,
@@ -131,6 +141,7 @@ class _GeneratedImageTile extends StatelessWidget {
 
   final GeneratedImage image;
   final int previewIndex;
+  final double aspectRatio;
   final VoidCallback onCopyImage;
   final VoidCallback onExportImage;
   final VoidCallback onMakeBackgroundTransparent;
@@ -143,7 +154,7 @@ class _GeneratedImageTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AspectRatio(
-          aspectRatio: 1,
+          aspectRatio: aspectRatio,
           child: Stack(
             children: [
               Positioned.fill(
@@ -230,9 +241,10 @@ class _GeneratedImageTile extends StatelessWidget {
 }
 
 class _PendingImageTile extends StatelessWidget {
-  const _PendingImageTile({required this.index});
+  const _PendingImageTile({required this.index, required this.aspectRatio});
 
   final int index;
+  final double aspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +252,7 @@ class _PendingImageTile extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return AspectRatio(
-      aspectRatio: 1,
+      aspectRatio: aspectRatio,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerLowest,
@@ -286,34 +298,82 @@ class _PendingImageTile extends StatelessWidget {
 }
 
 class _GeneratedImageContent extends StatelessWidget {
-  const _GeneratedImageContent({required this.image, this.fit = BoxFit.cover});
+  const _GeneratedImageContent({
+    required this.image,
+    this.fit = BoxFit.contain,
+  });
 
   final GeneratedImage image;
   final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
-    if (image.filePath != null) {
-      return Image.file(File(image.filePath!), fit: fit);
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+        final cacheWidth = _scaledImageCacheDimension(
+          constraints.maxWidth,
+          devicePixelRatio,
+        );
+        final cacheHeight = _scaledImageCacheDimension(
+          constraints.maxHeight,
+          devicePixelRatio,
+        );
 
-    if (image.bytes != null) {
-      return Image.memory(image.bytes!, fit: fit);
-    }
+        if (image.filePath != null) {
+          return Image.file(
+            File(image.filePath!),
+            fit: fit,
+            cacheWidth: cacheWidth,
+            cacheHeight: cacheHeight,
+            filterQuality: FilterQuality.medium,
+            gaplessPlayback: true,
+          );
+        }
 
-    return Image.network(
-      image.url!,
-      fit: fit,
-      errorBuilder: (context, error, stackTrace) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('图片加载失败：$error'),
-          ),
+        if (image.bytes != null) {
+          return Image.memory(
+            image.bytes!,
+            fit: fit,
+            cacheWidth: cacheWidth,
+            cacheHeight: cacheHeight,
+            filterQuality: FilterQuality.medium,
+            gaplessPlayback: true,
+          );
+        }
+
+        return Image.network(
+          image.url!,
+          fit: fit,
+          cacheWidth: cacheWidth,
+          cacheHeight: cacheHeight,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (context, error, stackTrace) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('图片加载失败：$error'),
+              ),
+            );
+          },
         );
       },
     );
   }
+}
+
+int? _scaledImageCacheDimension(double logicalPixels, double devicePixelRatio) {
+  if (!logicalPixels.isFinite || logicalPixels <= 0) {
+    return null;
+  }
+  return (logicalPixels * devicePixelRatio).ceil().clamp(1, 4096);
+}
+
+double _normalizedPreviewAspectRatio(double aspectRatio) {
+  if (!aspectRatio.isFinite || aspectRatio <= 0) {
+    return 1;
+  }
+  return aspectRatio.clamp(1 / 3, 3).toDouble();
 }
 
 Future<void> showGeneratedImagePreviewDialog(

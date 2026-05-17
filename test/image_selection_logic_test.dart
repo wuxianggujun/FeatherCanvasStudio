@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:feather_canvas_studio/feather_canvas_studio.dart';
@@ -55,6 +55,12 @@ void main() {
           allowedKinds: const [ImageAssetKind.gif],
         ),
         isEmpty,
+      );
+      expect(
+        availableImageLibraryItems([
+          missingItem,
+        ], itemExists: (item) => item.id == missingItem.id),
+        [missingItem],
       );
     },
   );

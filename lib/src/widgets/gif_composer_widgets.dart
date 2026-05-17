@@ -109,7 +109,7 @@ class GifComposerPanel extends StatelessWidget {
                               height: 56,
                               child: _GifFrameImage(
                                 frame: frame,
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                               ),
                             ),
                           ),
@@ -293,7 +293,7 @@ class GifSourcePreviewPanel extends StatelessWidget {
                         child: _GifFrameImage(
                           frame: frame,
                           width: double.infinity,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),

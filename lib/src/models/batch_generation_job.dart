@@ -7,6 +7,8 @@ import '../utils/generation_limits.dart';
 
 enum BatchGenerationJobStatus { queued, running, succeeded, failed, skipped }
 
+const int maxBatchGenerationAutoRetryAttempts = 1;
+
 int _batchGenerationJobIdSeed = 0;
 
 class BatchGenerationJob {
@@ -23,6 +25,7 @@ class BatchGenerationJob {
     required this.user,
     this.batchIndex = 1,
     this.batchTotal = 1,
+    this.retryAttempt = 0,
     this.resultImages = const <GeneratedImage>[],
     this.libraryItems = const <ImageLibraryItem>[],
     this.debugRecord,
@@ -69,6 +72,7 @@ class BatchGenerationJob {
   final String user;
   final int batchIndex;
   final int batchTotal;
+  final int retryAttempt;
   final List<GeneratedImage> resultImages;
   final List<ImageLibraryItem> libraryItems;
   final ImageRequestDebugRecord? debugRecord;
@@ -76,6 +80,8 @@ class BatchGenerationJob {
 
   bool get hasMultipleBatches => batchTotal > 1;
   bool get canDelete => status != BatchGenerationJobStatus.running;
+  bool get canRetry => status == BatchGenerationJobStatus.failed;
+  bool get canAutoRetry => retryAttempt < maxBatchGenerationAutoRetryAttempts;
   bool get isPending => status == BatchGenerationJobStatus.queued;
   bool get isRunning => status == BatchGenerationJobStatus.running;
   bool get isTerminal =>
@@ -96,11 +102,13 @@ class BatchGenerationJob {
     String? user,
     int? batchIndex,
     int? batchTotal,
+    int? retryAttempt,
     List<GeneratedImage>? resultImages,
     List<ImageLibraryItem>? libraryItems,
     ImageRequestDebugRecord? debugRecord,
     String? errorMessage,
     bool clearErrorMessage = false,
+    bool clearDebugRecord = false,
   }) {
     return BatchGenerationJob(
       id: id ?? this.id,
@@ -117,9 +125,12 @@ class BatchGenerationJob {
       user: user ?? this.user,
       batchIndex: batchIndex ?? this.batchIndex,
       batchTotal: batchTotal ?? this.batchTotal,
+      retryAttempt: retryAttempt == null
+          ? this.retryAttempt
+          : retryAttempt.clamp(0, 999).toInt(),
       resultImages: resultImages ?? this.resultImages,
       libraryItems: libraryItems ?? this.libraryItems,
-      debugRecord: debugRecord ?? this.debugRecord,
+      debugRecord: clearDebugRecord ? null : debugRecord ?? this.debugRecord,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,

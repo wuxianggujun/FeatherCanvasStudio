@@ -100,6 +100,55 @@ class SpriteSheetEditorComposer {
     return Uint8List.fromList(image_lib.encodePng(editedSheet));
   }
 
+  static Uint8List pixelateFrame({
+    required Uint8List sheetBytes,
+    required int rows,
+    required int columns,
+    required int frameIndex,
+    required int blockSize,
+    SpriteSheetGridSpec? gridSpec,
+  }) {
+    final spec = _resolveGridSpec(
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    )..validateForSheet(context: '像素化帧');
+    _validateFrameIndex(frameIndex, spec.totalFrameCount);
+
+    final sheet = image_lib.decodeImage(sheetBytes);
+    if (sheet == null) {
+      throw const ImageGenerationException('Sprite Sheet 无法解码。');
+    }
+    spec.validateForSheet(
+      sheetWidth: sheet.width,
+      sheetHeight: sheet.height,
+      context: 'Sprite Sheet',
+    );
+
+    final rect = _cellRect(spec, sheet, frameIndex);
+    final frame = image_lib.copyCrop(
+      sheet,
+      x: rect.left.toInt(),
+      y: rect.top.toInt(),
+      width: rect.width.toInt(),
+      height: rect.height.toInt(),
+    );
+    final pixelatedFrame = PixelationService.pixelateDecodedImage(
+      frame,
+      blockSize: blockSize,
+    );
+    final editedSheet = sheet.convert(numChannels: 4);
+    _clearRectTransparent(editedSheet, rect);
+    image_lib.compositeImage(
+      editedSheet,
+      pixelatedFrame,
+      dstX: rect.left.toInt(),
+      dstY: rect.top.toInt(),
+    );
+
+    return Uint8List.fromList(image_lib.encodePng(editedSheet));
+  }
+
   static Uint8List replaceFrame({
     required Uint8List sheetBytes,
     required Uint8List patchBytes,

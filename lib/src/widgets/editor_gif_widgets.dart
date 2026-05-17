@@ -30,6 +30,8 @@ class SpriteSheetEditorPanel extends StatelessWidget {
     required this.onClearPatchImage,
     required this.onAdjustPatchFraming,
     required this.onMakePatchBackgroundTransparent,
+    required this.onPixelateCurrentFrame,
+    required this.onPixelateWholeSheet,
     required this.onRowsChanged,
     required this.onColumnsChanged,
     required this.onGridSpecChanged,
@@ -57,6 +59,8 @@ class SpriteSheetEditorPanel extends StatelessWidget {
   final VoidCallback onClearPatchImage;
   final VoidCallback onAdjustPatchFraming;
   final ValueChanged<int> onMakePatchBackgroundTransparent;
+  final ValueChanged<int> onPixelateCurrentFrame;
+  final ValueChanged<int> onPixelateWholeSheet;
   final ValueChanged<int> onRowsChanged;
   final ValueChanged<int> onColumnsChanged;
   final ValueChanged<SpriteSheetGridSpec> onGridSpecChanged;
@@ -120,15 +124,20 @@ class SpriteSheetEditorPanel extends StatelessWidget {
           ),
           const SizedBox(height: fieldGap),
           _PatchImageToolsSection(
+            hasSheetImage: imagePath != null,
             hasPatchImage: patchImagePath != null,
             canAdjustFraming:
                 imagePath != null &&
                 patchImagePath != null &&
                 !isReplacingFrame,
             canMakeTransparent: patchImagePath != null && !isReplacingFrame,
+            canPixelateFrame: imagePath != null && !isReplacingFrame,
+            canPixelateSheet: imagePath != null && !isReplacingFrame,
             isBusy: isReplacingFrame,
             onAdjustFraming: onAdjustPatchFraming,
             onMakeBackgroundTransparent: onMakePatchBackgroundTransparent,
+            onPixelateCurrentFrame: onPixelateCurrentFrame,
+            onPixelateWholeSheet: onPixelateWholeSheet,
           ),
           const SizedBox(height: fieldGap),
           ResponsivePair(
@@ -328,20 +337,30 @@ class _TargetFrameSelectorState extends State<_TargetFrameSelector> {
 
 class _PatchImageToolsSection extends StatefulWidget {
   const _PatchImageToolsSection({
+    required this.hasSheetImage,
     required this.hasPatchImage,
     required this.canAdjustFraming,
     required this.canMakeTransparent,
+    required this.canPixelateFrame,
+    required this.canPixelateSheet,
     required this.isBusy,
     required this.onAdjustFraming,
     required this.onMakeBackgroundTransparent,
+    required this.onPixelateCurrentFrame,
+    required this.onPixelateWholeSheet,
   });
 
+  final bool hasSheetImage;
   final bool hasPatchImage;
   final bool canAdjustFraming;
   final bool canMakeTransparent;
+  final bool canPixelateFrame;
+  final bool canPixelateSheet;
   final bool isBusy;
   final VoidCallback onAdjustFraming;
   final ValueChanged<int> onMakeBackgroundTransparent;
+  final ValueChanged<int> onPixelateCurrentFrame;
+  final ValueChanged<int> onPixelateWholeSheet;
 
   @override
   State<_PatchImageToolsSection> createState() =>
@@ -351,14 +370,24 @@ class _PatchImageToolsSection extends StatefulWidget {
 class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
   static const int _minTolerance = 0;
   static const int _maxTolerance = 80;
+  static const int _minPixelationBlockSize = 2;
+  static const int _maxPixelationBlockSize = 64;
 
   int _tolerance = 28;
+  int _pixelationBlockSize = 8;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final enabled = widget.canAdjustFraming || widget.canMakeTransparent;
+    final canPixelate = widget.canPixelateFrame || widget.canPixelateSheet;
+    final enabled =
+        widget.canAdjustFraming || widget.canMakeTransparent || canPixelate;
+    final subtitleParts = <String>[
+      if (widget.hasPatchImage) '单帧取景',
+      if (widget.hasPatchImage) '透明背景',
+      if (widget.hasSheetImage) '像素化',
+    ];
 
     return Container(
       width: double.infinity,
@@ -371,7 +400,8 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
       child: Theme(
         data: theme.copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          initiallyExpanded: false,
+          key: ValueKey<bool>(enabled),
+          initiallyExpanded: enabled,
           maintainState: true,
           tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -380,9 +410,11 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
             size: 18,
             color: enabled ? colorScheme.primary : colorScheme.onSurfaceVariant,
           ),
-          title: Text('单帧处理', style: theme.textTheme.titleSmall),
+          title: Text('编辑工具', style: theme.textTheme.titleSmall),
           subtitle: Text(
-            widget.hasPatchImage ? '调整取景 · 背景转透明' : '选择单帧图片后可用',
+            subtitleParts.isEmpty
+                ? '选择 Sprite Sheet 或单帧图片后可用'
+                : subtitleParts.join(' · '),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall,
@@ -438,6 +470,38 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
                       )
                     : const Icon(Icons.auto_fix_high_outlined),
                 label: Text(widget.isBusy ? '处理中' : '生成透明背景单帧'),
+              ),
+            ),
+            const Divider(height: 22),
+            IntegerStepperField(
+              label: '像素块',
+              value: _pixelationBlockSize,
+              minValue: _minPixelationBlockSize,
+              maxValue: _maxPixelationBlockSize,
+              suffixText: 'px',
+              helperText: '数值越大，颗粒越粗',
+              enabled: canPixelate && !widget.isBusy,
+              onChanged: (value) => setState(() {
+                _pixelationBlockSize = value
+                    .clamp(_minPixelationBlockSize, _maxPixelationBlockSize)
+                    .toInt();
+              }),
+            ),
+            const SizedBox(height: 8),
+            ResponsivePair(
+              first: OutlinedButton.icon(
+                onPressed: widget.canPixelateFrame && !widget.isBusy
+                    ? () => widget.onPixelateCurrentFrame(_pixelationBlockSize)
+                    : null,
+                icon: const Icon(Icons.grid_on_outlined),
+                label: const Text('像素化当前帧'),
+              ),
+              second: OutlinedButton.icon(
+                onPressed: widget.canPixelateSheet && !widget.isBusy
+                    ? () => widget.onPixelateWholeSheet(_pixelationBlockSize)
+                    : null,
+                icon: const Icon(Icons.grid_4x4_outlined),
+                label: const Text('像素化整张'),
               ),
             ),
           ],

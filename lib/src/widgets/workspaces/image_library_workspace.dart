@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../models/image_library_item.dart';
 import '../../models/ui_state.dart';
+import '../../theme/layout_constants.dart';
 import '../../utils/image_library_view_data.dart';
 import '../image_library_widgets.dart';
-import '../layout_navigation_widgets.dart';
 
 class ImageLibraryWorkspace extends StatelessWidget {
   const ImageLibraryWorkspace({
@@ -78,50 +78,63 @@ class ImageLibraryWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WorkspacePage(
-      title: '作品',
-      description: '集中保存生成、切片、编辑和合成后的图片，其他功能可以直接复用',
-      children: [
-        ImageLibraryPanel(
-          items: viewData.filteredItems,
-          totalCount: viewData.visibleItems.length,
-          searchController: searchController,
-          searchQuery: searchQuery,
-          onSearchChanged: onSearchChanged,
-          onClearSearch: onClearSearch,
-          selectedFilter: selectedFilter,
-          onFilterChanged: onFilterChanged,
-          availableProjects: viewData.availableProjects,
-          selectedProject: selectedProject,
-          onProjectChanged: onProjectChanged,
-          availableTags: viewData.availableTags,
-          selectedTag: selectedTag,
-          onTagChanged: onTagChanged,
-          sortOrder: sortOrder,
-          onSortOrderChanged: onSortOrderChanged,
-          selectedItemIds: selectedItemIds,
-          onSelectionChanged: onSelectionChanged,
-          onSelectVisible: onSelectVisible,
-          onClearSelection: onClearSelection,
-          onDeleteSelected: onDeleteSelected,
-          onExportSelected: onExportSelected,
-          onUseInEditor: onUseInEditor,
-          onReuseGeneration: onReuseGeneration,
-          onCopyGeneration: onCopyGeneration,
-          onMakeBackgroundTransparent: onMakeBackgroundTransparent,
-          onEditMetadata: onEditMetadata,
-          onCopyImage: onCopyImage,
-          onExportImage: onExportImage,
-          onCopyPath: onCopyPath,
-          onOpenLocation: onOpenLocation,
-          onDelete: onDelete,
-          onOpenSliceExplorer: onOpenSliceExplorer,
-          savedFrameCountFor: viewData.savedFrameCountFor,
-          showStandaloneFrames: showStandaloneFrames,
-          groupedFrameCount: viewData.groupedFrameCount,
-          onToggleStandaloneFrames: onToggleStandaloneFrames,
-        ),
-      ],
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(workspacePadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('作品', style: theme.textTheme.headlineMedium),
+          const SizedBox(height: 8),
+          Text(
+            '集中保存生成、切片、编辑和合成后的图片，其他功能可以直接复用',
+            style: theme.textTheme.bodyLarge,
+          ),
+          const SizedBox(height: sectionGap),
+          Expanded(
+            child: ImageLibraryPanel(
+              fillAvailableHeight: true,
+              items: viewData.filteredItems,
+              totalCount: viewData.visibleItems.length,
+              searchController: searchController,
+              searchQuery: searchQuery,
+              onSearchChanged: onSearchChanged,
+              onClearSearch: onClearSearch,
+              selectedFilter: selectedFilter,
+              onFilterChanged: onFilterChanged,
+              availableProjects: viewData.availableProjects,
+              selectedProject: selectedProject,
+              onProjectChanged: onProjectChanged,
+              availableTags: viewData.availableTags,
+              selectedTag: selectedTag,
+              onTagChanged: onTagChanged,
+              sortOrder: sortOrder,
+              onSortOrderChanged: onSortOrderChanged,
+              selectedItemIds: selectedItemIds,
+              onSelectionChanged: onSelectionChanged,
+              onSelectVisible: onSelectVisible,
+              onClearSelection: onClearSelection,
+              onDeleteSelected: onDeleteSelected,
+              onExportSelected: onExportSelected,
+              onUseInEditor: onUseInEditor,
+              onReuseGeneration: onReuseGeneration,
+              onCopyGeneration: onCopyGeneration,
+              onMakeBackgroundTransparent: onMakeBackgroundTransparent,
+              onEditMetadata: onEditMetadata,
+              onCopyImage: onCopyImage,
+              onExportImage: onExportImage,
+              onCopyPath: onCopyPath,
+              onOpenLocation: onOpenLocation,
+              onDelete: onDelete,
+              onOpenSliceExplorer: onOpenSliceExplorer,
+              savedFrameCountFor: viewData.savedFrameCountFor,
+              showStandaloneFrames: showStandaloneFrames,
+              groupedFrameCount: viewData.groupedFrameCount,
+              onToggleStandaloneFrames: onToggleStandaloneFrames,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

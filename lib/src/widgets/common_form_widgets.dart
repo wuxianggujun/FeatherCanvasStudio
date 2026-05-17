@@ -13,12 +13,14 @@ class AppPanel extends StatelessWidget {
     required this.title,
     required this.child,
     this.trailing,
+    this.expandChild = false,
     super.key,
   });
 
   final String title;
   final Widget child;
   final Widget? trailing;
+  final bool expandChild;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +45,7 @@ class AppPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: sectionGap),
-          child,
+          if (expandChild) Expanded(child: child) else child,
         ],
       ),
     );
@@ -761,7 +763,7 @@ class TemplateImagePicker extends StatelessWidget {
                 width: double.infinity,
                 child: Image.file(
                   File(path),
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
                     return const Center(
                       child: Padding(

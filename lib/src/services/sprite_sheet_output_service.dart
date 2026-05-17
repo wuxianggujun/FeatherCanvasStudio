@@ -200,4 +200,92 @@ class SpriteSheetFileService {
       gridSpec: gridSpec,
     );
   }
+
+  static Future<SpriteSheetFileOutput> pixelateSheetAndSave({
+    required AppLocalStore store,
+    required Future<Uint8List> Function(String path) readFileBytes,
+    required String sheetPath,
+    required int rows,
+    required int columns,
+    required int blockSize,
+    SpriteSheetGridSpec? gridSpec,
+  }) async {
+    final sheetBytes = await readFileBytes(sheetPath);
+    final editedBytes = (await PixelationService.pixelateInBackground(
+      sheetBytes,
+      blockSize: blockSize,
+    )).pngBytes;
+
+    return exportPng(
+      store: store,
+      pngBytes: editedBytes,
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    );
+  }
+
+  static Future<SpriteSheetFileOutput> pixelateFrameAndSave({
+    required AppLocalStore store,
+    required Future<Uint8List> Function(String path) readFileBytes,
+    required String sheetPath,
+    required int rows,
+    required int columns,
+    required int frameIndex,
+    required int blockSize,
+    SpriteSheetGridSpec? gridSpec,
+  }) async {
+    final sheetBytes = await readFileBytes(sheetPath);
+    final editedBytes = await compute(
+      _pixelateSpriteSheetFrameInIsolate,
+      _PixelateSpriteSheetFrameTask(
+        sheetBytes: sheetBytes,
+        rows: rows,
+        columns: columns,
+        frameIndex: frameIndex,
+        blockSize: blockSize,
+        gridSpec: gridSpec,
+      ),
+      debugLabel: 'sprite-sheet-frame-pixelation',
+    );
+
+    return exportPng(
+      store: store,
+      pngBytes: editedBytes,
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    );
+  }
+}
+
+Uint8List _pixelateSpriteSheetFrameInIsolate(
+  _PixelateSpriteSheetFrameTask task,
+) {
+  return SpriteSheetEditorComposer.pixelateFrame(
+    sheetBytes: task.sheetBytes,
+    rows: task.rows,
+    columns: task.columns,
+    frameIndex: task.frameIndex,
+    blockSize: task.blockSize,
+    gridSpec: task.gridSpec,
+  );
+}
+
+class _PixelateSpriteSheetFrameTask {
+  const _PixelateSpriteSheetFrameTask({
+    required this.sheetBytes,
+    required this.rows,
+    required this.columns,
+    required this.frameIndex,
+    required this.blockSize,
+    required this.gridSpec,
+  });
+
+  final Uint8List sheetBytes;
+  final int rows;
+  final int columns;
+  final int frameIndex;
+  final int blockSize;
+  final SpriteSheetGridSpec? gridSpec;
 }

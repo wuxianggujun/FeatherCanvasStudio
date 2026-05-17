@@ -24,19 +24,44 @@ class ImageLibraryPreview extends StatelessWidget {
       );
     }
 
-    return Image.file(
-      File(item.path),
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Center(
-          child: Icon(
-            Icons.broken_image_outlined,
-            color: theme.colorScheme.error,
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+        final cacheWidth = _scaledCacheDimension(
+          constraints.maxWidth,
+          devicePixelRatio,
+        );
+        final cacheHeight = _scaledCacheDimension(
+          constraints.maxHeight,
+          devicePixelRatio,
+        );
+
+        return Image.file(
+          File(item.path),
+          fit: BoxFit.contain,
+          cacheWidth: cacheWidth,
+          cacheHeight: cacheHeight,
+          filterQuality: FilterQuality.low,
+          gaplessPlayback: true,
+          errorBuilder: (context, error, stackTrace) {
+            return Center(
+              child: Icon(
+                Icons.broken_image_outlined,
+                color: theme.colorScheme.error,
+              ),
+            );
+          },
         );
       },
     );
   }
+}
+
+int? _scaledCacheDimension(double logicalPixels, double devicePixelRatio) {
+  if (!logicalPixels.isFinite || logicalPixels <= 0) {
+    return null;
+  }
+  return (logicalPixels * devicePixelRatio).ceil().clamp(1, 4096);
 }
 
 class ImageKindChip extends StatelessWidget {

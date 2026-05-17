@@ -37,10 +37,12 @@ ImageLibraryViewData buildImageLibraryViewData({
   required bool showStandaloneFrames,
   String projectFilter = '',
   String tagFilter = '',
+  bool Function(ImageLibraryItem item)? itemExists,
 }) {
+  final itemExistsPredicate = itemExists ?? (item) => item.existsSync;
   final availableItems = [
     for (final item in library)
-      if (item.existsSync) item,
+      if (itemExistsPredicate(item)) item,
   ];
   final sheetGroupIds = <String>{
     for (final item in availableItems)

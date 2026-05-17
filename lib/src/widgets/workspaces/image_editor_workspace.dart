@@ -30,6 +30,8 @@ class ImageEditorWorkspace extends StatelessWidget {
     required this.onClearPatchImage,
     required this.onAdjustPatchFraming,
     required this.onMakePatchBackgroundTransparent,
+    required this.onPixelateCurrentFrame,
+    required this.onPixelateWholeSheet,
     required this.onRowsChanged,
     required this.onColumnsChanged,
     required this.onGridSpecChanged,
@@ -61,6 +63,8 @@ class ImageEditorWorkspace extends StatelessWidget {
   final VoidCallback onClearPatchImage;
   final VoidCallback onAdjustPatchFraming;
   final ValueChanged<int> onMakePatchBackgroundTransparent;
+  final ValueChanged<int> onPixelateCurrentFrame;
+  final ValueChanged<int> onPixelateWholeSheet;
   final ValueChanged<int> onRowsChanged;
   final ValueChanged<int> onColumnsChanged;
   final ValueChanged<SpriteSheetGridSpec> onGridSpecChanged;
@@ -119,6 +123,8 @@ class ImageEditorWorkspace extends StatelessWidget {
             onClearPatchImage: onClearPatchImage,
             onAdjustPatchFraming: onAdjustPatchFraming,
             onMakePatchBackgroundTransparent: onMakePatchBackgroundTransparent,
+            onPixelateCurrentFrame: onPixelateCurrentFrame,
+            onPixelateWholeSheet: onPixelateWholeSheet,
             onRowsChanged: onRowsChanged,
             onColumnsChanged: onColumnsChanged,
             onGridSpecChanged: onGridSpecChanged,

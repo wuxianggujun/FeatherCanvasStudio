@@ -318,6 +318,11 @@ ImageDimensions imageDimensionsFromSize(String size) {
       const ImageDimensions(openAIDefaultImageSide, openAIDefaultImageSide);
 }
 
+double imageAspectRatioFromSize(String size) {
+  final dimensions = imageDimensionsFromSize(size);
+  return dimensions.width / dimensions.height;
+}
+
 ImageDimensions? tryParseImageDimensions(String size) {
   final parts = size.toLowerCase().split('x');
   if (parts.length != 2) {

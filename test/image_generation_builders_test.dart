@@ -1,4 +1,4 @@
-﻿import 'package:feather_canvas_studio/feather_canvas_studio.dart';
+import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -83,47 +83,52 @@ void main() {
     expect(snapshot.advancedSettings.user, 'user-1');
   });
 
-  test('caps request image count and leaves large totals to batch splitting', () {
-    const config = ApiConfig(
-      id: 'config',
-      name: 'Config',
-      baseUrl: 'https://example.com/v1',
-      apiKey: 'key',
-      model: 'gpt-image-2',
-      providerKind: ApiProviderKind.compatible,
-    );
+  test(
+    'caps request image count and leaves large totals to batch splitting',
+    () {
+      const config = ApiConfig(
+        id: 'config',
+        name: 'Config',
+        baseUrl: 'https://example.com/v1',
+        apiKey: 'key',
+        model: 'gpt-image-2',
+        providerKind: ApiProviderKind.compatible,
+      );
 
-    final request = buildImageGenerationRequest(
-      apiConfig: config,
-      prompt: 'prompt',
-      negativePrompt: '',
-      requestSize: '1024x1024',
-      imageCount: 12,
-      advancedSettings: const ImageAdvancedSettings(),
-      user: '',
-    );
-    final snapshot = buildGenerationSnapshot(
-      groupId: 'group',
-      apiConfig: config,
-      prompt: 'prompt',
-      negativePrompt: '',
-      requestSize: '1024x1024',
-      imageCount: 12,
-      resultCount: 8,
-      advancedSettings: const ImageAdvancedSettings(),
-      user: '',
-    );
+      final request = buildImageGenerationRequest(
+        apiConfig: config,
+        prompt: 'prompt',
+        negativePrompt: '',
+        requestSize: '1024x1024',
+        imageCount: 12,
+        advancedSettings: const ImageAdvancedSettings(),
+        user: '',
+      );
+      final snapshot = buildGenerationSnapshot(
+        groupId: 'group',
+        apiConfig: config,
+        prompt: 'prompt',
+        negativePrompt: '',
+        requestSize: '1024x1024',
+        imageCount: 12,
+        resultCount: 8,
+        advancedSettings: const ImageAdvancedSettings(),
+        user: '',
+      );
 
-    expect(request.imageCount, maxImageGenerationRequestCount);
-    expect(request.toJson()['n'], maxImageGenerationRequestCount);
-    expect(snapshot.imageCount, maxImageGenerationRequestCount);
-    expect(
-      splitImageGenerationBatches(targetCount: 12, requestCount: 4),
-      [4, 4, 4],
-    );
-    expect(
-      splitImageGenerationBatches(targetCount: 10, requestCount: 4),
-      [4, 4, 2],
-    );
-  });
+      expect(request.imageCount, maxImageGenerationRequestCount);
+      expect(request.toJson()['n'], maxImageGenerationRequestCount);
+      expect(snapshot.imageCount, maxImageGenerationRequestCount);
+      expect(splitImageGenerationBatches(targetCount: 12, requestCount: 4), [
+        4,
+        4,
+        4,
+      ]);
+      expect(splitImageGenerationBatches(targetCount: 10, requestCount: 4), [
+        4,
+        4,
+        2,
+      ]);
+    },
+  );
 }

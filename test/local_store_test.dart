@@ -277,8 +277,9 @@ void main() {
     final rawPresets = (await SharedPreferences.getInstance()).getString(
       'appPresets.entries',
     )!;
-    final rawPreset = (jsonDecode(rawPresets) as List<dynamic>).single
-        as Map<String, dynamic>;
+    final rawPreset =
+        (jsonDecode(rawPresets) as List<dynamic>).single
+            as Map<String, dynamic>;
 
     expect(restored.advancedSettings.quality, 'high');
     expect(restored.advancedSettings.background, 'transparent');

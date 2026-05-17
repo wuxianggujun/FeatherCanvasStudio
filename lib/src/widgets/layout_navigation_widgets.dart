@@ -265,14 +265,6 @@ class FeatureNavigationRail extends StatelessWidget {
       labelType: railExtended || compact
           ? NavigationRailLabelType.none
           : NavigationRailLabelType.all,
-      leading: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 8),
-        child: IconButton(
-          tooltip: compact ? '展开侧栏' : '收起侧栏',
-          onPressed: onToggleCompact,
-          icon: Icon(compact ? Icons.menu_open_outlined : Icons.menu_outlined),
-        ),
-      ),
       destinations: const [
         NavigationRailDestination(
           icon: Icon(Icons.image_outlined),
@@ -350,6 +342,21 @@ class FeatureNavigationRail extends StatelessWidget {
                     selectedIcon: Icons.settings,
                     label: '设置',
                     onPressed: onOpenSettings,
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 20),
+                  _NavigationRailAction(
+                    extended: railExtended,
+                    compact: compact,
+                    selected: false,
+                    icon: compact
+                        ? Icons.menu_open_outlined
+                        : Icons.menu_outlined,
+                    selectedIcon: compact
+                        ? Icons.menu_open_outlined
+                        : Icons.menu_outlined,
+                    label: compact ? '展开侧栏' : '收起侧栏',
+                    onPressed: onToggleCompact,
                   ),
                 ],
               ),

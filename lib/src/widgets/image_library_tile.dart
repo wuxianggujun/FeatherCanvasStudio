@@ -48,6 +48,15 @@ class _ImageLibraryTile extends StatelessWidget {
     final totalFrames = item.totalFrameCount;
     final generation = item.generation;
     final displayPrompt = item.prompt ?? generation?.prompt;
+    final primaryActionStyle = OutlinedButton.styleFrom(
+      minimumSize: const Size(0, 40),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+    const compactActionConstraints = BoxConstraints.tightFor(
+      width: 40,
+      height: 40,
+    );
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -217,6 +226,7 @@ class _ImageLibraryTile extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: onOpenSliceExplorer,
+                          style: primaryActionStyle,
                           icon: const Icon(Icons.dashboard_customize_outlined),
                           label: const Text('切片'),
                         ),
@@ -225,6 +235,7 @@ class _ImageLibraryTile extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: onReuseGeneration,
+                          style: primaryActionStyle,
                           icon: const Icon(Icons.restore_outlined),
                           label: const Text('复用'),
                         ),
@@ -235,6 +246,7 @@ class _ImageLibraryTile extends StatelessWidget {
                           onPressed: item.canUseAsSpriteSheet
                               ? onUseInEditor
                               : null,
+                          style: primaryActionStyle,
                           icon: const Icon(Icons.edit_outlined),
                           label: const Text('编辑'),
                         ),
@@ -243,110 +255,113 @@ class _ImageLibraryTile extends StatelessWidget {
                     IconButton(
                       tooltip: '编辑作品信息',
                       onPressed: onEditMetadata,
+                      constraints: compactActionConstraints,
+                      visualDensity: VisualDensity.compact,
                       icon: const Icon(Icons.drive_file_rename_outline),
                     ),
-                    IconButton(
-                      tooltip: '复制图片',
-                      onPressed: onCopyImage,
-                      icon: const Icon(Icons.content_copy_outlined),
-                    ),
-                    PopupMenuButton<ImageLibraryTileMenuAction>(
-                      tooltip: '更多操作',
-                      icon: const Icon(Icons.more_horiz),
-                      onSelected: (action) {
-                        switch (action) {
-                          case ImageLibraryTileMenuAction.useInEditor:
-                            onUseInEditor();
-                          case ImageLibraryTileMenuAction.reuseGeneration:
-                            onReuseGeneration();
-                          case ImageLibraryTileMenuAction.copyGeneration:
-                            onCopyGeneration();
-                          case ImageLibraryTileMenuAction
-                              .makeBackgroundTransparent:
-                            onMakeBackgroundTransparent();
-                          case ImageLibraryTileMenuAction.copyImage:
-                            onCopyImage();
-                          case ImageLibraryTileMenuAction.exportImage:
-                            onExportImage();
-                          case ImageLibraryTileMenuAction.copyPath:
-                            onCopyPath();
-                          case ImageLibraryTileMenuAction.openLocation:
-                            onOpenLocation();
-                          case ImageLibraryTileMenuAction.delete:
-                            onDelete();
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        if (isSheetWithMeta && item.canUseAsSpriteSheet)
+                    SizedBox.square(
+                      dimension: 40,
+                      child: PopupMenuButton<ImageLibraryTileMenuAction>(
+                        tooltip: '更多操作',
+                        padding: EdgeInsets.zero,
+                        iconSize: 22,
+                        icon: const Icon(Icons.more_horiz),
+                        onSelected: (action) {
+                          switch (action) {
+                            case ImageLibraryTileMenuAction.useInEditor:
+                              onUseInEditor();
+                            case ImageLibraryTileMenuAction.reuseGeneration:
+                              onReuseGeneration();
+                            case ImageLibraryTileMenuAction.copyGeneration:
+                              onCopyGeneration();
+                            case ImageLibraryTileMenuAction
+                                .makeBackgroundTransparent:
+                              onMakeBackgroundTransparent();
+                            case ImageLibraryTileMenuAction.copyImage:
+                              onCopyImage();
+                            case ImageLibraryTileMenuAction.exportImage:
+                              onExportImage();
+                            case ImageLibraryTileMenuAction.copyPath:
+                              onCopyPath();
+                            case ImageLibraryTileMenuAction.openLocation:
+                              onOpenLocation();
+                            case ImageLibraryTileMenuAction.delete:
+                              onDelete();
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          if (isSheetWithMeta && item.canUseAsSpriteSheet)
+                            const PopupMenuItem(
+                              value: ImageLibraryTileMenuAction.useInEditor,
+                              child: _ImageLibraryTileMenuEntry(
+                                icon: Icons.edit_outlined,
+                                label: '在编辑器中打开',
+                              ),
+                            ),
+                          if (generation != null) ...[
+                            const PopupMenuItem(
+                              value: ImageLibraryTileMenuAction.reuseGeneration,
+                              child: _ImageLibraryTileMenuEntry(
+                                icon: Icons.restore_outlined,
+                                label: '复用生成参数',
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: ImageLibraryTileMenuAction.copyGeneration,
+                              child: _ImageLibraryTileMenuEntry(
+                                icon: Icons.content_copy_outlined,
+                                label: '复制生成参数',
+                              ),
+                            ),
+                          ],
+                          if (item.canMakeBackgroundTransparent)
+                            const PopupMenuItem(
+                              value: ImageLibraryTileMenuAction
+                                  .makeBackgroundTransparent,
+                              child: _ImageLibraryTileMenuEntry(
+                                icon: Icons.auto_fix_high_outlined,
+                                label: '背景转透明',
+                              ),
+                            ),
                           const PopupMenuItem(
-                            value: ImageLibraryTileMenuAction.useInEditor,
-                            child: ListTile(
-                              leading: Icon(Icons.edit_outlined),
-                              title: Text('在编辑器中打开'),
+                            value: ImageLibraryTileMenuAction.copyImage,
+                            child: _ImageLibraryTileMenuEntry(
+                              icon: Icons.content_copy_outlined,
+                              label: '复制图片',
                             ),
                           ),
-                        if (generation != null) ...[
                           const PopupMenuItem(
-                            value: ImageLibraryTileMenuAction.reuseGeneration,
-                            child: ListTile(
-                              leading: Icon(Icons.restore_outlined),
-                              title: Text('复用生成参数'),
+                            value: ImageLibraryTileMenuAction.exportImage,
+                            child: _ImageLibraryTileMenuEntry(
+                              icon: Icons.file_download_outlined,
+                              label: '导出图片',
                             ),
                           ),
                           const PopupMenuItem(
-                            value: ImageLibraryTileMenuAction.copyGeneration,
-                            child: ListTile(
-                              leading: Icon(Icons.content_copy_outlined),
-                              title: Text('复制生成参数'),
+                            value: ImageLibraryTileMenuAction.copyPath,
+                            child: _ImageLibraryTileMenuEntry(
+                              icon: Icons.copy_outlined,
+                              label: '复制路径',
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: ImageLibraryTileMenuAction.openLocation,
+                            child: _ImageLibraryTileMenuEntry(
+                              icon: Icons.folder_open_outlined,
+                              label: '打开位置',
+                            ),
+                          ),
+                          const PopupMenuDivider(),
+                          const PopupMenuItem(
+                            value: ImageLibraryTileMenuAction.delete,
+                            child: _ImageLibraryTileMenuEntry(
+                              icon: Icons.delete_outline,
+                              label: '删除作品',
+                              destructive: true,
                             ),
                           ),
                         ],
-                        if (item.canMakeBackgroundTransparent)
-                          const PopupMenuItem(
-                            value: ImageLibraryTileMenuAction
-                                .makeBackgroundTransparent,
-                            child: ListTile(
-                              leading: Icon(Icons.auto_fix_high_outlined),
-                              title: Text('背景转透明'),
-                            ),
-                          ),
-                        const PopupMenuItem(
-                          value: ImageLibraryTileMenuAction.copyImage,
-                          child: ListTile(
-                            leading: Icon(Icons.content_copy_outlined),
-                            title: Text('复制图片'),
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: ImageLibraryTileMenuAction.exportImage,
-                          child: ListTile(
-                            leading: Icon(Icons.file_download_outlined),
-                            title: Text('导出图片'),
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: ImageLibraryTileMenuAction.copyPath,
-                          child: ListTile(
-                            leading: Icon(Icons.copy_outlined),
-                            title: Text('复制路径'),
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: ImageLibraryTileMenuAction.openLocation,
-                          child: ListTile(
-                            leading: Icon(Icons.folder_open_outlined),
-                            title: Text('打开位置'),
-                          ),
-                        ),
-                        const PopupMenuDivider(),
-                        const PopupMenuItem(
-                          value: ImageLibraryTileMenuAction.delete,
-                          child: ListTile(
-                            leading: Icon(Icons.delete_outline),
-                            title: Text('删除作品'),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -354,6 +369,44 @@ class _ImageLibraryTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ImageLibraryTileMenuEntry extends StatelessWidget {
+  const _ImageLibraryTileMenuEntry({
+    required this.icon,
+    required this.label,
+    this.destructive = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = destructive
+        ? theme.colorScheme.error
+        : theme.colorScheme.onSurface;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 168, maxWidth: 196),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(color: color),
+            ),
+          ),
+        ],
       ),
     );
   }

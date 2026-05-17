@@ -39,13 +39,14 @@ class BatchGenerationWorkspace extends StatelessWidget {
     required this.onAdvancedSettingsChanged,
     required this.onTargetCountChanged,
     required this.onRequestCountChanged,
-    required this.onAddCurrent,
     required this.onAddPrompts,
     required this.onStart,
     required this.onPause,
     required this.onResume,
     required this.onCancelQueued,
+    required this.onRetryFailed,
     required this.onRemoveJob,
+    required this.onRetryJob,
     required this.onClearFinished,
     required this.onCopyImage,
     required this.onExportImage,
@@ -74,13 +75,14 @@ class BatchGenerationWorkspace extends StatelessWidget {
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final ValueChanged<int> onTargetCountChanged;
   final ValueChanged<int> onRequestCountChanged;
-  final VoidCallback onAddCurrent;
   final VoidCallback onAddPrompts;
   final VoidCallback onStart;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onCancelQueued;
+  final VoidCallback onRetryFailed;
   final ValueChanged<BatchGenerationJob> onRemoveJob;
+  final ValueChanged<BatchGenerationJob> onRetryJob;
   final VoidCallback onClearFinished;
   final void Function(int index, GeneratedImage image) onCopyImage;
   final void Function(int index, GeneratedImage image) onExportImage;
@@ -95,8 +97,11 @@ class BatchGenerationWorkspace extends StatelessWidget {
     ];
     final targetImageCount = jobs.fold<int>(
       previewImages.length,
-      (total, job) =>
-          job.isPending || job.isRunning ? total + job.imageCount : total,
+      (total, job) => job.isRunning ? total + job.imageCount : total,
+    );
+    final previewAspectRatio = _batchPreviewAspectRatio(
+      jobs: jobs,
+      fallbackSize: size,
     );
     ImageRequestDebugRecord? latestDebugRecord;
     for (final job in jobs) {
@@ -132,23 +137,28 @@ class BatchGenerationWorkspace extends StatelessWidget {
             onAdvancedSettingsChanged: onAdvancedSettingsChanged,
             onTargetCountChanged: onTargetCountChanged,
             onRequestCountChanged: onRequestCountChanged,
-            onAddCurrent: onAddCurrent,
             onAddPrompts: onAddPrompts,
             onStart: onStart,
             onPause: onPause,
             onResume: onResume,
             onCancelQueued: onCancelQueued,
+            onRetryFailed: onRetryFailed,
             onClearFinished: onClearFinished,
           ),
           preview: Column(
             children: [
-              _BatchGenerationJobList(jobs: jobs, onRemoveJob: onRemoveJob),
+              _BatchGenerationJobList(
+                jobs: jobs,
+                onRemoveJob: onRemoveJob,
+                onRetryJob: onRetryJob,
+              ),
               const SizedBox(height: 16),
               PreviewPanel(
                 errorMessage: null,
                 generatedImages: previewImages,
                 isGenerating: isRunning,
                 targetImageCount: targetImageCount,
+                targetAspectRatio: previewAspectRatio,
                 debugRecord: latestDebugRecord,
                 onRetry: onStart,
                 onCopyImage: onCopyImage,
@@ -161,6 +171,18 @@ class BatchGenerationWorkspace extends StatelessWidget {
       ],
     );
   }
+}
+
+double _batchPreviewAspectRatio({
+  required List<BatchGenerationJob> jobs,
+  required String fallbackSize,
+}) {
+  for (final job in jobs) {
+    if (job.resultImages.isNotEmpty || job.isRunning) {
+      return imageAspectRatioFromSize(job.size);
+    }
+  }
+  return imageAspectRatioFromSize(fallbackSize);
 }
 
 class _BatchGenerationControls extends StatelessWidget {
@@ -186,12 +208,12 @@ class _BatchGenerationControls extends StatelessWidget {
     required this.onAdvancedSettingsChanged,
     required this.onTargetCountChanged,
     required this.onRequestCountChanged,
-    required this.onAddCurrent,
     required this.onAddPrompts,
     required this.onStart,
     required this.onPause,
     required this.onResume,
     required this.onCancelQueued,
+    required this.onRetryFailed,
     required this.onClearFinished,
   });
 
@@ -216,12 +238,12 @@ class _BatchGenerationControls extends StatelessWidget {
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final ValueChanged<int> onTargetCountChanged;
   final ValueChanged<int> onRequestCountChanged;
-  final VoidCallback onAddCurrent;
   final VoidCallback onAddPrompts;
   final VoidCallback onStart;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onCancelQueued;
+  final VoidCallback onRetryFailed;
   final VoidCallback onClearFinished;
 
   @override
@@ -229,6 +251,7 @@ class _BatchGenerationControls extends StatelessWidget {
     final queuedCount = jobs.where((job) => job.isPending).length;
     final runningCount = jobs.where((job) => job.isRunning).length;
     final finishedCount = jobs.where((job) => job.isTerminal).length;
+    final failedCount = jobs.where((job) => job.canRetry).length;
     final batchCount = splitImageGenerationBatches(
       targetCount: targetCount,
       requestCount: requestCount,
@@ -328,21 +351,13 @@ class _BatchGenerationControls extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: isRunning ? null : onAddPrompts,
-                icon: const Icon(Icons.playlist_add_outlined),
-                label: const Text('按行拆分入队'),
-              ),
-              OutlinedButton.icon(
-                onPressed: isRunning ? null : onAddCurrent,
-                icon: const Icon(Icons.add_photo_alternate_outlined),
-                label: const Text('当前表单拆分入队'),
-              ),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: isRunning ? null : onAddPrompts,
+              icon: const Icon(Icons.playlist_add_outlined),
+              label: const Text('按行拆分入队'),
+            ),
           ),
           const SizedBox(height: 12),
           PrimaryActionButton(
@@ -372,6 +387,12 @@ class _BatchGenerationControls extends StatelessWidget {
             onPressed: queuedCount == 0 ? null : onCancelQueued,
             icon: const Icon(Icons.cancel_schedule_send_outlined),
             label: const Text('取消等待任务'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: isRunning || failedCount == 0 ? null : onRetryFailed,
+            icon: const Icon(Icons.replay_outlined),
+            label: Text(failedCount == 0 ? '重试失败任务' : '重试失败任务 ($failedCount)'),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -455,10 +476,12 @@ class _BatchGenerationJobList extends StatelessWidget {
   const _BatchGenerationJobList({
     required this.jobs,
     required this.onRemoveJob,
+    required this.onRetryJob,
   });
 
   final List<BatchGenerationJob> jobs;
   final ValueChanged<BatchGenerationJob> onRemoveJob;
+  final ValueChanged<BatchGenerationJob> onRetryJob;
 
   @override
   Widget build(BuildContext context) {
@@ -475,23 +498,50 @@ class _BatchGenerationJobList extends StatelessWidget {
 
     return AppPanel(
       title: '任务队列',
-      child: Column(
-        children: [
-          for (final job in jobs) ...[
-            _BatchGenerationJobTile(job: job, onRemove: onRemoveJob),
-            if (job != jobs.last) const Divider(height: 18),
-          ],
-        ],
+      trailing: Text(
+        '${jobs.length} 个任务',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      child: SizedBox(
+        height: _batchJobListHeight(jobs.length),
+        child: ListView.separated(
+          primary: false,
+          itemCount: jobs.length,
+          separatorBuilder: (context, index) => const Divider(height: 18),
+          itemBuilder: (context, index) {
+            return _BatchGenerationJobTile(
+              job: jobs[index],
+              onRemove: onRemoveJob,
+              onRetry: onRetryJob,
+            );
+          },
+        ),
       ),
     );
   }
 }
 
+double _batchJobListHeight(int jobCount) {
+  const estimatedTileHeight = 74.0;
+  const separatorHeight = 18.0;
+  const maxHeight = 320.0;
+  final contentHeight =
+      jobCount * estimatedTileHeight + (jobCount - 1) * separatorHeight;
+  return contentHeight.clamp(96.0, maxHeight).toDouble();
+}
+
 class _BatchGenerationJobTile extends StatelessWidget {
-  const _BatchGenerationJobTile({required this.job, required this.onRemove});
+  const _BatchGenerationJobTile({
+    required this.job,
+    required this.onRemove,
+    required this.onRetry,
+  });
 
   final BatchGenerationJob job;
   final ValueChanged<BatchGenerationJob> onRemove;
+  final ValueChanged<BatchGenerationJob> onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -505,6 +555,9 @@ class _BatchGenerationJobTile extends StatelessWidget {
     };
     final batchLabel = job.hasMultipleBatches
         ? '第 ${job.batchIndex}/${job.batchTotal} 批 · '
+        : '';
+    final retryLabel = job.retryAttempt > 0
+        ? ' · 重试 ${job.retryAttempt}/$maxBatchGenerationAutoRetryAttempts'
         : '';
 
     return Row(
@@ -529,7 +582,7 @@ class _BatchGenerationJobTile extends StatelessWidget {
               Text(
                 '${batchGenerationJobStatusLabel(job.status)} · '
                 '$batchLabel${job.size} · '
-                '${job.imageCount} 张 · ${job.apiConfig.name}',
+                '${job.imageCount} 张 · ${job.apiConfig.name}$retryLabel',
                 style: theme.textTheme.bodySmall,
               ),
               if (job.errorMessage != null) ...[
@@ -546,6 +599,12 @@ class _BatchGenerationJobTile extends StatelessWidget {
             ],
           ),
         ),
+        if (job.canRetry)
+          IconButton(
+            tooltip: '重试任务',
+            onPressed: () => onRetry(job),
+            icon: const Icon(Icons.replay_outlined),
+          ),
         IconButton(
           tooltip: '移除任务',
           onPressed: job.canDelete ? () => onRemove(job) : null,

@@ -4,6 +4,7 @@ import '../../models/app_config.dart';
 import '../../models/generated_image.dart';
 import '../../models/image_advanced_settings.dart';
 import '../../services/image_api_client.dart';
+import '../../utils/image_dimensions.dart';
 import '../generation_form_widgets.dart';
 import '../layout_navigation_widgets.dart';
 import '../preview_widgets.dart';
@@ -93,6 +94,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
             generatedImages: generatedImages,
             isGenerating: isGenerating,
             targetImageCount: imageCount,
+            targetAspectRatio: imageAspectRatioFromSize(size),
             debugRecord: debugRecord,
             onRetry: onGenerate,
             onCopyImage: onCopyImage,

@@ -131,6 +131,33 @@ void main() {
 
     expect(viewData.filteredItems, [alpha]);
   });
+
+  test('uses provided existence predicate without filesystem lookup', () {
+    final visible = _item(
+      id: 'visible',
+      path: 'virtual-visible.png',
+      kind: ImageAssetKind.generatedImage,
+      createdAt: DateTime.parse('2026-05-15T12:00:00Z'),
+    );
+    final hidden = _item(
+      id: 'hidden',
+      path: 'virtual-hidden.png',
+      kind: ImageAssetKind.generatedImage,
+      createdAt: DateTime.parse('2026-05-15T12:01:00Z'),
+    );
+
+    final viewData = buildImageLibraryViewData(
+      library: [visible, hidden],
+      filter: ImageLibraryKindFilter.all,
+      sortOrder: ImageLibrarySortOrder.newest,
+      searchQuery: '',
+      showStandaloneFrames: true,
+      itemExists: (item) => item.id == visible.id,
+    );
+
+    expect(viewData.availableItems, [visible]);
+    expect(viewData.filteredItems, [visible]);
+  });
 }
 
 ImageLibraryItem _item({

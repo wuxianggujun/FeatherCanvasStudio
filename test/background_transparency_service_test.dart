@@ -47,4 +47,21 @@ void main() {
     expect(output.getPixel(1, 0).a.toInt(), 0);
     expect(output.getPixel(1, 1).a.toInt(), 255);
   });
+
+  test('runs transparent background conversion in background isolate', () async {
+    final image = image_lib.Image(width: 3, height: 3, numChannels: 4)
+      ..clear(image_lib.ColorRgba8(255, 255, 255, 255));
+    image.setPixelRgba(1, 1, 10, 20, 30, 255);
+
+    final result =
+        await BackgroundTransparencyService.makeBackgroundTransparentInBackground(
+          Uint8List.fromList(image_lib.encodePng(image)),
+          tolerance: 4,
+        );
+    final output = image_lib.decodeImage(result.pngBytes)!;
+
+    expect(result.transparentPixelCount, 8);
+    expect(output.getPixel(0, 0).a.toInt(), 0);
+    expect(output.getPixel(1, 1).a.toInt(), 255);
+  });
 }

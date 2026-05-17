@@ -39,9 +39,8 @@ Future<FirstRunSetupAction?> showFirstRunSetupDialog(BuildContext context) {
             child: const Text('稍后配置'),
           ),
           FilledButton.icon(
-            onPressed: () => Navigator.of(
-              context,
-            ).pop(FirstRunSetupAction.openApiSettings),
+            onPressed: () =>
+                Navigator.of(context).pop(FirstRunSetupAction.openApiSettings),
             icon: const Icon(Icons.tune_outlined),
             label: const Text('打开接口配置'),
           ),

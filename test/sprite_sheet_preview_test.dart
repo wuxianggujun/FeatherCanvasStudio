@@ -240,13 +240,30 @@ void main() {
       frameIndex: 1,
       fit: SpriteSheetFrameFit.stretch,
     );
+    final pixelatedFrame = await SpriteSheetFileService.pixelateFrameAndSave(
+      store: store,
+      readFileBytes: (path) => File(path).readAsBytes(),
+      sheetPath: sheetPath,
+      rows: 2,
+      columns: 2,
+      frameIndex: 0,
+      blockSize: 2,
+    );
+    final pixelatedSheet = await SpriteSheetFileService.pixelateSheetAndSave(
+      store: store,
+      readFileBytes: (path) => File(path).readAsBytes(),
+      sheetPath: sheetPath,
+      rows: 2,
+      columns: 2,
+      blockSize: 2,
+    );
 
     final editedImage = image_lib.decodeImage(
       await File(edited.path).readAsBytes(),
     )!;
-    final exportedMetadata = jsonDecode(
-      await File(exported.metadataPath).readAsString(),
-    ) as Map<String, dynamic>;
+    final exportedMetadata =
+        jsonDecode(await File(exported.metadataPath).readAsString())
+            as Map<String, dynamic>;
 
     expect(exported.directoryPath, contains('generated-images'));
     expect(await File(exported.path).exists(), isTrue);
@@ -266,6 +283,10 @@ void main() {
     expect(await File(edited.path).exists(), isTrue);
     expect(await File(edited.metadataPath).exists(), isTrue);
     expect(editedImage.getPixel(2, 0).g.toInt(), 255);
+    expect(await File(pixelatedFrame.path).exists(), isTrue);
+    expect(await File(pixelatedFrame.metadataPath).exists(), isTrue);
+    expect(await File(pixelatedSheet.path).exists(), isTrue);
+    expect(await File(pixelatedSheet.metadataPath).exists(), isTrue);
   });
 
   test('replaces one sprite sheet cell without changing other cells', () {

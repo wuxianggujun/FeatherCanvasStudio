@@ -159,8 +159,25 @@ mixin _ImageLibraryStateMixin
   final ImageLibraryFileService _fileService = const ImageLibraryFileService();
   final ImageLibraryService _imageLibraryService = const ImageLibraryService();
 
+  List<ImageLibraryItem> _imageLibraryValue = const [];
+  Set<String>? _existingImageLibraryPaths;
+  Set<String> _imageLibraryExistenceRefreshPaths = const <String>{};
+  int _imageLibraryExistenceRefreshToken = 0;
+
   @override
-  List<ImageLibraryItem> _imageLibrary = const [];
+  List<ImageLibraryItem> get _imageLibrary => _imageLibraryValue;
+
+  @override
+  set _imageLibrary(List<ImageLibraryItem> value) {
+    final previousPaths = _imageLibraryPathSet(_imageLibraryValue);
+    final nextPaths = _imageLibraryPathSet(value);
+    _imageLibraryValue = value;
+    _updateImageLibraryExistenceCacheAfterAssignment(
+      previousPaths: previousPaths,
+      nextPaths: nextPaths,
+    );
+  }
+
   ImageLibraryKindFilter _imageLibraryKindFilter = ImageLibraryKindFilter.all;
   ImageLibrarySortOrder _imageLibrarySortOrder = ImageLibrarySortOrder.newest;
   String _imageLibrarySearchQuery = '';
@@ -170,7 +187,95 @@ mixin _ImageLibraryStateMixin
   bool _showStandaloneSpriteFrames = false;
 
   void _disposeImageLibraryState() {
+    _imageLibraryExistenceRefreshToken += 1;
     _imageLibrarySearchController.dispose();
+  }
+
+  Set<String> _imageLibraryPathSet(List<ImageLibraryItem> library) {
+    return {
+      for (final item in library)
+        if (item.path.trim().isNotEmpty) item.path,
+    };
+  }
+
+  void _updateImageLibraryExistenceCacheAfterAssignment({
+    required Set<String> previousPaths,
+    required Set<String> nextPaths,
+  }) {
+    final cachedExistingPaths = _existingImageLibraryPaths;
+    if (cachedExistingPaths != null) {
+      _existingImageLibraryPaths = {
+        for (final path in cachedExistingPaths)
+          if (nextPaths.contains(path)) path,
+        for (final path in nextPaths)
+          if (!previousPaths.contains(path)) path,
+      };
+    } else if (nextPaths.isEmpty) {
+      _existingImageLibraryPaths = const <String>{};
+    }
+
+    if (_stringSetEquals(nextPaths, _imageLibraryExistenceRefreshPaths)) {
+      return;
+    }
+
+    _imageLibraryExistenceRefreshPaths = Set<String>.unmodifiable(nextPaths);
+    final refreshToken = ++_imageLibraryExistenceRefreshToken;
+    final pathsToCheck = cachedExistingPaths == null
+        ? nextPaths
+        : {
+            for (final path in nextPaths)
+              if (!previousPaths.contains(path)) path,
+          };
+    if (pathsToCheck.isEmpty) {
+      return;
+    }
+
+    unawaited(
+      _collectExistingImageLibraryPaths(pathsToCheck).then((existingPaths) {
+        if (!mounted || refreshToken != _imageLibraryExistenceRefreshToken) {
+          return;
+        }
+        final currentPaths = _imageLibraryPathSet(_imageLibraryValue);
+        final currentCachedPaths = _existingImageLibraryPaths;
+        final nextExistingPaths = {
+          if (cachedExistingPaths != null && currentCachedPaths != null)
+            for (final path in currentCachedPaths)
+              if (currentPaths.contains(path)) path,
+          for (final path in existingPaths)
+            if (currentPaths.contains(path)) path,
+        };
+        final cachedPaths = _existingImageLibraryPaths;
+        if (cachedPaths != null &&
+            _stringSetEquals(cachedPaths, nextExistingPaths)) {
+          return;
+        }
+        setState(() {
+          _existingImageLibraryPaths = Set<String>.unmodifiable(
+            nextExistingPaths,
+          );
+        });
+      }),
+    );
+  }
+
+  Future<Set<String>> _collectExistingImageLibraryPaths(
+    Set<String> paths,
+  ) async {
+    final existingPaths = <String>{};
+    for (final path in paths) {
+      if (await _fileService.fileExists(path)) {
+        existingPaths.add(path);
+      }
+    }
+    return existingPaths;
+  }
+
+  bool _isImageLibraryItemAvailable(ImageLibraryItem item) {
+    if (item.path.trim().isEmpty) {
+      return false;
+    }
+    final existingPaths = _existingImageLibraryPaths;
+    return existingPaths == null || existingPaths.contains(item.path);
   }
 
   Future<T?> _showImageLibraryPicker<T extends Object>({
@@ -202,6 +307,7 @@ mixin _ImageLibraryStateMixin
     return availableImageLibraryItems(
       _imageLibrary,
       allowedKinds: allowedKinds,
+      itemExists: _isImageLibraryItemAvailable,
     );
   }
 
@@ -394,6 +500,17 @@ mixin _ImageLibraryStateMixin
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
       if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  bool _stringSetEquals(Set<String> a, Set<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (final value in a) {
+      if (!b.contains(value)) {
+        return false;
+      }
     }
     return true;
   }
@@ -637,10 +754,11 @@ mixin _ImageLibraryStateMixin
     String? fallbackTitle,
     String source = '背景转透明',
   }) async {
-    final result = BackgroundTransparencyService.makeBackgroundTransparent(
-      sourceBytes,
-      tolerance: tolerance,
-    );
+    final result =
+        await BackgroundTransparencyService.makeBackgroundTransparentInBackground(
+          sourceBytes,
+          tolerance: tolerance,
+        );
     if (result.transparentPixelCount == 0) {
       return null;
     }
@@ -1172,6 +1290,7 @@ mixin _ImageLibraryStateMixin
       showStandaloneFrames: _showStandaloneSpriteFrames,
       projectFilter: _imageLibraryProjectFilter,
       tagFilter: _imageLibraryTagFilter,
+      itemExists: _isImageLibraryItemAvailable,
     );
 
     return ImageLibraryWorkspace(

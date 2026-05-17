@@ -30,7 +30,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('加载失败'), findsNothing);
-    expect(tester.widget<Image>(find.byType(Image)).image, isA<MemoryImage>());
+    final previewImage = tester.widget<Image>(find.byType(Image));
+    expect(previewImage.image, isA<MemoryImage>());
+    expect(previewImage.fit, BoxFit.contain);
   });
 
   testWidgets('accepts custom gif frame durations', (tester) async {
@@ -76,6 +78,7 @@ void main() {
 
     expect(frameDelay, 375);
     expect(defaultDelay, 250);
+    expect(tester.widget<Image>(find.byType(Image)).fit, BoxFit.contain);
   });
 }
 

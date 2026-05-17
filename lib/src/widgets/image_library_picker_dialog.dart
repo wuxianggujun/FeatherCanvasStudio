@@ -31,7 +31,7 @@ class ImageLibraryPickerDialogState extends State<ImageLibraryPickerDialog> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 560),
           child: GridView.builder(
-            shrinkWrap: true,
+            primary: false,
             itemCount: widget.items.length,
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 180,

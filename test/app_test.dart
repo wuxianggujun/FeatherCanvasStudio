@@ -49,6 +49,7 @@ void main() {
     expect(find.text('每批张数'), findsOneWidget);
     expect(find.text('当前会把每条提示词拆成 25 个串行任务'), findsOneWidget);
     expect(find.text('任务队列'), findsOneWidget);
+    expect(find.text('当前表单拆分入队'), findsNothing);
 
     await tester.tap(find.text('文本生图').first);
     await tester.pumpAndSettle();

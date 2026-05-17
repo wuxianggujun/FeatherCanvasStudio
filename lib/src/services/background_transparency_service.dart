@@ -1,7 +1,7 @@
 import 'dart:collection';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as image_lib;
 
 import '../models/exceptions.dart';
@@ -97,6 +97,18 @@ class BackgroundTransparencyService {
     );
   }
 
+  static Future<BackgroundTransparencyResult>
+  makeBackgroundTransparentInBackground(
+    Uint8List imageBytes, {
+    int tolerance = 28,
+  }) {
+    return compute(
+      _makeBackgroundTransparentInIsolate,
+      _BackgroundTransparencyTask(imageBytes, tolerance),
+      debugLabel: 'background-transparency',
+    );
+  }
+
   static _SampledColor _sampleBackgroundColor(image_lib.Image image) {
     final corners = [
       image.getPixel(0, 0),
@@ -136,6 +148,22 @@ class BackgroundTransparencyService {
     final blueDelta = (pixel.b.toInt() - sample.blue).abs();
     return math.max(redDelta, math.max(greenDelta, blueDelta)) <= safeTolerance;
   }
+}
+
+BackgroundTransparencyResult _makeBackgroundTransparentInIsolate(
+  _BackgroundTransparencyTask task,
+) {
+  return BackgroundTransparencyService.makeBackgroundTransparent(
+    task.imageBytes,
+    tolerance: task.tolerance,
+  );
+}
+
+class _BackgroundTransparencyTask {
+  const _BackgroundTransparencyTask(this.imageBytes, this.tolerance);
+
+  final Uint8List imageBytes;
+  final int tolerance;
 }
 
 class _SampledColor {

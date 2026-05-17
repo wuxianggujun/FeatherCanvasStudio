@@ -100,15 +100,6 @@ mixin _BatchGenerationStateMixin
     ];
   }
 
-  Future<void> _addCurrentGenerationFormToBatchQueue() async {
-    final jobs = await _createBatchJobs(_promptController.text);
-    if (jobs == null || !mounted) {
-      return;
-    }
-    setState(() => _batchJobs = [..._batchJobs, ...jobs]);
-    _showMessage('已拆分并加入 ${jobs.length} 个批量任务');
-  }
-
   Future<void> _addBatchPromptLinesToQueue() async {
     final prompts = _batchPromptController.text
         .split(RegExp(r'\r?\n'))
@@ -171,6 +162,62 @@ mixin _BatchGenerationStateMixin
     });
   }
 
+  void _retryFailedBatchJobs() {
+    if (_isBatchGenerationRunning) {
+      _showMessage('队列运行中，请等待当前队列停止后再重试失败任务');
+      return;
+    }
+
+    final failedCount = _batchJobs.where((job) => job.canRetry).length;
+    if (failedCount == 0) {
+      _showMessage('没有失败任务可重试');
+      return;
+    }
+
+    setState(() {
+      _batchJobs = [
+        for (final job in _batchJobs)
+          if (job.canRetry) _requeueFailedBatchJob(job) else job,
+      ];
+    });
+    _showMessage('已将 $failedCount 个失败任务重新加入等待队列');
+  }
+
+  void _retryFailedBatchJob(BatchGenerationJob job) {
+    if (_isBatchGenerationRunning) {
+      _showMessage('队列运行中，请等待当前队列停止后再重试失败任务');
+      return;
+    }
+    if (!job.canRetry) {
+      return;
+    }
+
+    final jobIndex = _batchJobs.indexWhere((current) => current.id == job.id);
+    if (jobIndex < 0 || !_batchJobs[jobIndex].canRetry) {
+      return;
+    }
+
+    setState(() {
+      _batchJobs = _replaceBatchJob(
+        _batchJobs,
+        jobIndex,
+        _requeueFailedBatchJob(_batchJobs[jobIndex]),
+      );
+    });
+    _showMessage('已将失败任务重新加入等待队列');
+  }
+
+  BatchGenerationJob _requeueFailedBatchJob(BatchGenerationJob job) {
+    return job.copyWith(
+      status: BatchGenerationJobStatus.queued,
+      retryAttempt: 0,
+      resultImages: const <GeneratedImage>[],
+      libraryItems: const <ImageLibraryItem>[],
+      clearErrorMessage: true,
+      clearDebugRecord: true,
+    );
+  }
+
   Future<void> _startBatchGenerationQueue() async {
     if (_isBatchGenerationRunning) {
       return;
@@ -195,12 +242,13 @@ mixin _BatchGenerationStateMixin
           job.copyWith(
             status: BatchGenerationJobStatus.running,
             clearErrorMessage: true,
+            clearDebugRecord: true,
           ),
         );
       });
 
       try {
-        var debugRecord = job.debugRecord;
+        ImageRequestDebugRecord? debugRecord;
         final completed = await _batchGenerationService.runJob(
           job: job,
           client: _client,
@@ -251,14 +299,12 @@ mixin _BatchGenerationStateMixin
         );
         if (currentIndex >= 0) {
           setState(() {
-            _batchJobs = _replaceBatchJob(
-              _batchJobs,
-              currentIndex,
-              _batchJobs[currentIndex].copyWith(
-                status: BatchGenerationJobStatus.failed,
-                errorMessage: error.toString(),
-              ),
+            final update = updateBatchJobAfterFailure(
+              jobs: _batchJobs,
+              jobIndex: currentIndex,
+              error: error,
             );
+            _batchJobs = update.jobs;
           });
         }
       }
@@ -462,13 +508,14 @@ mixin _BatchGenerationStateMixin
       onAdvancedSettingsChanged: _setAdvancedSettings,
       onTargetCountChanged: _setBatchTargetCount,
       onRequestCountChanged: _setBatchRequestCount,
-      onAddCurrent: () => unawaited(_addCurrentGenerationFormToBatchQueue()),
       onAddPrompts: () => unawaited(_addBatchPromptLinesToQueue()),
       onStart: () => unawaited(_startBatchGenerationQueue()),
       onPause: _pauseBatchGenerationQueue,
       onResume: _resumeBatchGenerationQueue,
       onCancelQueued: _cancelQueuedBatchJobs,
+      onRetryFailed: _retryFailedBatchJobs,
       onRemoveJob: _removeBatchJob,
+      onRetryJob: _retryFailedBatchJob,
       onClearFinished: _clearFinishedBatchJobs,
       onCopyImage: (index, image) => unawaited(_copyBatchPreviewImage(image)),
       onExportImage: (index, image) =>
