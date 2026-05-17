@@ -155,18 +155,32 @@ mixin _EditorGifStateMixin
   set _isReplacingEditorFrame(bool value);
   bool get _isImageEditorFocusMode;
   set _isImageEditorFocusMode(bool value);
-  int get _gifDefaultFrameDelayMs;
-  set _gifDefaultFrameDelayMs(int value);
-  int get _gifLoopCount;
-  set _gifLoopCount(int value);
-  GifPlaybackMode get _gifPlaybackMode;
-  set _gifPlaybackMode(GifPlaybackMode value);
-  bool get _isComposingGif;
-  set _isComposingGif(bool value);
-  String? get _gifOutputPath;
-  set _gifOutputPath(String? value);
-  String? get _gifErrorMessage;
-  set _gifErrorMessage(String? value);
+  GifComposerNotifier get _gifComposerNotifier;
+  // ignore: unused_element
+  List<GifSourceFrame> get _gifSourceFrames => _gifComposerNotifier.frames;
+  set _gifSourceFrames(List<GifSourceFrame> value) =>
+      _gifComposerNotifier.frames = value;
+  // ignore: unused_element
+  int get _gifDefaultFrameDelayMs => _gifComposerNotifier.defaultFrameDelayMs;
+  set _gifDefaultFrameDelayMs(int value) =>
+      _gifComposerNotifier.defaultFrameDelayMs = value;
+  // ignore: unused_element
+  int get _gifLoopCount => _gifComposerNotifier.loopCount;
+  set _gifLoopCount(int value) => _gifComposerNotifier.loopCount = value;
+  // ignore: unused_element
+  GifPlaybackMode get _gifPlaybackMode => _gifComposerNotifier.playbackMode;
+  set _gifPlaybackMode(GifPlaybackMode value) =>
+      _gifComposerNotifier.playbackMode = value;
+  // ignore: unused_element
+  bool get _isComposingGif => _gifComposerNotifier.isComposing;
+  set _isComposingGif(bool value) => _gifComposerNotifier.isComposing = value;
+  // ignore: unused_element
+  String? get _gifOutputPath => _gifComposerNotifier.outputPath;
+  set _gifOutputPath(String? value) => _gifComposerNotifier.outputPath = value;
+  // ignore: unused_element
+  String? get _gifErrorMessage => _gifComposerNotifier.errorMessage;
+  set _gifErrorMessage(String? value) =>
+      _gifComposerNotifier.errorMessage = value;
   WorkspaceFeature get _selectedFeature;
   set _selectedFeature(WorkspaceFeature value);
   @override
@@ -2011,13 +2025,6 @@ mixin _EditorGifStateMixin
 
   Widget _buildGifComposerWorkspace() {
     return GifComposerWorkspace(
-      frames: _gifSourceFrames,
-      defaultFrameDelayMs: _gifDefaultFrameDelayMs,
-      loopCount: _gifLoopCount,
-      playbackMode: _gifPlaybackMode,
-      isComposing: _isComposingGif,
-      outputPath: _gifOutputPath,
-      errorMessage: _gifErrorMessage,
       onPickImages: _pickGifSourceImages,
       onClearImages: _clearGifSourceImages,
       onReorderImages: _reorderGifSourceImages,

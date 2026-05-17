@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../services/gif_composer_service.dart';
+import '../../state/gif_composer_notifier.dart';
 import '../editor_gif_widgets.dart';
 import '../layout_navigation_widgets.dart';
 
 class GifComposerWorkspace extends StatelessWidget {
   const GifComposerWorkspace({
-    required this.frames,
-    required this.defaultFrameDelayMs,
-    required this.loopCount,
-    required this.playbackMode,
-    required this.isComposing,
-    required this.outputPath,
-    required this.errorMessage,
     required this.onPickImages,
     required this.onClearImages,
     required this.onReorderImages,
@@ -26,13 +21,6 @@ class GifComposerWorkspace extends StatelessWidget {
     super.key,
   });
 
-  final List<GifSourceFrame> frames;
-  final int defaultFrameDelayMs;
-  final int loopCount;
-  final GifPlaybackMode playbackMode;
-  final bool isComposing;
-  final String? outputPath;
-  final String? errorMessage;
   final VoidCallback onPickImages;
   final VoidCallback onClearImages;
   final void Function(int oldIndex, int newIndex) onReorderImages;
@@ -52,28 +40,34 @@ class GifComposerWorkspace extends StatelessWidget {
       children: [
         ResponsiveWorkspaceSplit(
           storageKey: 'gif_composer',
-          controls: GifComposerPanel(
-            frames: frames,
-            defaultFrameDelayMs: defaultFrameDelayMs,
-            loopCount: loopCount,
-            playbackMode: playbackMode,
-            isComposing: isComposing,
-            outputPath: outputPath,
-            errorMessage: errorMessage,
-            onPickImages: onPickImages,
-            onClearImages: onClearImages,
-            onReorderImages: onReorderImages,
-            onRemoveImageAt: onRemoveImageAt,
-            onFrameDelayChanged: onFrameDelayChanged,
-            onApplyFrameDelayToAll: onApplyFrameDelayToAll,
-            onFrameDelayForImageChanged: onFrameDelayForImageChanged,
-            onLoopCountChanged: onLoopCountChanged,
-            onPlaybackModeChanged: onPlaybackModeChanged,
-            onCompose: onCompose,
+          controls: Consumer<GifComposerNotifier>(
+            builder: (context, notifier, _) => GifComposerPanel(
+              frames: notifier.frames,
+              defaultFrameDelayMs: notifier.defaultFrameDelayMs,
+              loopCount: notifier.loopCount,
+              playbackMode: notifier.playbackMode,
+              isComposing: notifier.isComposing,
+              outputPath: notifier.outputPath,
+              errorMessage: notifier.errorMessage,
+              onPickImages: onPickImages,
+              onClearImages: onClearImages,
+              onReorderImages: onReorderImages,
+              onRemoveImageAt: onRemoveImageAt,
+              onFrameDelayChanged: onFrameDelayChanged,
+              onApplyFrameDelayToAll: onApplyFrameDelayToAll,
+              onFrameDelayForImageChanged: onFrameDelayForImageChanged,
+              onLoopCountChanged: onLoopCountChanged,
+              onPlaybackModeChanged: onPlaybackModeChanged,
+              onCompose: onCompose,
+            ),
           ),
-          preview: GifSourcePreviewPanel(
-            frames: frames,
-            outputPath: outputPath,
+          preview: Selector<GifComposerNotifier,
+              ({List<GifSourceFrame> frames, String? outputPath})>(
+            selector: (_, n) => (frames: n.frames, outputPath: n.outputPath),
+            builder: (context, data, _) => GifSourcePreviewPanel(
+              frames: data.frames,
+              outputPath: data.outputPath,
+            ),
           ),
         ),
       ],

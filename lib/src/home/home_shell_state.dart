@@ -116,6 +116,7 @@ mixin _HomeShellStateMixin
   AppLocalStore get _store;
   ImageGenerationNotifier get _imageGenerationNotifier;
   BatchGenerationNotifier get _batchGenerationNotifier;
+  GifComposerNotifier get _gifComposerNotifier;
   @override
   bool get _isBootstrapping;
   set _isBootstrapping(bool value);
@@ -668,6 +669,9 @@ mixin _HomeShellStateMixin
         ),
         ChangeNotifierProvider<BatchGenerationNotifier>.value(
           value: _batchGenerationNotifier,
+        ),
+        ChangeNotifierProvider<GifComposerNotifier>.value(
+          value: _gifComposerNotifier,
         ),
       ],
       child: Shortcuts(

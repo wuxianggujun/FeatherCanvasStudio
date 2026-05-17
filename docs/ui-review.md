@@ -431,6 +431,31 @@ void _showMessage(String message) {
 
 每次改动后 `flutter analyze` 均通过（No issues found）。
 
+**Phase 9：P0-1 第三个 Notifier（GifComposerNotifier，混合策略）**
+
+| 改动 | 文件 | 对应评审项 |
+|---|---|---|
+| 新建 `GifComposerNotifier`（ChangeNotifier，托管 7 个 GIF 字段：`frames` / `defaultFrameDelayMs` / `loopCount` / `playbackMode` / `isComposing` / `outputPath` / `errorMessage`） | [lib/src/state/gif_composer_notifier.dart](lib/src/state/gif_composer_notifier.dart) | P0-1 |
+| `_FeatherCanvasHomePageState` 加 notifier 字段，`MultiProvider` 加第三个 `ChangeNotifierProvider`，dispose 释放，**删除 main.dart 中 7 个原始 GIF 字段** | [lib/main.dart](lib/main.dart) | P0-1 |
+| `_EditorGifStateMixin` 7 个 GIF 字段全部改为委托 getter/setter（含 `_gifSourceFrames`），加 `GifComposerNotifier get _gifComposerNotifier` 抽象 getter | [lib/src/home/editor_gif_state.dart](lib/src/home/editor_gif_state.dart) | P0-1 |
+| `_HomeShellStateMixin` 加 `GifComposerNotifier get _gifComposerNotifier` 抽象 getter | [lib/src/home/home_shell_state.dart](lib/src/home/home_shell_state.dart) | P0-1 |
+| **删除兼容接口**：`GifComposerWorkspace` 移除 7 个 prop（frames / defaultFrameDelayMs / loopCount / playbackMode / isComposing / outputPath / errorMessage），controls 用 `Consumer<GifComposerNotifier>` 包装 GifComposerPanel；preview 用 `Selector` 只订阅 frames + outputPath（避免 isComposing 等无关字段触发预览重渲染） | [lib/src/widgets/workspaces/gif_composer_workspace.dart](lib/src/widgets/workspaces/gif_composer_workspace.dart) | P0-1 |
+| 调用方 `_buildGifComposerWorkspace` 同步移除 7 个 prop 透传 | [lib/src/home/editor_gif_state.dart](lib/src/home/editor_gif_state.dart) | P0-1 |
+
+**Phase 9 vs Phase 7/8 的关键差异**：
+- Phase 7（ImageGeneration）：4 字段进 `_ResetDefaultsSnapshot`，setter 必须保留，workspace 双轨过渡。
+- Phase 8（BatchGeneration）：5 字段无跨 mixin、无 snapshot，**直接删 workspace 全部 5 个 prop**。
+- **Phase 9（GifComposer）：混合策略**——7 字段全部进 `_ResetDefaultsSnapshot`（home_shell_state 的 `_restoreResetDefaultsSnapshot` 仍写 `_gifSourceFrames = ...` 等），同时 `_HomeShellStateMixin` 与 `_ImageLibraryStateMixin` 的抽象声明仍要求这些字段的 getter/setter，但具体实现现在由 `_EditorGifStateMixin` 的 delegating geter/setter 提供（mixin 线性化让后来者覆盖）。这种"snapshot 强依赖 + workspace 强解耦"的混合形态适用于：状态被外部持久化机制（snapshot/storage）需要批量写入，但 UI 层已不依赖 mixin 字段直读。
+
+**Pilot 收益验证**：
+- `flutter analyze` 通过（No issues found）。
+- `flutter test` 191/191 全绿。
+- 7 字段变化只触发 `Consumer` 与 `Selector` 局部 rebuild，不再走全树。GIF 合成进度（`isComposing` 翻转）只刷新 GifComposerPanel；frames 增删只刷新 panel + preview；outputPath 完成时只刷新 preview 的导出区。
+
+**已验证：mixin 线性化兼容 snapshot 写入**。`_HomeShellStateMixin._restoreResetDefaultsSnapshot` 中 `_gifSourceFrames = snapshot.gifSourceFrames`（line 546-551）依然有效——由 `_EditorGifStateMixin` 的 delegating setter 接管，自动通知 notifier listeners，UI 无延迟刷新。
+
+每次改动后 `flutter analyze` 均通过（No issues found）。
+
 ### 未完成（建议下个分支单独做）
 
 | 评审项 | 优先级 | 工作量 |

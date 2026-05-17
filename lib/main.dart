@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/l10n/generated/app_localizations.dart';
 import 'src/state/batch_generation_notifier.dart';
+import 'src/state/gif_composer_notifier.dart';
 import 'src/state/image_generation_notifier.dart';
 import 'src/theme/app_theme.dart';
 import 'src/theme/layout_constants.dart';
@@ -246,8 +247,6 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   @override
   bool _isAnimationProjectBusy = false;
   @override
-  bool _isComposingGif = false;
-  @override
   bool _isReplacingEditorFrame = false;
   @override
   bool _isBootstrapping = true;
@@ -326,18 +325,9 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
       _focusedFeature = null;
     }
   }
+
   @override
-  List<GifSourceFrame> _gifSourceFrames = const [];
-  @override
-  String? _gifOutputPath;
-  @override
-  String? _gifErrorMessage;
-  @override
-  int _gifDefaultFrameDelayMs = defaultGifFrameDelayMs;
-  @override
-  int _gifLoopCount = defaultGifLoopCount;
-  @override
-  GifPlaybackMode _gifPlaybackMode = defaultGifPlaybackMode;
+  final GifComposerNotifier _gifComposerNotifier = GifComposerNotifier();
 
   @override
   int get _animationFrameCount => _animationRows * _animationColumns;
@@ -366,6 +356,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     _animationPromptController.dispose();
     _imageGenerationNotifier.dispose();
     _batchGenerationNotifier.dispose();
+    _gifComposerNotifier.dispose();
     for (final path in _ephemeralTemplatePaths) {
       unawaited(_fileService.safeDeleteFile(path));
     }
