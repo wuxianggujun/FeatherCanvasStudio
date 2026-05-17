@@ -523,9 +523,33 @@ void _showMessage(String message) {
 
 每次改动后 `flutter analyze` 均通过（No issues found）。
 
+**Phase 11C / 11D：清理冗余 setState 包装（共 43 处）**
+
+Phase 11B 把 `ImageLibraryWorkspace` 接入 `Selector` 后，原来跨 mixin 的 `setState(() => _imageLibrary = [item, ..._imageLibrary]);` 包装就成了纯开销——notifier listener 已经能驱动 library workspace 重渲，setState 反而触发整棵 `FeatherCanvasHomePage` 子树重建。
+
+| 阶段 | 范围 | 文件数 | 站点数 | 提交 |
+|---|---|---:|---:|---|
+| 11C | `_imageLibrary` 写入处 | 5 | 15 | `4b1fcda` |
+| 11D | Phase 7/9/10 notifier 字段（`_isGenerating` / `_errorMessage` / `_isReplacingEditorFrame` / `_editorErrorMessage` / `_isProcessingGeneralImage` / `_generalEditorErrorMessage` / `_editorFrameFit` / `_gifDefaultFrameDelayMs` / `_gifLoopCount` / `_gifPlaybackMode` / `_gifErrorMessage` / `_isComposingGif`） | 2 | 28 | `19296be` |
+
+**保留原则**：混合 setState 块（同时写 mixin-local 非 notifier 字段，如 `_selectedImageLibraryItemIds` / `_focusedFeature`）保持不动；只删纯单行 `setState(() => _x = Y);` 包装。
+
+`flutter analyze` 通过、`flutter test` 191/191 全绿。
+
+### P0-1（拆分上帝类 State）收尾
+
+Phase 7-11D 已完整完成评审项 P0-1。最终形态：
+
+- **5 个 `ChangeNotifier`** 全部接入根 `MultiProvider`：[ImageGenerationNotifier](lib/src/state/image_generation_notifier.dart) / [BatchGenerationNotifier](lib/src/state/batch_generation_notifier.dart) / [GifComposerNotifier](lib/src/state/gif_composer_notifier.dart) / [ImageEditorNotifier](lib/src/state/image_editor_notifier.dart) / [ImageLibraryNotifier](lib/src/state/image_library_notifier.dart)。
+- **5 个 workspace** 全部走 `Selector` / `Consumer` 订阅 notifier 字段，各自只 rebuild 必要子树。
+- **`_HistoryStateMixin` 评估为不迁**：每个工作区已有 `HistoryStack`（本身就是 `ChangeNotifier`），UI 层 [home_shell_state.dart](lib/src/home/home_shell_state.dart) 已用 `ListenableBuilder` 订阅；mixin 自身的 setState 仅在首次创建栈和 `_isApplyingHistory` 翻转时触发，频率低、收益不抵迁移成本。
+- **API/local settings 字段（plan 中的 Phase 12）**：`TextEditingController` + 重置 snapshot 强耦合，且都是单 workspace 内部状态，跨 workspace 重渲收益小。当前不推进，待有具体性能信号再评估。
+
+**P0-1 整体收益**：父级 `setState` 不再因 notifier 字段变更触发全树重建。生成图片、批量结果、GIF 合成、编辑器调整、库 prepend 等高频操作都只触发对应 `Selector` 子树重建。后续 P1/P2 工作（导航重组、历史工具栏统一、Sliver 化等）不依赖 P0-1 的剩余子项，可独立推进。
+
 | 评审项 | 优先级 | 工作量 |
 |---|---|---|
-| 1. 拆分上帝类 State：pilot 已完成（文本生图），剩余 7 个 mixin 按同一模式推广 | P0 | 1.5-2 周 |
+| 2. 重组导航分组 / 收纳设置入口 | P1 | 2 天 |
 | 2. 重组导航分组 / 收纳设置入口 | P1 | 2 天 |
 | 4. 统一历史工具栏可见性规则（编辑器内栈接入全局） | P1 | 1 天 |
 | 8. 长列表 Sliver 化 + Scrollbar 主题 | P1 | 2-3 天 |
