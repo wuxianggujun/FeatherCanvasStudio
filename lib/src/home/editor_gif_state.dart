@@ -1459,7 +1459,7 @@ mixin _EditorGifStateMixin
     if (!mounted) {
       return;
     }
-    setState(() => _imageLibrary = [item, ..._imageLibrary]);
+    _imageLibrary = [item, ..._imageLibrary];
     _pushImageLibraryAppendHistory(
       feature: _selectedFeature,
       label: '导出 Sprite Sheet',

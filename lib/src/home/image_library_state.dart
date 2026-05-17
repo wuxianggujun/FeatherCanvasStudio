@@ -364,7 +364,7 @@ mixin _ImageLibraryStateMixin
       if (!mounted) {
         return null;
       }
-      setState(() => _imageLibrary = [item, ..._imageLibrary]);
+      _imageLibrary = [item, ..._imageLibrary];
       if (pushHistory) {
         _pushImageLibraryAppendHistory(
           feature: WorkspaceFeature.imageLibrary,
@@ -457,7 +457,7 @@ mixin _ImageLibraryStateMixin
       (entry) => entry.id == item.id,
       orElse: () => item,
     );
-    setState(() => _imageLibrary = nextLibrary);
+    _imageLibrary = nextLibrary;
 
     final unchanged =
         updated.title == before.title &&
@@ -481,7 +481,7 @@ mixin _ImageLibraryStateMixin
               tags: updated.tags,
             );
             if (!mounted) return;
-            setState(() => _imageLibrary = redoLibrary);
+            _imageLibrary = redoLibrary;
           },
           revert: () async {
             if (!mounted) return;
@@ -496,7 +496,7 @@ mixin _ImageLibraryStateMixin
                   tags: before.tags,
                 );
             if (!mounted) return;
-            setState(() => _imageLibrary = revertedLibrary);
+            _imageLibrary = revertedLibrary;
           },
         ),
       );
@@ -894,7 +894,7 @@ mixin _ImageLibraryStateMixin
       return null;
     }
 
-    setState(() => _imageLibrary = [item, ..._imageLibrary]);
+    _imageLibrary = [item, ..._imageLibrary];
     return _TransparentBackgroundLibraryResult(
       item: item,
       transparentPixelCount: result.transparentPixelCount,

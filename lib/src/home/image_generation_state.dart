@@ -789,7 +789,7 @@ mixin _ImageGenerationStateMixin
       return;
     }
 
-    setState(() => _imageLibrary = [item, ..._imageLibrary]);
+    _imageLibrary = [item, ..._imageLibrary];
     _pushImageLibraryAppendHistory(
       feature: sourceFeature,
       label: '打开 Sprite Sheet 到图片编辑器',
@@ -1406,7 +1406,7 @@ mixin _ImageGenerationStateMixin
     if (!mounted) {
       return;
     }
-    setState(() => _imageLibrary = nextLibrary);
+    _imageLibrary = nextLibrary;
   }
 
   void _pushAnimationProjectHistory({
@@ -1477,7 +1477,7 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _imageLibrary = [item, ..._imageLibrary]);
+      _imageLibrary = [item, ..._imageLibrary];
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.animationProject,
         label: '导出动画工程 Sprite Sheet',
@@ -1511,7 +1511,7 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _imageLibrary = [item, ..._imageLibrary]);
+      _imageLibrary = [item, ..._imageLibrary];
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.animationProject,
         label: '导出动画工程 GIF',
@@ -1547,7 +1547,7 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _imageLibrary = [item, ..._imageLibrary]);
+      _imageLibrary = [item, ..._imageLibrary];
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.animationProject,
         label: '导出动画轨道 GIF',

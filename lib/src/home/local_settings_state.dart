@@ -1058,7 +1058,7 @@ mixin _LocalSettingsStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _imageLibrary = nextLibrary);
+      _imageLibrary = nextLibrary;
       _pushHistory(
         WorkspaceFeature.localSettings,
         HistoryAction(
@@ -1074,7 +1074,7 @@ mixin _LocalSettingsStateMixin
             ];
             await _store.saveImageLibrary(merged);
             if (mounted) {
-              setState(() => _imageLibrary = merged);
+              _imageLibrary = merged;
             }
           },
           revert: () async {
@@ -1087,7 +1087,7 @@ mixin _LocalSettingsStateMixin
             ];
             await _store.saveImageLibrary(remaining);
             if (mounted) {
-              setState(() => _imageLibrary = remaining);
+              _imageLibrary = remaining;
             }
           },
         ),

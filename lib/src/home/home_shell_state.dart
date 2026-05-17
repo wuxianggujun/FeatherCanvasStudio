@@ -974,7 +974,7 @@ mixin _HomeShellStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _imageLibrary = [item, ..._imageLibrary]);
+      _imageLibrary = [item, ..._imageLibrary];
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.pixelArtEditor,
         label: '保存像素画',
