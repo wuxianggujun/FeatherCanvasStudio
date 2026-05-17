@@ -1427,19 +1427,8 @@ mixin _ImageLibraryStateMixin
   }
 
   Widget _buildImageLibraryWorkspace() {
-    final viewData = buildImageLibraryViewData(
-      library: _imageLibrary,
-      filter: _imageLibraryKindFilter,
-      sortOrder: _imageLibrarySortOrder,
-      searchQuery: _imageLibrarySearchQuery,
-      showStandaloneFrames: _showStandaloneSpriteFrames,
-      projectFilter: _imageLibraryProjectFilter,
-      tagFilter: _imageLibraryTagFilter,
-      itemExists: _isImageLibraryItemAvailable,
-    );
-
     return ImageLibraryWorkspace(
-      viewData: viewData,
+      itemExists: _isImageLibraryItemAvailable,
       searchController: _imageLibrarySearchController,
       searchQuery: _imageLibrarySearchQuery,
       selectedFilter: _imageLibraryKindFilter,
@@ -1454,8 +1443,7 @@ mixin _ImageLibraryStateMixin
       onSortOrderChanged: _setImageLibrarySortOrder,
       selectedItemIds: _selectedImageLibraryItemIds,
       onSelectionChanged: _setImageLibraryItemSelected,
-      onSelectVisible: () =>
-          _selectVisibleImageLibraryItems(viewData.filteredItems),
+      onSelectVisible: _selectVisibleImageLibraryItems,
       onClearSelection: _clearImageLibrarySelection,
       onDeleteSelected: _confirmDeleteSelectedImageLibraryItems,
       onExportSelected: () => unawaited(_exportSelectedImageLibraryItems()),

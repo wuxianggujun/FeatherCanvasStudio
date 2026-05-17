@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/image_library_item.dart';
 import '../../models/ui_state.dart';
+import '../../state/image_library_notifier.dart';
 import '../../theme/layout_constants.dart';
 import '../../utils/image_library_view_data.dart';
 import '../image_library_widgets.dart';
 
 class ImageLibraryWorkspace extends StatelessWidget {
   const ImageLibraryWorkspace({
-    required this.viewData,
+    required this.itemExists,
     required this.searchController,
     required this.searchQuery,
     required this.selectedFilter,
@@ -44,7 +46,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
     super.key,
   });
 
-  final ImageLibraryViewData viewData;
+  final bool Function(ImageLibraryItem item) itemExists;
   final TextEditingController searchController;
   final String searchQuery;
   final ImageLibraryKindFilter selectedFilter;
@@ -59,7 +61,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
   final ValueChanged<ImageLibrarySortOrder> onSortOrderChanged;
   final Set<String> selectedItemIds;
   final void Function(ImageLibraryItem item, bool selected) onSelectionChanged;
-  final VoidCallback onSelectVisible;
+  final ValueChanged<List<ImageLibraryItem>> onSelectVisible;
   final VoidCallback onClearSelection;
   final VoidCallback onDeleteSelected;
   final VoidCallback onExportSelected;
@@ -94,46 +96,61 @@ class ImageLibraryWorkspace extends StatelessWidget {
           ),
           const SizedBox(height: sectionGap),
           Expanded(
-            child: ImageLibraryPanel(
-              fillAvailableHeight: true,
-              items: viewData.filteredItems,
-              totalCount: viewData.visibleItems.length,
-              searchController: searchController,
-              searchQuery: searchQuery,
-              onSearchChanged: onSearchChanged,
-              onClearSearch: onClearSearch,
-              selectedFilter: selectedFilter,
-              onFilterChanged: onFilterChanged,
-              availableProjects: viewData.availableProjects,
-              selectedProject: selectedProject,
-              onProjectChanged: onProjectChanged,
-              availableTags: viewData.availableTags,
-              selectedTag: selectedTag,
-              onTagChanged: onTagChanged,
-              sortOrder: sortOrder,
-              onSortOrderChanged: onSortOrderChanged,
-              selectedItemIds: selectedItemIds,
-              onSelectionChanged: onSelectionChanged,
-              onSelectVisible: onSelectVisible,
-              onClearSelection: onClearSelection,
-              onDeleteSelected: onDeleteSelected,
-              onExportSelected: onExportSelected,
-              onOpenAnimationProject: onOpenAnimationProject,
-              onUseInEditor: onUseInEditor,
-              onReuseGeneration: onReuseGeneration,
-              onCopyGeneration: onCopyGeneration,
-              onMakeBackgroundTransparent: onMakeBackgroundTransparent,
-              onEditMetadata: onEditMetadata,
-              onCopyImage: onCopyImage,
-              onExportImage: onExportImage,
-              onCopyPath: onCopyPath,
-              onOpenLocation: onOpenLocation,
-              onDelete: onDelete,
-              onOpenSliceExplorer: onOpenSliceExplorer,
-              savedFrameCountFor: viewData.savedFrameCountFor,
-              showStandaloneFrames: showStandaloneFrames,
-              groupedFrameCount: viewData.groupedFrameCount,
-              onToggleStandaloneFrames: onToggleStandaloneFrames,
+            child: Selector<ImageLibraryNotifier, List<ImageLibraryItem>>(
+              selector: (_, n) => n.items,
+              builder: (context, library, _) {
+                final viewData = buildImageLibraryViewData(
+                  library: library,
+                  filter: selectedFilter,
+                  sortOrder: sortOrder,
+                  searchQuery: searchQuery,
+                  showStandaloneFrames: showStandaloneFrames,
+                  projectFilter: selectedProject,
+                  tagFilter: selectedTag,
+                  itemExists: itemExists,
+                );
+                return ImageLibraryPanel(
+                  fillAvailableHeight: true,
+                  items: viewData.filteredItems,
+                  totalCount: viewData.visibleItems.length,
+                  searchController: searchController,
+                  searchQuery: searchQuery,
+                  onSearchChanged: onSearchChanged,
+                  onClearSearch: onClearSearch,
+                  selectedFilter: selectedFilter,
+                  onFilterChanged: onFilterChanged,
+                  availableProjects: viewData.availableProjects,
+                  selectedProject: selectedProject,
+                  onProjectChanged: onProjectChanged,
+                  availableTags: viewData.availableTags,
+                  selectedTag: selectedTag,
+                  onTagChanged: onTagChanged,
+                  sortOrder: sortOrder,
+                  onSortOrderChanged: onSortOrderChanged,
+                  selectedItemIds: selectedItemIds,
+                  onSelectionChanged: onSelectionChanged,
+                  onSelectVisible: () => onSelectVisible(viewData.filteredItems),
+                  onClearSelection: onClearSelection,
+                  onDeleteSelected: onDeleteSelected,
+                  onExportSelected: onExportSelected,
+                  onOpenAnimationProject: onOpenAnimationProject,
+                  onUseInEditor: onUseInEditor,
+                  onReuseGeneration: onReuseGeneration,
+                  onCopyGeneration: onCopyGeneration,
+                  onMakeBackgroundTransparent: onMakeBackgroundTransparent,
+                  onEditMetadata: onEditMetadata,
+                  onCopyImage: onCopyImage,
+                  onExportImage: onExportImage,
+                  onCopyPath: onCopyPath,
+                  onOpenLocation: onOpenLocation,
+                  onDelete: onDelete,
+                  onOpenSliceExplorer: onOpenSliceExplorer,
+                  savedFrameCountFor: viewData.savedFrameCountFor,
+                  showStandaloneFrames: showStandaloneFrames,
+                  groupedFrameCount: viewData.groupedFrameCount,
+                  onToggleStandaloneFrames: onToggleStandaloneFrames,
+                );
+              },
             ),
           ),
         ],

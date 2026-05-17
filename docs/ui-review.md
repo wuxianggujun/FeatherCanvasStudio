@@ -502,6 +502,27 @@ void _showMessage(String message) {
 
 每次改动后 `flutter analyze` 均通过（No issues found）。
 
+**Phase 11B：兑现 ImageLibraryNotifier 的解耦收益（workspace Selector 化）**
+
+| 改动 | 文件 | 对应评审项 |
+|---|---|---|
+| `ImageLibraryWorkspace` 删除 `viewData` prop，新增 `itemExists` 回调 prop，内容用 `Selector<ImageLibraryNotifier, List<ImageLibraryItem>>` 包装；`buildImageLibraryViewData` 计算移入 Selector builder | [lib/src/widgets/workspaces/image_library_workspace.dart](lib/src/widgets/workspaces/image_library_workspace.dart) | P0-1 |
+| `onSelectVisible` 签名从 `VoidCallback` 改为 `ValueChanged<List<ImageLibraryItem>>`，filteredItems 由 workspace 在 builder 内传入回调 | [lib/src/widgets/workspaces/image_library_workspace.dart](lib/src/widgets/workspaces/image_library_workspace.dart) | P0-1 |
+| `_buildImageLibraryWorkspace` 删除 `viewData` 计算与 `viewData` prop 透传，调用方简化 | [lib/src/home/image_library_state.dart](lib/src/home/image_library_state.dart) | P0-1 |
+| `main.dart` 删除已不再使用的 `image_library_view_data.dart` import | [lib/main.dart](lib/main.dart) | P0-1 |
+
+**Phase 11B 关键收益**：
+- 库 workspace 现在直接订阅 `ImageLibraryNotifier`：当其他 workspace（图片生成、批量、编辑、GIF）调用 `_imageLibrary = [item, ..._imageLibrary]` 时，notifier listener 触发的 rebuild 只覆盖 `Selector` 子树（即 `ImageLibraryPanel`），不再依赖父级 `setState` 触发全树重渲。
+- filter / sort / selection 仍由 mixin 内 setState 驱动（这些字段非 notifier-backed），但它们触发 rebuild 时只重算 `viewData` 一次，prop 变化在 Selector builder 内处理。
+- 这是 Phase 11 的"存储委托"完成形态：notifier 不再只是隐藏的存储后端，而是真正的 reactive 信号源。
+
+**Pilot 收益验证**：
+- `flutter analyze` 通过（No issues found）。
+- `flutter test` 191/191 全绿。
+- 安全前提：所有 `setState(() => _imageLibrary = [item, ..._imageLibrary])` 调用点的 setState 包装仍可保留——现阶段它们作为 mixin-local 字段（如 `_selectedImageLibraryItemIds`）的同步保护是无害的；后续如要彻底删除冗余 setState，需先确认每处 setState 块内是否还有 mixin-local 字段共写。
+
+每次改动后 `flutter analyze` 均通过（No issues found）。
+
 | 评审项 | 优先级 | 工作量 |
 |---|---|---|
 | 1. 拆分上帝类 State：pilot 已完成（文本生图），剩余 7 个 mixin 按同一模式推广 | P0 | 1.5-2 周 |
