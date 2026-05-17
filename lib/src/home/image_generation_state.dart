@@ -352,7 +352,7 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _errorMessage = '请求超时，请检查接口地址或稍后重试');
+      _errorMessage = '请求超时，请检查接口地址或稍后重试';
     } catch (error, stackTrace) {
       if (!mounted) {
         return;
@@ -371,7 +371,7 @@ mixin _ImageGenerationStateMixin
       });
     } finally {
       if (mounted) {
-        setState(() => _isGenerating = false);
+        _isGenerating = false;
       }
     }
   }

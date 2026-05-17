@@ -297,7 +297,7 @@ mixin _EditorGifStateMixin
     if (before.frameFit == value) {
       return;
     }
-    setState(() => _editorFrameFit = value);
+    _editorFrameFit = value;
     _pushEditorConfigHistory(
       label: '调整适配方式为 ${spriteSheetFrameFitLabel(value)}',
       before: before,
@@ -647,10 +647,10 @@ mixin _EditorGifStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _editorErrorMessage = '背景转透明失败：$error');
+      _editorErrorMessage = '背景转透明失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isReplacingEditorFrame = false);
+        _isReplacingEditorFrame = false;
       }
     }
   }
@@ -748,10 +748,10 @@ mixin _EditorGifStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _editorErrorMessage = '调整取景失败：$error');
+      _editorErrorMessage = '调整取景失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isReplacingEditorFrame = false);
+        _isReplacingEditorFrame = false;
       }
     }
   }
@@ -933,7 +933,7 @@ mixin _EditorGifStateMixin
       return;
     }
 
-    setState(() => _gifDefaultFrameDelayMs = value);
+    _gifDefaultFrameDelayMs = value;
     _pushGifConfigHistory(
       label: '调整默认帧时长为 $value ms',
       before: before,
@@ -993,7 +993,7 @@ mixin _EditorGifStateMixin
       return;
     }
 
-    setState(() => _gifLoopCount = value);
+    _gifLoopCount = value;
     _pushGifConfigHistory(
       label: value == 0 ? '调整 GIF 为无限循环' : '调整 GIF 循环为 $value 次',
       before: before,
@@ -1007,7 +1007,7 @@ mixin _EditorGifStateMixin
       return;
     }
 
-    setState(() => _gifPlaybackMode = value);
+    _gifPlaybackMode = value;
     _pushGifConfigHistory(
       label: '调整播放模式为 ${gifPlaybackModeLabel(value)}',
       before: before,
@@ -1404,10 +1404,10 @@ mixin _EditorGifStateMixin
         return;
       }
 
-      setState(() => _gifErrorMessage = 'GIF 生成失败：$error');
+      _gifErrorMessage = 'GIF 生成失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isComposingGif = false);
+        _isComposingGif = false;
       }
     }
   }
@@ -1539,7 +1539,7 @@ mixin _EditorGifStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _isReplacingEditorFrame = false);
+      _isReplacingEditorFrame = false;
 
       final confirmed = await confirmSpriteSheetFrameReplacementDialog(
         context,
@@ -1551,7 +1551,7 @@ mixin _EditorGifStateMixin
         return;
       }
 
-      setState(() => _isReplacingEditorFrame = true);
+      _isReplacingEditorFrame = true;
       final output = await SpriteSheetFileService.exportPng(
         store: _store,
         pngBytes: preview.editedSheetBytes,
@@ -1589,10 +1589,10 @@ mixin _EditorGifStateMixin
         return;
       }
 
-      setState(() => _editorErrorMessage = '单帧替换失败：$error');
+      _editorErrorMessage = '单帧替换失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isReplacingEditorFrame = false);
+        _isReplacingEditorFrame = false;
       }
     }
   }
@@ -1654,10 +1654,10 @@ mixin _EditorGifStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _editorErrorMessage = '复制帧失败：$error');
+      _editorErrorMessage = '复制帧失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isReplacingEditorFrame = false);
+        _isReplacingEditorFrame = false;
       }
     }
   }
@@ -1714,10 +1714,10 @@ mixin _EditorGifStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _editorErrorMessage = '清空帧失败：$error');
+      _editorErrorMessage = '清空帧失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isReplacingEditorFrame = false);
+        _isReplacingEditorFrame = false;
       }
     }
   }
@@ -1788,10 +1788,10 @@ mixin _EditorGifStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _editorErrorMessage = '像素化当前帧失败：$error');
+      _editorErrorMessage = '像素化当前帧失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isReplacingEditorFrame = false);
+        _isReplacingEditorFrame = false;
       }
     }
   }
@@ -1857,10 +1857,10 @@ mixin _EditorGifStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _editorErrorMessage = '像素化整张失败：$error');
+      _editorErrorMessage = '像素化整张失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isReplacingEditorFrame = false);
+        _isReplacingEditorFrame = false;
       }
     }
   }
@@ -1903,10 +1903,10 @@ mixin _EditorGifStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _generalEditorErrorMessage = '图片读取失败：$error');
+      _generalEditorErrorMessage = '图片读取失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isProcessingGeneralImage = false);
+        _isProcessingGeneralImage = false;
       }
     }
   }
@@ -1999,10 +1999,10 @@ mixin _EditorGifStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _generalEditorErrorMessage = '图片编辑失败：$error');
+      _generalEditorErrorMessage = '图片编辑失败：$error';
     } finally {
       if (mounted) {
-        setState(() => _isProcessingGeneralImage = false);
+        _isProcessingGeneralImage = false;
       }
     }
   }
