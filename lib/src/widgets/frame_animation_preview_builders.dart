@@ -150,6 +150,12 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                 icon: const Icon(Icons.gif_box_outlined),
                 label: const Text('转 GIF'),
               ),
+            if (widget.onOpenInEditor != null)
+              FilledButton.tonalIcon(
+                onPressed: () => widget.onOpenInEditor!(previewData),
+                icon: const Icon(Icons.grid_on_outlined),
+                label: const Text('像素化编辑'),
+              ),
             Tooltip(
               message: '上一帧',
               child: IconButton(

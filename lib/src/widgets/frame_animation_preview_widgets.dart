@@ -32,6 +32,7 @@ class FrameAnimationPreviewPanel extends StatefulWidget {
     this.selectedFrameIndex,
     this.onFrameSelected,
     this.onSendToGif,
+    this.onOpenInEditor,
     this.labelBuilder,
     this.onRetry,
     this.enablePlayback = true,
@@ -51,6 +52,7 @@ class FrameAnimationPreviewPanel extends StatefulWidget {
   final int? selectedFrameIndex;
   final ValueChanged<int>? onFrameSelected;
   final ValueChanged<SpriteSheetPreviewData>? onSendToGif;
+  final ValueChanged<SpriteSheetPreviewData>? onOpenInEditor;
   final String Function(int index)? labelBuilder;
   final VoidCallback? onRetry;
   final bool enablePlayback;

@@ -42,6 +42,7 @@ class FrameAnimationWorkspace extends StatelessWidget {
     required this.onGenerate,
     required this.onExportSpriteSheet,
     required this.onSendToGif,
+    required this.onOpenInEditor,
     super.key,
   });
 
@@ -72,6 +73,7 @@ class FrameAnimationWorkspace extends StatelessWidget {
   final VoidCallback onGenerate;
   final ValueChanged<Uint8List> onExportSpriteSheet;
   final ValueChanged<SpriteSheetPreviewData> onSendToGif;
+  final ValueChanged<SpriteSheetPreviewData> onOpenInEditor;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +125,7 @@ class FrameAnimationWorkspace extends StatelessWidget {
             onRetry: onGenerate,
             onExportSpriteSheet: onExportSpriteSheet,
             onSendToGif: onSendToGif,
+            onOpenInEditor: onOpenInEditor,
           ),
         ),
       ],

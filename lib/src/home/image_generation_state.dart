@@ -750,6 +750,45 @@ mixin _ImageGenerationStateMixin
     );
   }
 
+  Future<void> _openAnimationPreviewInEditor(
+    SpriteSheetPreviewData previewData,
+  ) async {
+    final sourceFeature = _selectedFeature;
+    final output = await SpriteSheetFileService.exportPng(
+      store: _store,
+      pngBytes: previewData.sheetBytes,
+      rows: previewData.rows,
+      columns: previewData.columns,
+      gridSpec: previewData.gridSpec,
+    );
+    if (!mounted) {
+      return;
+    }
+
+    final item = await _imageLibraryService.addExportedSpriteSheet(
+      store: _store,
+      path: output.path,
+      rows: previewData.rows,
+      columns: previewData.columns,
+      gridSpec: previewData.gridSpec,
+    );
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _imageLibrary = [item, ..._imageLibrary]);
+    _pushImageLibraryAppendHistory(
+      feature: sourceFeature,
+      label: '打开 Sprite Sheet 到图片编辑器',
+      appendedItems: [item],
+    );
+    await _useImageLibraryItemInEditor(item);
+    if (!mounted) {
+      return;
+    }
+    _showMessage('已打开到图片编辑器，可在编辑工具中使用像素化');
+  }
+
   Widget _buildImageGenerationWorkspace() {
     return ImageGenerationWorkspace(
       controller: _scrollController,
@@ -818,6 +857,8 @@ mixin _ImageGenerationStateMixin
         ),
       ),
       onSendToGif: _sendPreviewDataToGif,
+      onOpenInEditor: (previewData) =>
+          unawaited(_openAnimationPreviewInEditor(previewData)),
     );
   }
 }

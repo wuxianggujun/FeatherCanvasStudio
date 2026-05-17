@@ -45,6 +45,52 @@ void main() {
     expect(find.text('125%'), findsOneWidget);
   });
 
+  testWidgets('sprite sheet preview exposes pixelation editor shortcut', (
+    tester,
+  ) async {
+    SpriteSheetPreviewData? openedPreviewData;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: SizedBox(
+              width: 1000,
+              child: FrameAnimationPreviewPanel(
+                title: 'Sprite Sheet 预览',
+                emptyMessage: '暂无预览',
+                errorMessage: null,
+                debugRecord: null,
+                generatedImages: [GeneratedImage.bytes(_spriteSheetPng())],
+                isGenerating: false,
+                rows: 2,
+                columns: 2,
+                gridSpec: const SpriteSheetGridSpec(rows: 2, columns: 2),
+                onExportSpriteSheet: (_) {},
+                onOpenInEditor: (previewData) {
+                  openedPreviewData = previewData;
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump();
+
+    final shortcut = find.text('像素化编辑');
+    expect(shortcut, findsOneWidget);
+
+    await tester.ensureVisible(shortcut);
+    await tester.tap(shortcut);
+    await tester.pump();
+
+    expect(openedPreviewData?.rows, 2);
+    expect(openedPreviewData?.columns, 2);
+  });
+
   testWidgets('mouse wheel zoom does not scroll the parent page', (
     tester,
   ) async {
