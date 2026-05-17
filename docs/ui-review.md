@@ -556,7 +556,6 @@ Phase 7-11D 已完整完成评审项 P0-1。最终形态：
 | 5. l10n 字面量全量替换（剩余 50+ 处） | P2 | 3 天 |
 | 10. 快捷键集中管理 + 速查表 | P2 | 1 天 |
 | 12. 无障碍审计 | P3 | 持续 |
-| 修复 2 个 baseline 测试失败（app_test "通用编辑" / batch_generation_workspace_test DropdownButtonFormField 数量） | P1 | 0.5 天 |
 
 ### 验证要点（手动测试）
 
