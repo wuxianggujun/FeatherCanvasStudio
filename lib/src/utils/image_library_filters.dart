@@ -22,6 +22,11 @@ bool imageLibraryItemMatchesSearch(ImageLibraryItem item, String query) {
     item.generation == null
         ? ''
         : apiProviderKindLabel(item.generation!.providerKind),
+    item.animationProject?.title ?? '',
+    item.animationProject == null
+        ? ''
+        : '${item.animationProject!.trackCount} ${item.animationProject!.frameCount} '
+              '${item.animationProject!.canvasWidth}x${item.animationProject!.canvasHeight}',
     imageAssetKindLabel(item.kind),
     fileNameFromPath(item.path),
   ].join(' ').toLowerCase();

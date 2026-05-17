@@ -11,6 +11,7 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
     required this.userController,
     required this.hasTemplateImage,
     required this.onChanged,
+    this.enabled = true,
     super.key,
   });
 
@@ -18,6 +19,7 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
   final TextEditingController userController;
   final bool hasTemplateImage;
   final ValueChanged<ImageAdvancedSettings> onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -39,15 +41,18 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
             value: settings.quality,
             options: gptImageQualityOptions,
             labelBuilder: imageQualityLabel,
-            onChanged: (value) => onChanged(settings.copyWith(quality: value)),
+            onChanged: enabled
+                ? (value) => onChanged(settings.copyWith(quality: value))
+                : null,
           ),
           second: _ImageOptionDropdown(
             label: '背景',
             value: settings.background,
             options: gptImageBackgroundOptions,
             labelBuilder: imageBackgroundLabel,
-            onChanged: (value) =>
-                onChanged(settings.copyWith(background: value)),
+            onChanged: enabled
+                ? (value) => onChanged(settings.copyWith(background: value))
+                : null,
           ),
         ),
         const SizedBox(height: fieldGap),
@@ -57,25 +62,27 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
             value: settings.outputFormat,
             options: gptImageOutputFormatOptions,
             labelBuilder: imageOutputFormatLabel,
-            onChanged: (value) {
-              final nextBackground =
-                  value == 'jpeg' && settings.background == 'transparent'
-                  ? 'auto'
-                  : settings.background;
-              onChanged(
-                settings.copyWith(
-                  outputFormat: value,
-                  background: nextBackground,
-                ),
-              );
-            },
+            onChanged: enabled
+                ? (value) {
+                    final nextBackground =
+                        value == 'jpeg' && settings.background == 'transparent'
+                        ? 'auto'
+                        : settings.background;
+                    onChanged(
+                      settings.copyWith(
+                        outputFormat: value,
+                        background: nextBackground,
+                      ),
+                    );
+                  }
+                : null,
           ),
           second: _ImageOptionDropdown(
             label: '审核强度',
             value: settings.moderation,
             options: gptImageModerationOptions,
             labelBuilder: imageModerationLabel,
-            onChanged: hasTemplateImage
+            onChanged: !enabled || hasTemplateImage
                 ? null
                 : (value) => onChanged(settings.copyWith(moderation: value)),
           ),
@@ -83,13 +90,15 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
         const SizedBox(height: fieldGap),
         _ImageCompressionSlider(
           value: settings.outputCompression,
-          enabled: compressionEnabled,
+          available: compressionEnabled,
+          enabled: enabled && compressionEnabled,
           onChanged: (value) =>
               onChanged(settings.copyWith(outputCompression: value)),
         ),
         const SizedBox(height: fieldGap),
         TextField(
           controller: userController,
+          enabled: enabled,
           decoration: const InputDecoration(
             labelText: '最终用户 ID',
             hintText: '可选，用于 OpenAI 滥用监控',
@@ -102,8 +111,9 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
             value: settings.inputFidelity,
             options: const ['low', 'high'],
             labelBuilder: (value) => value == 'high' ? '高' : '低',
-            onChanged: (value) =>
-                onChanged(settings.copyWith(inputFidelity: value)),
+            onChanged: enabled
+                ? (value) => onChanged(settings.copyWith(inputFidelity: value))
+                : null,
           ),
         ],
         const SizedBox(height: 4),
@@ -142,11 +152,13 @@ class _ImageOptionDropdown extends StatelessWidget {
 class _ImageCompressionSlider extends StatelessWidget {
   const _ImageCompressionSlider({
     required this.value,
+    required this.available,
     required this.enabled,
     required this.onChanged,
   });
 
   final int value;
+  final bool available;
   final bool enabled;
   final ValueChanged<int> onChanged;
 
@@ -159,7 +171,7 @@ class _ImageCompressionSlider extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          enabled ? '输出压缩率 $normalized%' : '输出压缩率仅用于 JPEG / WebP',
+          available ? '输出压缩率 $normalized%' : '输出压缩率仅用于 JPEG / WebP',
           style: theme.textTheme.bodySmall,
         ),
         Slider(

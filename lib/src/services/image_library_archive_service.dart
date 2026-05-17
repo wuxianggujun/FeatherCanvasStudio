@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 
+import '../models/animation_project.dart';
+import '../models/image_asset_kind.dart';
 import '../models/image_library_item.dart';
 import '../utils/display_labels.dart';
 import 'app_local_store.dart';
@@ -65,7 +67,21 @@ class ImageLibraryArchiveService {
       final assetPath = _assetPathForItem(item);
       final bytes = await file.readAsBytes();
       archive.addFile(ArchiveFile.bytes(assetPath, bytes));
-      manifestItems.add({'assetPath': assetPath, 'item': item.toJson()});
+      final manifestItem = <String, dynamic>{
+        'assetPath': assetPath,
+        'item': item.toJson(),
+      };
+      if (item.kind == ImageAssetKind.animationProject) {
+        final projectAssets = await _addAnimationProjectAssets(
+          archive: archive,
+          item: item,
+        );
+        skippedMissingCount += projectAssets.skippedMissingCount;
+        if (projectAssets.entries.isNotEmpty) {
+          manifestItem['projectAssets'] = projectAssets.entries;
+        }
+      }
+      manifestItems.add(manifestItem);
     }
 
     final manifest = {
@@ -166,18 +182,33 @@ class ImageLibraryArchiveService {
         '${outputDirectory.path}${Platform.pathSeparator}'
         'import_${importId}_${index.toString().padLeft(3, '0')}$extension',
       );
-      await outputFile.writeAsBytes(
-        Uint8List.fromList(asset.content),
-        flush: true,
-      );
-
       final sourceGroupId = sourceItem.groupId;
-      final importedGroupId = sourceGroupId == null
+      var importedGroupId = sourceGroupId == null
           ? null
           : groupIdMap.putIfAbsent(
               sourceGroupId,
               () => 'import_${importId}_${groupIdMap.length + 1}',
             );
+      var importedAnimationProject = sourceItem.animationProject;
+      if (sourceItem.kind == ImageAssetKind.animationProject) {
+        importedAnimationProject = await _writeImportedAnimationProject(
+          archive: archive,
+          rawManifestItem: raw,
+          projectAsset: asset,
+          outputFile: outputFile,
+          outputDirectory: outputDirectory,
+          importId: importId,
+          itemIndex: index,
+          importedProjectId: importedGroupId,
+          fallbackSummary: sourceItem.animationProject,
+        );
+        importedGroupId ??= importedAnimationProject?.id;
+      } else {
+        await outputFile.writeAsBytes(
+          Uint8List.fromList(asset.content),
+          flush: true,
+        );
+      }
       importedItems.add(
         ImageLibraryItem(
           id: ImageLibraryItem.newId(seed: index),
@@ -198,6 +229,7 @@ class ImageLibraryArchiveService {
           frameWidth: sourceItem.frameWidth,
           frameHeight: sourceItem.frameHeight,
           frameIndex: sourceItem.frameIndex,
+          animationProject: importedAnimationProject,
         ),
       );
     }
@@ -219,6 +251,177 @@ class ImageLibraryArchiveService {
   static String _assetPathForItem(ImageLibraryItem item) {
     final extension = _safeExtension(item.path);
     return 'assets/${_safeArchiveName(item.id)}$extension';
+  }
+
+  static Future<_ProjectAssetArchiveEntries> _addAnimationProjectAssets({
+    required Archive archive,
+    required ImageLibraryItem item,
+  }) async {
+    try {
+      final decoded = jsonDecode(await File(item.path).readAsString());
+      if (decoded is! Map) {
+        return const _ProjectAssetArchiveEntries();
+      }
+      final assets = decoded['assets'];
+      if (assets is! List) {
+        return const _ProjectAssetArchiveEntries();
+      }
+
+      final entries = <Map<String, dynamic>>[];
+      var skippedMissingCount = 0;
+      var assetIndex = 0;
+      for (final asset in assets.whereType<Map>()) {
+        final path = asset['path'];
+        if (path is! String || path.isEmpty) {
+          continue;
+        }
+        final file = File(path);
+        if (!await file.exists()) {
+          skippedMissingCount += 1;
+          continue;
+        }
+        final assetPath =
+            'assets/${_safeArchiveName(item.id)}_frame_$assetIndex'
+            '${_safeExtension(path)}';
+        archive.addFile(ArchiveFile.bytes(assetPath, await file.readAsBytes()));
+        entries.add({
+          'assetId': asset['id'] as String? ?? '',
+          'assetPath': assetPath,
+        });
+        assetIndex += 1;
+      }
+      return _ProjectAssetArchiveEntries(
+        entries: entries,
+        skippedMissingCount: skippedMissingCount,
+      );
+    } catch (_) {
+      return const _ProjectAssetArchiveEntries();
+    }
+  }
+
+  static Future<AnimationProjectSummary?> _writeImportedAnimationProject({
+    required Archive archive,
+    required Map rawManifestItem,
+    required ArchiveFile projectAsset,
+    required File outputFile,
+    required Directory outputDirectory,
+    required String importId,
+    required int itemIndex,
+    required String? importedProjectId,
+    required AnimationProjectSummary? fallbackSummary,
+  }) async {
+    Map<String, dynamic>? projectJson;
+    try {
+      projectJson = Map<String, dynamic>.from(
+        jsonDecode(utf8.decode(Uint8List.fromList(projectAsset.content)))
+            as Map,
+      );
+    } catch (_) {
+      await outputFile.writeAsBytes(
+        Uint8List.fromList(projectAsset.content),
+        flush: true,
+      );
+      return fallbackSummary;
+    }
+
+    final assetPathById = <String, String>{};
+    final rawProjectAssets = rawManifestItem['projectAssets'];
+    if (rawProjectAssets is List) {
+      for (
+        var assetIndex = 0;
+        assetIndex < rawProjectAssets.length;
+        assetIndex++
+      ) {
+        final rawProjectAsset = rawProjectAssets[assetIndex];
+        if (rawProjectAsset is! Map) {
+          continue;
+        }
+        final assetPath = rawProjectAsset['assetPath'] as String?;
+        final assetId = rawProjectAsset['assetId'] as String? ?? '';
+        if (assetPath == null || !_isSafeAssetPath(assetPath)) {
+          continue;
+        }
+        final archivedAsset = archive.findFile(assetPath);
+        if (archivedAsset == null || !archivedAsset.isFile) {
+          continue;
+        }
+        final extension = _safeExtension(assetPath);
+        final outputAssetFile = File(
+          '${outputDirectory.path}${Platform.pathSeparator}'
+          'import_${importId}_${itemIndex.toString().padLeft(3, '0')}'
+          '_frame_${assetIndex.toString().padLeft(3, '0')}$extension',
+        );
+        await outputAssetFile.writeAsBytes(
+          Uint8List.fromList(archivedAsset.content),
+          flush: true,
+        );
+        if (assetId.isNotEmpty) {
+          assetPathById[assetId] = outputAssetFile.path;
+        }
+      }
+    }
+
+    final assets = projectJson['assets'];
+    if (assets is List) {
+      for (final asset in assets.whereType<Map>()) {
+        final id = asset['id'];
+        if (id is String && assetPathById.containsKey(id)) {
+          asset['path'] = assetPathById[id];
+        }
+      }
+    }
+    if (importedProjectId != null && importedProjectId.isNotEmpty) {
+      projectJson['id'] = importedProjectId;
+    }
+    final summary = _summaryFromProjectJson(projectJson, fallbackSummary);
+    if (summary != null) {
+      projectJson['title'] = summary.title;
+    }
+    await outputFile.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(projectJson),
+      flush: true,
+    );
+    return summary;
+  }
+
+  static AnimationProjectSummary? _summaryFromProjectJson(
+    Map<String, dynamic> json,
+    AnimationProjectSummary? fallback,
+  ) {
+    final tracks = json['tracks'];
+    var trackCount = 0;
+    var frameCount = 0;
+    if (tracks is List) {
+      trackCount = tracks.whereType<Map>().length;
+      for (final track in tracks.whereType<Map>()) {
+        final clips = track['clips'];
+        if (clips is! List) {
+          continue;
+        }
+        for (final clip in clips.whereType<Map>()) {
+          final frames = clip['frames'];
+          if (frames is List) {
+            frameCount += frames.length;
+          }
+        }
+      }
+    }
+    final id = json['id'] as String? ?? fallback?.id ?? '';
+    if (id.isEmpty) {
+      return fallback;
+    }
+    return AnimationProjectSummary(
+      id: id,
+      title: json['title'] as String? ?? fallback?.title ?? '动画工程',
+      trackCount: trackCount == 0 ? fallback?.trackCount ?? 0 : trackCount,
+      frameCount: frameCount == 0 ? fallback?.frameCount ?? 0 : frameCount,
+      canvasWidth:
+          (json['canvasWidth'] as num?)?.toInt() ?? fallback?.canvasWidth ?? 0,
+      canvasHeight:
+          (json['canvasHeight'] as num?)?.toInt() ??
+          fallback?.canvasHeight ??
+          0,
+    );
   }
 
   static String _safeArchiveName(String value) {
@@ -254,4 +457,14 @@ class ImageLibraryArchiveService {
     final fallback = fallbackPath == null ? '' : extensionFrom(fallbackPath);
     return fallback.isEmpty ? '.png' : fallback;
   }
+}
+
+class _ProjectAssetArchiveEntries {
+  const _ProjectAssetArchiveEntries({
+    this.entries = const <Map<String, dynamic>>[],
+    this.skippedMissingCount = 0,
+  });
+
+  final List<Map<String, dynamic>> entries;
+  final int skippedMissingCount;
 }

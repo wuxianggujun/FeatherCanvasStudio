@@ -143,6 +143,14 @@ mixin _EditorGifStateMixin
   set _editorFrameFit(SpriteSheetFrameFit value);
   int get _editorFrameCount;
   String? get _editorErrorMessage;
+  String? get _generalEditorImagePath;
+  set _generalEditorImagePath(String? value);
+  ImageInspectionResult? get _generalEditorImageInfo;
+  set _generalEditorImageInfo(ImageInspectionResult? value);
+  String? get _generalEditorErrorMessage;
+  set _generalEditorErrorMessage(String? value);
+  bool get _isProcessingGeneralImage;
+  set _isProcessingGeneralImage(bool value);
   bool get _isReplacingEditorFrame;
   set _isReplacingEditorFrame(bool value);
   bool get _isImageEditorFocusMode;
@@ -1806,8 +1814,157 @@ mixin _EditorGifStateMixin
     }
   }
 
+  Future<void> _pickGeneralEditorImage() async {
+    final imagePath = await _pickSingleImagePathFromSource(
+      title: '选择要编辑的图片',
+      libraryEmptyMessage: '作品库里保存的图片会显示在这里',
+      allowedLibraryKinds: templateLibraryKinds,
+    );
+
+    if (imagePath == null || !mounted) {
+      return;
+    }
+
+    await _loadGeneralEditorImage(imagePath, label: '已载入图片');
+  }
+
+  Future<void> _loadGeneralEditorImage(
+    String imagePath, {
+    required String label,
+  }) async {
+    setState(() {
+      _isProcessingGeneralImage = true;
+      _generalEditorErrorMessage = null;
+    });
+
+    try {
+      final bytes = await _fileService.readFileBytes(imagePath);
+      final info = await GeneralImageEditingService.inspectInBackground(bytes);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _generalEditorImagePath = imagePath;
+        _generalEditorImageInfo = info;
+      });
+      _showMessage('$label：${fileNameFromPath(imagePath)}');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _generalEditorErrorMessage = '图片读取失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessingGeneralImage = false);
+      }
+    }
+  }
+
+  void _clearGeneralEditorImage() {
+    if (_generalEditorImagePath == null &&
+        _generalEditorImageInfo == null &&
+        _generalEditorErrorMessage == null) {
+      return;
+    }
+
+    setState(() {
+      _generalEditorImagePath = null;
+      _generalEditorImageInfo = null;
+      _generalEditorErrorMessage = null;
+    });
+  }
+
+  Future<void> _applyGeneralImageEdit(GeneralImageEditOptions options) async {
+    final imagePath = _generalEditorImagePath;
+    final beforeInfo = _generalEditorImageInfo;
+    if (imagePath == null) {
+      _showMessage('请先选择一张图片');
+      return;
+    }
+
+    setState(() {
+      _isProcessingGeneralImage = true;
+      _generalEditorErrorMessage = null;
+    });
+
+    try {
+      final bytes = await _fileService.readFileBytes(imagePath);
+      final result = await GeneralImageEditingService.editInBackground(
+        bytes,
+        options: options,
+      );
+      final groupId = 'edited_${DateTime.now().microsecondsSinceEpoch}';
+      final file = await _store.saveGeneratedImageBytes(
+        groupId: groupId,
+        index: 0,
+        bytes: result.bytes,
+        extension: result.fileExtension,
+      );
+      final outputInfo = await GeneralImageEditingService.inspectInBackground(
+        result.bytes,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final item = await _imageLibraryService.addItem(
+        store: _store,
+        path: file.path,
+        kind: ImageAssetKind.editedImage,
+        title: '编辑后的图片',
+        source: '图片编辑',
+        prompt:
+            '${result.summary} · ${result.width} x ${result.height} · ${result.mimeType}',
+        groupId: groupId,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _generalEditorImagePath = file.path;
+        _generalEditorImageInfo = outputInfo;
+        _imageLibrary = [item, ..._imageLibrary];
+      });
+      _pushImageLibraryAppendHistory(
+        feature: WorkspaceFeature.imageEditor,
+        label: '编辑图片',
+        appendedItems: [item],
+        applyState: () {
+          _generalEditorImagePath = file.path;
+          _generalEditorImageInfo = outputInfo;
+          _generalEditorErrorMessage = null;
+        },
+        revertState: () {
+          _generalEditorImagePath = imagePath;
+          _generalEditorImageInfo = beforeInfo;
+          _generalEditorErrorMessage = null;
+        },
+      );
+      _showMessage(
+        '已保存编辑结果：${fileNameFromPath(file.path)} · ${result.summary}',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _generalEditorErrorMessage = '图片编辑失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessingGeneralImage = false);
+      }
+    }
+  }
+
   Widget _buildImageEditorWorkspace() {
     return ImageEditorWorkspace(
+      generalImagePath: _generalEditorImagePath,
+      generalImageInfo: _generalEditorImageInfo,
+      isProcessingGeneralImage: _isProcessingGeneralImage,
+      generalImageErrorMessage: _generalEditorErrorMessage,
+      onPickGeneralImage: () => unawaited(_pickGeneralEditorImage()),
+      onClearGeneralImage: _clearGeneralEditorImage,
+      onApplyGeneralImageEdit: _applyGeneralImageEdit,
       imagePath: _editorImagePath,
       patchImagePath: _editorPatchImagePath,
       rows: _editorRows,

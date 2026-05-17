@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../models/workspace_feature.dart';
 import '../theme/layout_constants.dart';
 
@@ -37,14 +39,31 @@ class WorkspacePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(title, style: headlineStyle)),
-              if (trailing != null) ...[
-                const SizedBox(width: fieldGap),
-                trailing!,
-              ],
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final trailing = this.trailing;
+              if (trailing != null &&
+                  constraints.maxWidth < AppBreakpoints.compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: headlineStyle),
+                    const SizedBox(height: fieldGap),
+                    Align(alignment: Alignment.centerLeft, child: trailing),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: Text(title, style: headlineStyle)),
+                  if (trailing != null) ...[
+                    const SizedBox(width: fieldGap),
+                    trailing,
+                  ],
+                ],
+              );
+            },
           ),
           if (!compactHeader) ...[
             const SizedBox(height: 8),
@@ -67,9 +86,10 @@ class ResponsiveWorkspaceSplit extends StatefulWidget {
     this.minControlsWidth = 304,
     this.maxControlsWidth = 520,
     this.resizable = true,
+    this.storageKey,
   });
 
-  static const double _breakpoint = 900;
+  static const double _breakpoint = AppBreakpoints.medium;
 
   final Widget controls;
   final Widget preview;
@@ -77,6 +97,7 @@ class ResponsiveWorkspaceSplit extends StatefulWidget {
   final double minControlsWidth;
   final double maxControlsWidth;
   final bool resizable;
+  final String? storageKey;
 
   @override
   State<ResponsiveWorkspaceSplit> createState() =>
@@ -85,8 +106,42 @@ class ResponsiveWorkspaceSplit extends StatefulWidget {
 
 class _ResponsiveWorkspaceSplitState extends State<ResponsiveWorkspaceSplit> {
   static const double _minPreviewWidth = 360;
+  static const String _prefsPrefix = 'workspaceSplit.controlsWidth.';
 
   double? _controlsWidth;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreWidth();
+  }
+
+  Future<void> _restoreWidth() async {
+    final key = widget.storageKey;
+    if (key == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getDouble('$_prefsPrefix$key');
+    if (saved != null && mounted) {
+      setState(() => _controlsWidth = saved);
+    }
+  }
+
+  Future<void> _persistWidth(double width) async {
+    final key = widget.storageKey;
+    if (key == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('$_prefsPrefix$key', width);
+  }
+
+  void _resetWidth() {
+    setState(() => _controlsWidth = widget.controlsWidth);
+    final key = widget.storageKey;
+    if (key != null) {
+      SharedPreferences.getInstance().then(
+        (prefs) => prefs.remove('$_prefsPrefix$key'),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +182,11 @@ class _ResponsiveWorkspaceSplitState extends State<ResponsiveWorkspaceSplit> {
                         .toDouble();
                   });
                 },
+                onDragEnd: () {
+                  final w = _controlsWidth;
+                  if (w != null) _persistWidth(w);
+                },
+                onDoubleTap: _resetWidth,
               )
             else
               const SizedBox(width: layoutGap),
@@ -139,9 +199,15 @@ class _ResponsiveWorkspaceSplitState extends State<ResponsiveWorkspaceSplit> {
 }
 
 class _WorkspaceSplitHandle extends StatelessWidget {
-  const _WorkspaceSplitHandle({required this.onDragUpdate});
+  const _WorkspaceSplitHandle({
+    required this.onDragUpdate,
+    this.onDragEnd,
+    this.onDoubleTap,
+  });
 
   final GestureDragUpdateCallback onDragUpdate;
+  final VoidCallback? onDragEnd;
+  final VoidCallback? onDoubleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -152,15 +218,23 @@ class _WorkspaceSplitHandle extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onHorizontalDragUpdate: onDragUpdate,
-        child: SizedBox(
-          width: layoutGap,
-          child: Center(
-            child: Container(
-              width: 2,
-              height: 48,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(999),
+        onHorizontalDragEnd: onDragEnd == null
+            ? null
+            : (_) => onDragEnd!(),
+        onDoubleTap: onDoubleTap,
+        child: Tooltip(
+          message: '拖动调整宽度，双击复位',
+          waitDuration: const Duration(milliseconds: 600),
+          child: SizedBox(
+            width: layoutGap,
+            child: Center(
+              child: Container(
+                width: 2,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
             ),
           ),
@@ -244,10 +318,11 @@ class FeatureNavigationRail extends StatelessWidget {
     return switch (selectedFeature) {
       WorkspaceFeature.imageGeneration => 0,
       WorkspaceFeature.batchGeneration => 1,
-      WorkspaceFeature.frameAnimation => 2,
+      WorkspaceFeature.animationProject => 2,
       WorkspaceFeature.imageEditor => 3,
-      WorkspaceFeature.gifComposer => 4,
-      WorkspaceFeature.imageLibrary => 5,
+      WorkspaceFeature.pixelArtEditor => 4,
+      WorkspaceFeature.gifComposer => 5,
+      WorkspaceFeature.imageLibrary => 6,
       WorkspaceFeature.apiSettings => null,
       WorkspaceFeature.localSettings => null,
     };
@@ -256,6 +331,7 @@ class FeatureNavigationRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final railExtended = extended && !compact;
+    final l10n = AppLocalizations.of(context);
 
     return NavigationRail(
       selectedIndex: _selectedDestinationIndex,
@@ -265,45 +341,51 @@ class FeatureNavigationRail extends StatelessWidget {
       labelType: railExtended || compact
           ? NavigationRailLabelType.none
           : NavigationRailLabelType.all,
-      destinations: const [
+      destinations: [
         NavigationRailDestination(
-          icon: Icon(Icons.image_outlined),
-          selectedIcon: Icon(Icons.image),
-          label: Text('文本生图'),
+          icon: const Icon(Icons.image_outlined),
+          selectedIcon: const Icon(Icons.image),
+          label: Text(l10n.navImageGeneration),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.auto_awesome_motion_outlined),
-          selectedIcon: Icon(Icons.auto_awesome_motion),
-          label: Text('批量生成'),
+          icon: const Icon(Icons.auto_awesome_motion_outlined),
+          selectedIcon: const Icon(Icons.auto_awesome_motion),
+          label: Text(l10n.navBatchGeneration),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.movie_creation_outlined),
-          selectedIcon: Icon(Icons.movie_creation),
-          label: Text('帧动画'),
+          icon: const Icon(Icons.movie_creation_outlined),
+          selectedIcon: const Icon(Icons.movie_creation),
+          label: Text(l10n.navAnimationProject),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.grid_on_outlined),
-          selectedIcon: Icon(Icons.grid_on),
-          label: Text('图片编辑器'),
+          icon: const Icon(Icons.grid_on_outlined),
+          selectedIcon: const Icon(Icons.grid_on),
+          label: Text(l10n.navImageEditor),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.gif_box_outlined),
-          selectedIcon: Icon(Icons.gif_box),
-          label: Text('GIF 合成'),
+          icon: const Icon(Icons.brush_outlined),
+          selectedIcon: const Icon(Icons.brush),
+          label: Text(l10n.navPixelArtEditor),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.collections_outlined),
-          selectedIcon: Icon(Icons.collections),
-          label: Text('作品库'),
+          icon: const Icon(Icons.gif_box_outlined),
+          selectedIcon: const Icon(Icons.gif_box),
+          label: Text(l10n.navGifComposer),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.collections_outlined),
+          selectedIcon: const Icon(Icons.collections),
+          label: Text(l10n.navImageLibrary),
         ),
       ],
       onDestinationSelected: (index) {
         final feature = switch (index) {
           0 => WorkspaceFeature.imageGeneration,
           1 => WorkspaceFeature.batchGeneration,
-          2 => WorkspaceFeature.frameAnimation,
+          2 => WorkspaceFeature.animationProject,
           3 => WorkspaceFeature.imageEditor,
-          4 => WorkspaceFeature.gifComposer,
+          4 => WorkspaceFeature.pixelArtEditor,
+          5 => WorkspaceFeature.gifComposer,
           _ => WorkspaceFeature.imageLibrary,
         };
         onFeatureSelected(feature);
@@ -320,28 +402,39 @@ class FeatureNavigationRail extends StatelessWidget {
                   ? 56
                   : 64,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Divider(height: 20),
-                  _NavigationRailAction(
-                    extended: railExtended,
-                    compact: compact,
-                    selected: selectedFeature == WorkspaceFeature.apiSettings,
-                    icon: Icons.tune_outlined,
-                    selectedIcon: Icons.tune,
-                    label: '接口配置',
-                    onPressed: () =>
-                        onFeatureSelected(WorkspaceFeature.apiSettings),
-                  ),
-                  const SizedBox(height: 2),
-                  _NavigationRailAction(
-                    extended: railExtended,
-                    compact: compact,
-                    selected: selectedFeature == WorkspaceFeature.localSettings,
-                    icon: Icons.settings_outlined,
-                    selectedIcon: Icons.settings,
-                    label: '设置',
-                    onPressed: onOpenSettings,
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Divider(height: 20),
+                          _NavigationRailAction(
+                            extended: railExtended,
+                            compact: compact,
+                            selected:
+                                selectedFeature == WorkspaceFeature.apiSettings,
+                            icon: Icons.tune_outlined,
+                            selectedIcon: Icons.tune,
+                            label: '接口配置',
+                            onPressed: () =>
+                                onFeatureSelected(WorkspaceFeature.apiSettings),
+                          ),
+                          const SizedBox(height: 2),
+                          _NavigationRailAction(
+                            extended: railExtended,
+                            compact: compact,
+                            selected:
+                                selectedFeature ==
+                                WorkspaceFeature.localSettings,
+                            icon: Icons.settings_outlined,
+                            selectedIcon: Icons.settings,
+                            label: '设置',
+                            onPressed: onOpenSettings,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Divider(height: 20),

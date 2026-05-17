@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:feather_canvas_studio/feather_canvas_studio.dart';
@@ -123,4 +124,117 @@ void main() {
       'feather-canvas-library-20260516-0908.zip',
     );
   });
+
+  test(
+    'archives animation project json with referenced frame assets',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'image_library_archive_animation_project_test_',
+      );
+      addTearDown(() async {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+
+      final frameFile = File(
+        '${tempDir.path}${Platform.pathSeparator}frame.png',
+      );
+      final projectFile = File(
+        '${tempDir.path}${Platform.pathSeparator}project.json',
+      );
+      await frameFile.writeAsBytes([9, 8, 7], flush: true);
+      await projectFile.writeAsString(
+        jsonEncode({
+          'id': 'project-1',
+          'title': 'Project',
+          'createdAt': DateTime.parse('2026-05-17T10:00:00Z').toIso8601String(),
+          'updatedAt': DateTime.parse('2026-05-17T10:00:00Z').toIso8601String(),
+          'canvasWidth': 4,
+          'canvasHeight': 4,
+          'tracks': [
+            {
+              'id': 'track-1',
+              'name': 'Track',
+              'kind': 'action',
+              'visible': true,
+              'locked': false,
+              'defaultDelayMs': 100,
+              'playbackMode': 'normal',
+              'clips': [
+                {
+                  'id': 'clip-1',
+                  'name': 'Clip',
+                  'startFrame': 0,
+                  'loop': true,
+                  'frames': [
+                    {'assetId': 'asset-1', 'delayMs': 100},
+                  ],
+                },
+              ],
+            },
+          ],
+          'assets': [
+            {
+              'id': 'asset-1',
+              'path': frameFile.path,
+              'width': 4,
+              'height': 4,
+              'source': 'spriteSheetSlice',
+            },
+          ],
+          'timeline': {'defaultFrameDelayMs': 100},
+          'exportSettings': {'loopCount': 0},
+        }),
+        flush: true,
+      );
+
+      final sourceItem = ImageLibraryItem(
+        id: 'project-item',
+        path: projectFile.path,
+        createdAt: DateTime.parse('2026-05-17T10:00:00Z'),
+        kind: ImageAssetKind.animationProject,
+        title: 'Project',
+        source: '动画工程',
+        groupId: 'project-1',
+        animationProject: const AnimationProjectSummary(
+          id: 'project-1',
+          title: 'Project',
+          trackCount: 1,
+          frameCount: 1,
+          canvasWidth: 4,
+          canvasHeight: 4,
+        ),
+      );
+      final archivePath =
+          '${tempDir.path}${Platform.pathSeparator}project-export.zip';
+
+      final exportResult = await const ImageLibraryArchiveService()
+          .exportArchive(items: [sourceItem], outputPath: archivePath);
+      final importStore = AppLocalStore(
+        baseDirectoryOverride: Directory(
+          '${tempDir.path}${Platform.pathSeparator}import-target',
+        ),
+      );
+      final importResult = await const ImageLibraryArchiveService()
+          .importArchive(store: importStore, archivePath: archivePath);
+
+      expect(exportResult.exportedCount, 1);
+      expect(exportResult.skippedMissingCount, 0);
+      expect(importResult.importedItems, hasLength(1));
+      final importedItem = importResult.importedItems.single;
+      final importedJson =
+          jsonDecode(await File(importedItem.path).readAsString())
+              as Map<String, dynamic>;
+      final importedAsset = (importedJson['assets'] as List).single as Map;
+      final importedFramePath = importedAsset['path'] as String;
+
+      expect(importedItem.kind, ImageAssetKind.animationProject);
+      expect(importedItem.groupId, isNot('project-1'));
+      expect(importedItem.animationProject?.id, importedItem.groupId);
+      expect(importedJson['id'], importedItem.groupId);
+      expect(importedFramePath, isNot(frameFile.path));
+      expect(await File(importedFramePath).readAsBytes(), [9, 8, 7]);
+    },
+  );
 }

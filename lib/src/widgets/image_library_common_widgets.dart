@@ -15,12 +15,11 @@ class ImageLibraryPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     if (!item.isImageFile) {
+      final icon = item.kind == ImageAssetKind.animationProject
+          ? Icons.movie_creation_outlined
+          : Icons.gif_box_outlined;
       return Center(
-        child: Icon(
-          Icons.gif_box_outlined,
-          size: 42,
-          color: theme.colorScheme.primary,
-        ),
+        child: Icon(icon, size: 42, color: theme.colorScheme.primary),
       );
     }
 

@@ -27,6 +27,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
     required this.onClearSelection,
     required this.onDeleteSelected,
     required this.onExportSelected,
+    required this.onOpenAnimationProject,
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
@@ -62,6 +63,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
   final VoidCallback onClearSelection;
   final VoidCallback onDeleteSelected;
   final VoidCallback onExportSelected;
+  final ValueChanged<ImageLibraryItem> onOpenAnimationProject;
   final ValueChanged<ImageLibraryItem> onUseInEditor;
   final ValueChanged<ImageLibraryItem> onReuseGeneration;
   final ValueChanged<ImageLibraryItem> onCopyGeneration;
@@ -116,6 +118,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
               onClearSelection: onClearSelection,
               onDeleteSelected: onDeleteSelected,
               onExportSelected: onExportSelected,
+              onOpenAnimationProject: onOpenAnimationProject,
               onUseInEditor: onUseInEditor,
               onReuseGeneration: onReuseGeneration,
               onCopyGeneration: onCopyGeneration,

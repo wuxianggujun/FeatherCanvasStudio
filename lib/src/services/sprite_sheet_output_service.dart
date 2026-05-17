@@ -60,11 +60,17 @@ class SpriteSheetFileOutput {
     required this.path,
     required this.metadataPath,
     required this.directoryPath,
+    this.rows,
+    this.columns,
+    this.gridSpec,
   });
 
   final String path;
   final String metadataPath;
   final String directoryPath;
+  final int? rows;
+  final int? columns;
+  final SpriteSheetGridSpec? gridSpec;
 }
 
 class SpriteSheetFileService {
@@ -110,6 +116,9 @@ class SpriteSheetFileService {
       path: outputFile.path,
       metadataPath: metadataFile.path,
       directoryPath: outputFile.parent.path,
+      rows: previewData.rows,
+      columns: previewData.columns,
+      gridSpec: previewData.gridSpec,
     );
   }
 

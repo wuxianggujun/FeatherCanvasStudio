@@ -8,6 +8,7 @@ class _ImageLibraryTile extends StatelessWidget {
     required this.onSelectionChanged,
     required this.onSelectionDragStart,
     required this.onSelectionDragEnter,
+    required this.onOpenAnimationProject,
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
@@ -28,6 +29,7 @@ class _ImageLibraryTile extends StatelessWidget {
   final ValueChanged<bool> onSelectionChanged;
   final VoidCallback onSelectionDragStart;
   final VoidCallback onSelectionDragEnter;
+  final VoidCallback onOpenAnimationProject;
   final VoidCallback onUseInEditor;
   final VoidCallback onReuseGeneration;
   final VoidCallback onCopyGeneration;
@@ -45,6 +47,10 @@ class _ImageLibraryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isSheetWithMeta = item.isSpriteSheetWithMetadata;
+    final isAnimationProject = item.kind == ImageAssetKind.animationProject;
+    final canOpenInEditor =
+        item.canUseAsSpriteSheet ||
+        (item.isImageFile && item.kind != ImageAssetKind.gif);
     final totalFrames = item.totalFrameCount;
     final generation = item.generation;
     final displayPrompt = item.prompt ?? generation?.prompt;
@@ -73,12 +79,14 @@ class _ImageLibraryTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           onTap: selectionMode
               ? () => onSelectionChanged(!selected)
+              : isAnimationProject
+              ? onOpenAnimationProject
               : isSheetWithMeta
               ? onOpenSliceExplorer
-              : item.canUseAsSpriteSheet
-              ? onUseInEditor
               : generation != null
               ? onReuseGeneration
+              : canOpenInEditor
+              ? onUseInEditor
               : null,
           child: Padding(
             padding: const EdgeInsets.all(8),
@@ -231,6 +239,15 @@ class _ImageLibraryTile extends StatelessWidget {
                           label: const Text('切片'),
                         ),
                       )
+                    else if (isAnimationProject)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: onOpenAnimationProject,
+                          style: primaryActionStyle,
+                          icon: const Icon(Icons.account_tree_outlined),
+                          label: const Text('打开'),
+                        ),
+                      )
                     else if (generation != null)
                       Expanded(
                         child: OutlinedButton.icon(
@@ -243,9 +260,7 @@ class _ImageLibraryTile extends StatelessWidget {
                     else
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: item.canUseAsSpriteSheet
-                              ? onUseInEditor
-                              : null,
+                          onPressed: canOpenInEditor ? onUseInEditor : null,
                           style: primaryActionStyle,
                           icon: const Icon(Icons.edit_outlined),
                           label: const Text('编辑'),
@@ -268,6 +283,9 @@ class _ImageLibraryTile extends StatelessWidget {
                         icon: const Icon(Icons.more_horiz),
                         onSelected: (action) {
                           switch (action) {
+                            case ImageLibraryTileMenuAction
+                                .openAnimationProject:
+                              onOpenAnimationProject();
                             case ImageLibraryTileMenuAction.useInEditor:
                               onUseInEditor();
                             case ImageLibraryTileMenuAction.reuseGeneration:
@@ -290,7 +308,16 @@ class _ImageLibraryTile extends StatelessWidget {
                           }
                         },
                         itemBuilder: (context) => [
-                          if (isSheetWithMeta && item.canUseAsSpriteSheet)
+                          if (isAnimationProject)
+                            const PopupMenuItem(
+                              value: ImageLibraryTileMenuAction
+                                  .openAnimationProject,
+                              child: _ImageLibraryTileMenuEntry(
+                                icon: Icons.account_tree_outlined,
+                                label: '打开动画工程',
+                              ),
+                            ),
+                          if (canOpenInEditor)
                             const PopupMenuItem(
                               value: ImageLibraryTileMenuAction.useInEditor,
                               child: _ImageLibraryTileMenuEntry(
@@ -323,18 +350,19 @@ class _ImageLibraryTile extends StatelessWidget {
                                 label: '背景转透明',
                               ),
                             ),
-                          const PopupMenuItem(
-                            value: ImageLibraryTileMenuAction.copyImage,
-                            child: _ImageLibraryTileMenuEntry(
-                              icon: Icons.content_copy_outlined,
-                              label: '复制图片',
+                          if (item.isImageFile)
+                            const PopupMenuItem(
+                              value: ImageLibraryTileMenuAction.copyImage,
+                              child: _ImageLibraryTileMenuEntry(
+                                icon: Icons.content_copy_outlined,
+                                label: '复制图片',
+                              ),
                             ),
-                          ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: ImageLibraryTileMenuAction.exportImage,
                             child: _ImageLibraryTileMenuEntry(
                               icon: Icons.file_download_outlined,
-                              label: '导出图片',
+                              label: item.isImageFile ? '导出图片' : '导出文件',
                             ),
                           ),
                           const PopupMenuItem(

@@ -1,10 +1,11 @@
 enum ImagePickSource { localFile, imageLibrary }
 
-enum ImageLibraryKindFilter { all, generated, sprite, edited, gif }
+enum ImageLibraryKindFilter { all, generated, sprite, edited, animation, gif }
 
 enum ImageLibrarySortOrder { newest, oldest, titleAscending }
 
 enum ImageLibraryTileMenuAction {
+  openAnimationProject,
   useInEditor,
   reuseGeneration,
   copyGeneration,

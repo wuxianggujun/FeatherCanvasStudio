@@ -115,6 +115,7 @@ class BatchGenerationWorkspace extends StatelessWidget {
       description: '把多条文本生图任务排队串行执行，成功结果会自动进入作品库。',
       children: [
         ResponsiveWorkspaceSplit(
+          storageKey: 'batch_generation',
           controls: _BatchGenerationControls(
             promptController: promptController,
             negativePromptController: negativePromptController,
@@ -271,7 +272,8 @@ class _BatchGenerationControls extends StatelessWidget {
           ApiConfigSelector(
             apiConfigs: apiConfigs,
             selectedApiConfigId: selectedApiConfigId,
-            onChanged: isRunning ? (_) {} : onApiConfigChanged,
+            enabled: !isRunning,
+            onChanged: onApiConfigChanged,
             onOpenSettings: onOpenApiSettings,
           ),
           const SizedBox(height: fieldGap),
@@ -302,7 +304,8 @@ class _BatchGenerationControls extends StatelessWidget {
             providerKind: providerKind,
             model: selectedApiConfig.model,
             capabilityOverride: imageSizeCapabilityOverride,
-            onChanged: isRunning ? (_) {} : onSizeChanged,
+            enabled: !isRunning,
+            onChanged: onSizeChanged,
             compact: true,
           ),
           const SizedBox(height: fieldGap),
@@ -310,7 +313,8 @@ class _BatchGenerationControls extends StatelessWidget {
             settings: advancedSettings,
             userController: userController,
             hasTemplateImage: false,
-            onChanged: isRunning ? (_) {} : onAdvancedSettingsChanged,
+            enabled: !isRunning,
+            onChanged: onAdvancedSettingsChanged,
           ),
           const SizedBox(height: fieldGap),
           ResponsivePair(

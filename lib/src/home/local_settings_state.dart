@@ -271,7 +271,7 @@ mixin _LocalSettingsStateMixin
     setState(() => _size = after);
     _scheduleSettingsSave();
     final feature = _generationFormHistoryFeature(
-      includeFrameAnimation: true,
+      includeAnimationProject: true,
       includeImageGeneration: true,
     );
     if (feature == null) {
@@ -298,7 +298,7 @@ mixin _LocalSettingsStateMixin
     setState(() => _imageCount = normalized);
     _scheduleSettingsSave();
     final feature = _generationFormHistoryFeature(
-      includeFrameAnimation: false,
+      includeAnimationProject: false,
       includeImageGeneration: true,
     );
     if (feature == null) {
@@ -353,12 +353,12 @@ mixin _LocalSettingsStateMixin
   void _handleAnimationPromptChanged() {
     _handleGenerationTextChanged(
       key: _animationPromptHistoryKey,
-      label: '修改帧动画提示词',
+      label: '修改动画工程提示词',
       before: _lastAnimationPromptText,
       after: _animationPromptController.text,
       remember: (value) => _lastAnimationPromptText = value,
       feature: switch (_selectedFeature) {
-        WorkspaceFeature.frameAnimation => WorkspaceFeature.frameAnimation,
+        WorkspaceFeature.animationProject => WorkspaceFeature.animationProject,
         WorkspaceFeature.localSettings => WorkspaceFeature.localSettings,
         _ => null,
       },
@@ -373,7 +373,7 @@ mixin _LocalSettingsStateMixin
 
   void _handleNegativePromptChanged() {
     final feature = _generationFormHistoryFeature(
-      includeFrameAnimation: true,
+      includeAnimationProject: true,
       includeImageGeneration: true,
     );
     _handleGenerationTextChanged(
@@ -462,16 +462,16 @@ mixin _LocalSettingsStateMixin
   }
 
   WorkspaceFeature? _generationFormHistoryFeature({
-    required bool includeFrameAnimation,
+    required bool includeAnimationProject,
     required bool includeImageGeneration,
   }) {
     return switch (_selectedFeature) {
       WorkspaceFeature.imageGeneration when includeImageGeneration =>
         WorkspaceFeature.imageGeneration,
-      WorkspaceFeature.frameAnimation when includeFrameAnimation =>
-        WorkspaceFeature.frameAnimation,
+      WorkspaceFeature.animationProject when includeAnimationProject =>
+        WorkspaceFeature.animationProject,
       WorkspaceFeature.localSettings
-          when includeFrameAnimation || includeImageGeneration =>
+          when includeAnimationProject || includeImageGeneration =>
         WorkspaceFeature.localSettings,
       _ => null,
     };
@@ -486,7 +486,7 @@ mixin _LocalSettingsStateMixin
     }
 
     final feature = _generationFormHistoryFeature(
-      includeFrameAnimation: true,
+      includeAnimationProject: true,
       includeImageGeneration: true,
     );
     if (feature == null) {
@@ -695,7 +695,7 @@ mixin _LocalSettingsStateMixin
       ),
       AppPresetKind.spriteSheet => AppPreset(
         id: AppPreset.newId(),
-        name: '帧动画 ${_appPresets.length + 1}',
+        name: '动画工程 ${_appPresets.length + 1}',
         kind: kind,
         prompt: _animationPromptController.text,
         negativePrompt: _negativePromptController.text,

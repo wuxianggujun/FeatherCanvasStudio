@@ -51,6 +51,7 @@ class GifComposerWorkspace extends StatelessWidget {
       description: '选择多张本地图片，按当前顺序合成为一个 GIF 动图',
       children: [
         ResponsiveWorkspaceSplit(
+          storageKey: 'gif_composer',
           controls: GifComposerPanel(
             frames: frames,
             defaultFrameDelayMs: defaultFrameDelayMs,

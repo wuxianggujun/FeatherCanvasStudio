@@ -1,8 +1,9 @@
 enum WorkspaceFeature {
   imageGeneration,
   batchGeneration,
-  frameAnimation,
+  animationProject,
   imageEditor,
+  pixelArtEditor,
   gifComposer,
   imageLibrary,
   apiSettings,

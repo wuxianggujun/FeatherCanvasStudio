@@ -415,9 +415,26 @@ void main() {
     final orphanFile = File(
       '${generatedDirectory.path}${Platform.pathSeparator}orphan.png',
     );
+    final projectFrameFile = File(
+      '${generatedDirectory.path}${Platform.pathSeparator}project-frame.png',
+    );
+    final projectFile = File(
+      '${generatedDirectory.path}${Platform.pathSeparator}project.json',
+    );
     await keptFile.writeAsBytes([1, 2, 3], flush: true);
     await keptMetadataFile.writeAsString('{}', flush: true);
     await orphanFile.writeAsBytes([4, 5, 6, 7], flush: true);
+    await projectFrameFile.writeAsBytes([10, 11, 12], flush: true);
+    await projectFile.writeAsString(
+      jsonEncode({
+        'id': 'project-1',
+        'title': 'Project',
+        'assets': [
+          {'id': 'asset-1', 'path': projectFrameFile.path},
+        ],
+      }),
+      flush: true,
+    );
     final ephemeralFile = await store.saveEphemeralBytes(
       prefix: 'template',
       bytes: Uint8List.fromList([8, 9]),
@@ -433,11 +450,22 @@ void main() {
           title: 'Kept',
           source: 'Test',
         ),
+        ImageLibraryItem(
+          id: 'project',
+          path: projectFile.path,
+          createdAt: DateTime.parse('2026-05-13T10:01:00Z'),
+          kind: ImageAssetKind.animationProject,
+          title: 'Project',
+          source: 'Test',
+          groupId: 'project-1',
+        ),
       ],
     );
 
     expect(await keptFile.exists(), isTrue);
     expect(await keptMetadataFile.exists(), isTrue);
+    expect(await projectFile.exists(), isTrue);
+    expect(await projectFrameFile.exists(), isTrue);
     expect(await orphanFile.exists(), isFalse);
     expect(await ephemeralFile.exists(), isFalse);
     expect(summary.removedGeneratedFiles, 1);

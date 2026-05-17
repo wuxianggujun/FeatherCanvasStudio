@@ -47,6 +47,7 @@ void main() {
                 onClearSelection: () {},
                 onDeleteSelected: () {},
                 onExportSelected: () {},
+                onOpenAnimationProject: (_) {},
                 onUseInEditor: (_) {},
                 onReuseGeneration: (_) {},
                 onCopyGeneration: (_) {},

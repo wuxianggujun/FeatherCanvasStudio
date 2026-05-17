@@ -202,4 +202,106 @@ void main() {
 
     expect(retriedJob?.prompt, 'failed prompt 1');
   });
+
+  testWidgets('running batch queue disables configuration inputs', (
+    tester,
+  ) async {
+    const firstConfig = ApiConfig(
+      id: 'config-1',
+      name: 'Config 1',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+    const secondConfig = ApiConfig(
+      id: 'config-2',
+      name: 'Config 2',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+    final promptController = TextEditingController();
+    final negativePromptController = TextEditingController();
+    final userController = TextEditingController(text: 'locked-user');
+    var apiConfigChanges = 0;
+    var sizeChanges = 0;
+    var advancedChanges = 0;
+    addTearDown(() {
+      promptController.dispose();
+      negativePromptController.dispose();
+      userController.dispose();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 1200,
+            height: 900,
+            child: BatchGenerationWorkspace(
+              promptController: promptController,
+              negativePromptController: negativePromptController,
+              userController: userController,
+              apiConfigs: const [firstConfig, secondConfig],
+              selectedApiConfig: firstConfig,
+              selectedApiConfigId: firstConfig.id,
+              providerKind: firstConfig.providerKind,
+              imageSizeCapabilityOverride:
+                  firstConfig.imageSizeCapabilityOverride,
+              size: '1024x1024',
+              advancedSettings: const ImageAdvancedSettings(),
+              jobs: const [],
+              targetCount: 2,
+              requestCount: 1,
+              isRunning: true,
+              isPausing: false,
+              onApiConfigChanged: (_) => apiConfigChanges++,
+              onOpenApiSettings: () {},
+              onSizeChanged: (_) => sizeChanges++,
+              onAdvancedSettingsChanged: (_) => advancedChanges++,
+              onTargetCountChanged: (_) {},
+              onRequestCountChanged: (_) {},
+              onAddPrompts: () {},
+              onStart: () {},
+              onPause: () {},
+              onResume: () {},
+              onCancelQueued: () {},
+              onRetryFailed: () {},
+              onRemoveJob: (_) {},
+              onRetryJob: (_) {},
+              onClearFinished: () {},
+              onCopyImage: (_, _) {},
+              onExportImage: (_, _) {},
+              onMakeBackgroundTransparent: (_, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.ensureVisible(find.text('高级输出参数'));
+    await tester.tap(find.text('高级输出参数'));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final disabledDropdowns = tester.widgetList<DropdownButtonFormField>(
+      find.byType(DropdownButtonFormField),
+    );
+    expect(disabledDropdowns.length, greaterThanOrEqualTo(5));
+    expect(
+      disabledDropdowns.every((dropdown) => dropdown.onChanged == null),
+      isTrue,
+    );
+
+    final userField = tester.widget<TextField>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.labelText == '最终用户 ID',
+      ),
+    );
+    expect(userField.enabled, isFalse);
+    expect(apiConfigChanges, 0);
+    expect(sizeChanges, 0);
+    expect(advancedChanges, 0);
+  });
 }

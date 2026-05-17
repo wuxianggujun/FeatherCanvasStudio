@@ -64,7 +64,20 @@ Future<void> _openWorkspace(WidgetTester tester, String label) async {
       ? textFinder.first
       : find.byTooltip(label).first;
   await tester.tap(target);
-  await tester.pumpAndSettle();
+  await _pumpBoundedSettle(tester);
+}
+
+Future<void> _pumpBoundedSettle(
+  WidgetTester tester, {
+  int maxPumps = 12,
+}) async {
+  await tester.pump();
+  for (var index = 0; index < maxPumps; index++) {
+    if (!tester.binding.hasScheduledFrame) {
+      return;
+    }
+    await tester.pump(const Duration(milliseconds: 50));
+  }
 }
 
 Future<void> _dismissSnackBars(WidgetTester tester) async {
@@ -179,7 +192,7 @@ void main() {
     expect(_textFieldValue(tester, '默认生成数量'), '3');
   });
 
-  testWidgets('sprite sheet preset restores frame animation settings', (
+  testWidgets('sprite sheet preset restores animation project settings', (
     tester,
   ) async {
     const preset = AppPreset(
@@ -196,7 +209,7 @@ void main() {
     await _openSettings(tester);
 
     await _applyOnlyVisiblePreset(tester, preset.name);
-    await _openWorkspace(tester, '帧动画');
+    await _openWorkspace(tester, '动画工程');
 
     expect(_textFieldValue(tester, '提示词内容'), 'walk cycle prompt');
     expect(_textFieldValue(tester, '负向提示词'), 'no blur');
@@ -205,7 +218,7 @@ void main() {
 
     await _openSettings(tester);
     await _pressUndo(tester);
-    await _openWorkspace(tester, '帧动画');
+    await _openWorkspace(tester, '动画工程');
 
     expect(_textFieldValue(tester, '提示词内容'), defaultAnimationPrompt);
     expect(_textFieldValue(tester, '负向提示词'), 'before negative');
@@ -214,7 +227,7 @@ void main() {
 
     await _openSettings(tester);
     await _pressRedo(tester);
-    await _openWorkspace(tester, '帧动画');
+    await _openWorkspace(tester, '动画工程');
 
     expect(_textFieldValue(tester, '提示词内容'), 'walk cycle prompt');
     expect(_textFieldValue(tester, '负向提示词'), 'no blur');

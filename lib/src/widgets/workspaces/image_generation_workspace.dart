@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/app_config.dart';
 import '../../models/generated_image.dart';
 import '../../models/image_advanced_settings.dart';
-import '../../services/image_api_client.dart';
+import '../../state/image_generation_notifier.dart';
 import '../../utils/image_dimensions.dart';
 import '../generation_form_widgets.dart';
 import '../layout_navigation_widgets.dart';
@@ -20,10 +21,6 @@ class ImageGenerationWorkspace extends StatelessWidget {
     required this.imageCount,
     required this.advancedSettings,
     required this.userController,
-    required this.isGenerating,
-    required this.errorMessage,
-    required this.generatedImages,
-    required this.debugRecord,
     required this.onApiConfigChanged,
     required this.onOpenApiSettings,
     required this.onSizeChanged,
@@ -45,10 +42,6 @@ class ImageGenerationWorkspace extends StatelessWidget {
   final int imageCount;
   final ImageAdvancedSettings advancedSettings;
   final TextEditingController userController;
-  final bool isGenerating;
-  final String? errorMessage;
-  final List<GeneratedImage> generatedImages;
-  final ImageRequestDebugRecord? debugRecord;
   final ValueChanged<String> onApiConfigChanged;
   final VoidCallback onOpenApiSettings;
   final ValueChanged<String> onSizeChanged;
@@ -68,38 +61,44 @@ class ImageGenerationWorkspace extends StatelessWidget {
       controller: controller,
       children: [
         ResponsiveWorkspaceSplit(
-          controls: ControlPanel(
-            apiConfigs: apiConfigs,
-            selectedApiConfigId: selectedApiConfig.id,
-            providerKind: selectedApiConfig.providerKind,
-            model: selectedApiConfig.model,
-            imageSizeCapabilityOverride:
-                selectedApiConfig.imageSizeCapabilityOverride,
-            promptController: promptController,
-            negativePromptController: negativePromptController,
-            size: size,
-            imageCount: imageCount,
-            advancedSettings: advancedSettings,
-            userController: userController,
-            isGenerating: isGenerating,
-            onApiConfigChanged: onApiConfigChanged,
-            onOpenApiSettings: onOpenApiSettings,
-            onSizeChanged: onSizeChanged,
-            onImageCountChanged: onImageCountChanged,
-            onAdvancedSettingsChanged: onAdvancedSettingsChanged,
-            onGenerate: onGenerate,
+          storageKey: 'image_generation',
+          controls: Selector<ImageGenerationNotifier, bool>(
+            selector: (_, n) => n.isGenerating,
+            builder: (context, isGenerating, _) => ControlPanel(
+              apiConfigs: apiConfigs,
+              selectedApiConfigId: selectedApiConfig.id,
+              providerKind: selectedApiConfig.providerKind,
+              model: selectedApiConfig.model,
+              imageSizeCapabilityOverride:
+                  selectedApiConfig.imageSizeCapabilityOverride,
+              promptController: promptController,
+              negativePromptController: negativePromptController,
+              size: size,
+              imageCount: imageCount,
+              advancedSettings: advancedSettings,
+              userController: userController,
+              isGenerating: isGenerating,
+              onApiConfigChanged: onApiConfigChanged,
+              onOpenApiSettings: onOpenApiSettings,
+              onSizeChanged: onSizeChanged,
+              onImageCountChanged: onImageCountChanged,
+              onAdvancedSettingsChanged: onAdvancedSettingsChanged,
+              onGenerate: onGenerate,
+            ),
           ),
-          preview: PreviewPanel(
-            errorMessage: errorMessage,
-            generatedImages: generatedImages,
-            isGenerating: isGenerating,
-            targetImageCount: imageCount,
-            targetAspectRatio: imageAspectRatioFromSize(size),
-            debugRecord: debugRecord,
-            onRetry: onGenerate,
-            onCopyImage: onCopyImage,
-            onExportImage: onExportImage,
-            onMakeBackgroundTransparent: onMakeBackgroundTransparent,
+          preview: Consumer<ImageGenerationNotifier>(
+            builder: (context, notifier, _) => PreviewPanel(
+              errorMessage: notifier.errorMessage,
+              generatedImages: notifier.generatedImages,
+              isGenerating: notifier.isGenerating,
+              targetImageCount: imageCount,
+              targetAspectRatio: imageAspectRatioFromSize(size),
+              debugRecord: notifier.debugRecord,
+              onRetry: onGenerate,
+              onCopyImage: onCopyImage,
+              onExportImage: onExportImage,
+              onMakeBackgroundTransparent: onMakeBackgroundTransparent,
+            ),
           ),
         ),
       ],

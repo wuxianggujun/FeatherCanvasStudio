@@ -138,8 +138,8 @@ class ControlPanel extends StatelessWidget {
   }
 }
 
-class FrameAnimationPanel extends StatelessWidget {
-  const FrameAnimationPanel({
+class SpriteSheetGenerationPanel extends StatelessWidget {
+  const SpriteSheetGenerationPanel({
     required this.apiConfigs,
     required this.selectedApiConfigId,
     required this.providerKind,
@@ -207,7 +207,7 @@ class FrameAnimationPanel extends StatelessWidget {
     );
 
     return AppPanel(
-      title: '帧动画配置',
+      title: '序列帧生成配置',
       trailing: FrameCountBadge(count: frameTotal, label: '格'),
       child: Column(
         children: [

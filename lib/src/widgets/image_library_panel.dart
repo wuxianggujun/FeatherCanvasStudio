@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/image_library_item.dart';
+import '../models/image_asset_kind.dart';
 import '../models/ui_state.dart';
 import '../theme/layout_constants.dart';
 import '../utils/date_formatting.dart';
@@ -34,6 +35,7 @@ class ImageLibraryPanel extends StatelessWidget {
     required this.onClearSelection,
     required this.onDeleteSelected,
     required this.onExportSelected,
+    required this.onOpenAnimationProject,
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
@@ -75,6 +77,7 @@ class ImageLibraryPanel extends StatelessWidget {
   final VoidCallback onClearSelection;
   final VoidCallback onDeleteSelected;
   final VoidCallback onExportSelected;
+  final ValueChanged<ImageLibraryItem> onOpenAnimationProject;
   final ValueChanged<ImageLibraryItem> onUseInEditor;
   final ValueChanged<ImageLibraryItem> onReuseGeneration;
   final ValueChanged<ImageLibraryItem> onCopyGeneration;
@@ -295,6 +298,7 @@ class ImageLibraryPanel extends StatelessWidget {
       items: items,
       selectedItemIds: selectedItemIds,
       onSelectionChanged: onSelectionChanged,
+      onOpenAnimationProject: onOpenAnimationProject,
       onUseInEditor: onUseInEditor,
       onReuseGeneration: onReuseGeneration,
       onCopyGeneration: onCopyGeneration,
@@ -320,6 +324,7 @@ class _PaginatedImageLibraryGrid extends StatefulWidget {
     required this.items,
     required this.selectedItemIds,
     required this.onSelectionChanged,
+    required this.onOpenAnimationProject,
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
@@ -339,6 +344,7 @@ class _PaginatedImageLibraryGrid extends StatefulWidget {
   final List<ImageLibraryItem> items;
   final Set<String> selectedItemIds;
   final void Function(ImageLibraryItem item, bool selected) onSelectionChanged;
+  final ValueChanged<ImageLibraryItem> onOpenAnimationProject;
   final ValueChanged<ImageLibraryItem> onUseInEditor;
   final ValueChanged<ImageLibraryItem> onReuseGeneration;
   final ValueChanged<ImageLibraryItem> onCopyGeneration;
@@ -467,6 +473,7 @@ class _PaginatedImageLibraryGridState
       items: pageItems,
       selectedItemIds: widget.selectedItemIds,
       onSelectionChanged: widget.onSelectionChanged,
+      onOpenAnimationProject: widget.onOpenAnimationProject,
       onUseInEditor: widget.onUseInEditor,
       onReuseGeneration: widget.onReuseGeneration,
       onCopyGeneration: widget.onCopyGeneration,
@@ -658,6 +665,7 @@ class _SelectableImageLibraryGrid extends StatefulWidget {
     required this.items,
     required this.selectedItemIds,
     required this.onSelectionChanged,
+    required this.onOpenAnimationProject,
     required this.onUseInEditor,
     required this.onReuseGeneration,
     required this.onCopyGeneration,
@@ -677,6 +685,7 @@ class _SelectableImageLibraryGrid extends StatefulWidget {
   final List<ImageLibraryItem> items;
   final Set<String> selectedItemIds;
   final void Function(ImageLibraryItem item, bool selected) onSelectionChanged;
+  final ValueChanged<ImageLibraryItem> onOpenAnimationProject;
   final ValueChanged<ImageLibraryItem> onUseInEditor;
   final ValueChanged<ImageLibraryItem> onReuseGeneration;
   final ValueChanged<ImageLibraryItem> onCopyGeneration;
@@ -777,6 +786,7 @@ class _SelectableImageLibraryGridState
             widget.onSelectionChanged(item, selected),
         onSelectionDragStart: () => _startDragSelection(item),
         onSelectionDragEnter: () => _applyDragSelection(item),
+        onOpenAnimationProject: () => widget.onOpenAnimationProject(item),
         onUseInEditor: () => widget.onUseInEditor(item),
         onReuseGeneration: () => widget.onReuseGeneration(item),
         onCopyGeneration: () => widget.onCopyGeneration(item),

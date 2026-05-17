@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import '../models/app_config.dart';
+import '../models/animation_project.dart';
 import '../models/generated_image.dart';
 import '../models/image_asset_kind.dart';
 import '../models/image_library_item.dart';
@@ -97,6 +100,7 @@ class ImageLibraryService {
     int? frameWidth,
     int? frameHeight,
     int? frameIndex,
+    AnimationProjectSummary? animationProject,
   }) async {
     final item = ImageLibraryItem(
       id: ImageLibraryItem.newId(),
@@ -114,6 +118,7 @@ class ImageLibraryService {
       frameWidth: frameWidth,
       frameHeight: frameHeight,
       frameIndex: frameIndex,
+      animationProject: animationProject,
     );
     await store.addImageLibraryItems([item]);
     return item;
@@ -131,6 +136,26 @@ class ImageLibraryService {
       title: 'GIF 合成',
       source: 'GIF 合成',
       prompt: '$frameCount 张图片合成',
+    );
+  }
+
+  Future<ImageLibraryItem> addAnimationProject({
+    required AppLocalStore store,
+    required String path,
+    required AnimationProject project,
+  }) {
+    final summary = AnimationProjectSummary.fromProject(project);
+    return addItem(
+      store: store,
+      path: path,
+      kind: ImageAssetKind.animationProject,
+      title: project.title,
+      source: '动画工程',
+      prompt:
+          '${summary.trackCount} 条轨道 · ${summary.frameCount} 帧 · '
+          '${summary.canvasWidth} x ${summary.canvasHeight}',
+      groupId: project.id,
+      animationProject: summary,
     );
   }
 
@@ -213,19 +238,30 @@ class ImageLibraryService {
     bool moveToTrash = true,
   }) async {
     final impact = buildImageLibraryDeleteImpact(library, ids);
+    final removedPaths = <String>{...impact.removedPaths};
+    for (final item in impact.removedItems) {
+      if (item.kind == ImageAssetKind.animationProject) {
+        removedPaths.addAll(await _animationProjectAssetPaths(item.path));
+      }
+    }
+    final expandedImpact = ImageLibraryDeleteImpact(
+      removedItems: impact.removedItems,
+      removedPaths: removedPaths,
+      remainingItems: impact.remainingItems,
+    );
     await store.saveImageLibrary(impact.remainingItems);
     if (moveToTrash) {
       final trashMap = <String, String>{};
-      for (final path in impact.removedPaths) {
+      for (final path in expandedImpact.removedPaths) {
         final trash = await fileService.moveToTrash(path);
         if (trash != null) {
           trashMap[path] = trash;
         }
       }
-      return impact.withTrashPaths(trashMap);
+      return expandedImpact.withTrashPaths(trashMap);
     }
-    await fileService.deleteExistingFiles(impact.removedPaths);
-    return impact;
+    await fileService.deleteExistingFiles(expandedImpact.removedPaths);
+    return expandedImpact;
   }
 
   Future<List<ImageLibraryItem>> restoreItems({
@@ -273,7 +309,7 @@ class ImageLibraryService {
       path: file.path,
       kind: ImageAssetKind.spriteFrame,
       title: '${sheet.displayTitle} · 帧 ${frameIndex + 1}',
-      source: sheet.source.isEmpty ? '帧动画' : sheet.source,
+      source: sheet.source.isEmpty ? 'Sprite Sheet' : sheet.source,
       prompt: sheet.prompt,
       generation: sheet.generation,
       groupId: groupId,
@@ -355,4 +391,27 @@ List<String> _normalizeImageLibraryTags(List<String>? tags) {
     }
   }
   return List.unmodifiable(normalizedTags);
+}
+
+Future<Set<String>> _animationProjectAssetPaths(String projectPath) async {
+  if (projectPath.trim().isEmpty) {
+    return const <String>{};
+  }
+  try {
+    final decoded = jsonDecode(await File(projectPath).readAsString());
+    if (decoded is! Map) {
+      return const <String>{};
+    }
+    final assets = decoded['assets'];
+    if (assets is! List) {
+      return const <String>{};
+    }
+    return {
+      for (final asset in assets.whereType<Map>())
+        if (asset['path'] is String && (asset['path'] as String).isNotEmpty)
+          asset['path'] as String,
+    };
+  } catch (_) {
+    return const <String>{};
+  }
 }

@@ -54,8 +54,8 @@ class PreviewStateSurface extends StatelessWidget {
     required this.title,
     required this.message,
     this.onRetry,
+    this.retryLabel = '重试生成',
   }) : _kind = _PreviewStateKind.error,
-       retryLabel = '重试生成',
        minHeight = 420;
 
   final _PreviewStateKind _kind;

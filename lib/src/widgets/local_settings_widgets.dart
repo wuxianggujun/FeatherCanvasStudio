@@ -109,7 +109,7 @@ class LocalSettingsPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '这些值会保存在本机，并作为文本生图、帧动画等工作区的默认表单状态。',
+                '这些值会保存在本机，并作为文本生图、动画工程等工作区的默认表单状态。',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -183,7 +183,7 @@ class LocalSettingsPanel extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: () => onSavePreset(AppPresetKind.spriteSheet),
                     icon: const Icon(Icons.video_library_outlined),
-                    label: const Text('保存帧动画预设'),
+                    label: const Text('保存动画工程预设'),
                   ),
                   OutlinedButton.icon(
                     onPressed: () => onSavePreset(AppPresetKind.gif),

@@ -132,6 +132,9 @@ mixin _ImageLibraryStateMixin
   set _editorImagePath(String? value);
   String? get _editorPatchImagePath;
   set _editorPatchImagePath(String? value);
+  set _generalEditorImagePath(String? value);
+  set _generalEditorImageInfo(ImageInspectionResult? value);
+  set _generalEditorErrorMessage(String? value);
   set _editorRows(int value);
   set _editorColumns(int value);
   set _editorGridSpec(SpriteSheetGridSpec value);
@@ -147,6 +150,12 @@ mixin _ImageLibraryStateMixin
   set _errorMessage(String? value);
   List<GifSourceFrame> get _gifSourceFrames;
   set _gifSourceFrames(List<GifSourceFrame> value);
+  AnimationProjectStore get _animationProjectStore;
+  AnimationProject? get _animationProject;
+  set _animationProject(AnimationProject? value);
+  String? get _selectedAnimationTrackId;
+  set _selectedAnimationTrackId(String? value);
+  set _animationProjectErrorMessage(String? value);
   @override
   Future<void> _selectFeature(WorkspaceFeature feature);
   @override
@@ -640,8 +649,11 @@ mixin _ImageLibraryStateMixin
       return;
     }
 
+    final isAnimationProject = item.kind == ImageAssetKind.animationProject;
     final location = await getSaveLocation(
-      acceptedTypeGroups: imageTypeGroups,
+      acceptedTypeGroups: isAnimationProject
+          ? animationProjectTypeGroups
+          : imageTypeGroups,
       suggestedName: fileNameFromPath(item.path),
     );
     if (location == null || !mounted) {
@@ -656,7 +668,11 @@ mixin _ImageLibraryStateMixin
       if (!mounted) {
         return;
       }
-      _showMessage('图片已导出：${fileNameFromPath(result.destinationPath)}');
+      _showMessage(
+        isAnimationProject
+            ? '动画工程文件已导出：${fileNameFromPath(result.destinationPath)}'
+            : '图片已导出：${fileNameFromPath(result.destinationPath)}',
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -745,6 +761,82 @@ mixin _ImageLibraryStateMixin
       }
     }
     return null;
+  }
+
+  Future<void> _openAnimationProjectFromLibrary(ImageLibraryItem item) async {
+    if (item.kind != ImageAssetKind.animationProject) {
+      _showMessage('这个作品不是动画工程');
+      return;
+    }
+    if (!await _fileService.fileExists(item.path)) {
+      if (mounted) {
+        setState(() {
+          _animationProjectErrorMessage = '动画工程文件不存在：${item.path}';
+        });
+      }
+      _showMessage('动画工程文件不存在');
+      return;
+    }
+
+    final beforeProject = _animationProject;
+    final beforeTrackId = _selectedAnimationTrackId;
+    try {
+      final project = await _animationProjectStore.loadProject(item.path);
+      if (!mounted) {
+        return;
+      }
+      await _selectFeature(WorkspaceFeature.animationProject);
+      if (!mounted) {
+        return;
+      }
+      final nextTrackId = project.tracks.isEmpty
+          ? null
+          : project.tracks.first.id;
+      setState(() {
+        _animationProject = project;
+        _selectedAnimationTrackId = nextTrackId;
+        _animationProjectErrorMessage = null;
+      });
+      _pushHistory(
+        WorkspaceFeature.animationProject,
+        HistoryAction(
+          label: '打开动画工程「${project.title}」',
+          apply: () async {
+            if (!mounted) return;
+            setState(() {
+              _animationProject = project;
+              _selectedAnimationTrackId = nextTrackId;
+              _animationProjectErrorMessage = null;
+            });
+          },
+          revert: () async {
+            if (!mounted) return;
+            setState(() {
+              _animationProject = beforeProject;
+              _selectedAnimationTrackId = beforeTrackId;
+              _animationProjectErrorMessage = null;
+            });
+          },
+        ),
+      );
+      _showMessage('已打开动画工程：${project.title}');
+    } on ImageGenerationException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _animationProjectErrorMessage = error.message;
+      });
+      _showMessage('打开动画工程失败：${error.message}');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _animationProjectErrorMessage = '打开动画工程失败：$error';
+      });
+      _showMessage('打开动画工程失败：$error');
+    }
   }
 
   Future<_TransparentBackgroundLibraryResult?> _saveTransparentBackgroundImage({
@@ -973,6 +1065,8 @@ mixin _ImageLibraryStateMixin
     final beforeEditorPatchImagePath = _editorPatchImagePath;
     final beforeAnimationTemplateImagePath = _animationTemplateImagePath;
     final beforeGifSourceFrames = _gifSourceFrames;
+    final beforeAnimationProject = _animationProject;
+    final beforeSelectedAnimationTrackId = _selectedAnimationTrackId;
 
     final impact = await _imageLibraryService.deleteItems(
       store: _store,
@@ -993,6 +1087,13 @@ mixin _ImageLibraryStateMixin
       animationTemplateImagePath: _animationTemplateImagePath,
       gifSourceFrames: _gifSourceFrames,
     );
+    final removesOpenAnimationProject =
+        _animationProject != null &&
+        impact.removedItems.any(
+          (item) =>
+              item.kind == ImageAssetKind.animationProject &&
+              item.groupId == _animationProject!.id,
+        );
     setState(() {
       _imageLibrary = impact.remainingItems;
       _selectedImageLibraryItemIds = cleanup.selectedItemIds;
@@ -1000,6 +1101,11 @@ mixin _ImageLibraryStateMixin
       _editorPatchImagePath = cleanup.editorPatchImagePath;
       _animationTemplateImagePath = cleanup.animationTemplateImagePath;
       _gifSourceFrames = cleanup.gifSourceFrames;
+      if (removesOpenAnimationProject) {
+        _animationProject = null;
+        _selectedAnimationTrackId = null;
+        _animationProjectErrorMessage = null;
+      }
     });
 
     final removedItems = List<ImageLibraryItem>.unmodifiable(
@@ -1042,6 +1148,11 @@ mixin _ImageLibraryStateMixin
               _animationTemplateImagePath =
                   redoCleanup.animationTemplateImagePath;
               _gifSourceFrames = redoCleanup.gifSourceFrames;
+              if (removesOpenAnimationProject) {
+                _animationProject = null;
+                _selectedAnimationTrackId = null;
+                _animationProjectErrorMessage = null;
+              }
             });
           },
           revert: () async {
@@ -1061,6 +1172,9 @@ mixin _ImageLibraryStateMixin
               _editorPatchImagePath = beforeEditorPatchImagePath;
               _animationTemplateImagePath = beforeAnimationTemplateImagePath;
               _gifSourceFrames = beforeGifSourceFrames;
+              _animationProject = beforeAnimationProject;
+              _selectedAnimationTrackId = beforeSelectedAnimationTrackId;
+              _animationProjectErrorMessage = null;
             });
           },
         ),
@@ -1076,7 +1190,38 @@ mixin _ImageLibraryStateMixin
 
   Future<void> _useImageLibraryItemInEditor(ImageLibraryItem item) async {
     if (!item.canUseAsSpriteSheet) {
-      _showMessage('这类作品不能直接作为 Sprite Sheet 编辑');
+      if (!item.isImageFile || item.kind == ImageAssetKind.gif) {
+        _showMessage('这类作品不能作为图片编辑源');
+        return;
+      }
+      await _selectFeature(WorkspaceFeature.imageEditor);
+      if (!mounted) {
+        return;
+      }
+      try {
+        final bytes = await _fileService.readFileBytes(item.path);
+        final info = await GeneralImageEditingService.inspectInBackground(
+          bytes,
+        );
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _generalEditorImagePath = item.path;
+          _generalEditorImageInfo = info;
+          _generalEditorErrorMessage = null;
+        });
+        _showMessage('已在图片编辑器中打开：${item.displayTitle}');
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _generalEditorImagePath = item.path;
+          _generalEditorImageInfo = null;
+          _generalEditorErrorMessage = '图片读取失败：$error';
+        });
+      }
       return;
     }
     final before = _captureEditorSource();
@@ -1314,6 +1459,8 @@ mixin _ImageLibraryStateMixin
       onClearSelection: _clearImageLibrarySelection,
       onDeleteSelected: _confirmDeleteSelectedImageLibraryItems,
       onExportSelected: () => unawaited(_exportSelectedImageLibraryItems()),
+      onOpenAnimationProject: (item) =>
+          unawaited(_openAnimationProjectFromLibrary(item)),
       onUseInEditor: _useImageLibraryItemInEditor,
       onReuseGeneration: _reuseImageLibraryGeneration,
       onCopyGeneration: _copyImageLibraryGeneration,

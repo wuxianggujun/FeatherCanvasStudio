@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_config.dart';
 import '../models/app_preset.dart';
 import '../models/image_advanced_settings.dart';
+import '../models/image_asset_kind.dart';
 import '../models/image_library_item.dart';
 import '../utils/generation_limits.dart';
 import 'secure_value_store.dart';
@@ -305,11 +306,15 @@ class AppLocalStore {
     required String groupId,
     required int index,
     required Uint8List bytes,
+    String extension = 'png',
   }) async {
     final directory = await ensureGeneratedImagesDirectory();
+    final safeExtension = extension
+        .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')
+        .toLowerCase();
     final file = File(
       '${directory.path}${Platform.pathSeparator}'
-      '${groupId}_${(index + 1).toString().padLeft(2, '0')}.png',
+      '${groupId}_${(index + 1).toString().padLeft(2, '0')}.${safeExtension.isEmpty ? 'png' : safeExtension}',
     );
     await file.writeAsBytes(bytes, flush: true);
     return file;
@@ -377,12 +382,7 @@ class AppLocalStore {
   }) async {
     final generatedDirectory = await ensureGeneratedImagesDirectory();
     final ephemeralDirectory = await ensureEphemeralDirectory();
-    final referencedPaths = {
-      for (final item in libraryItems) ...[
-        item.path,
-        '${item.path}.metadata.json',
-      ],
-    };
+    final referencedPaths = await _referencedPathsForLibrary(libraryItems);
     final generatedResult = await _cleanupUnreferencedFiles(
       directory: generatedDirectory,
       referencedPaths: referencedPaths,
@@ -393,6 +393,41 @@ class AppLocalStore {
       removedEphemeralFiles: ephemeralResult.removedFiles,
       freedBytes: generatedResult.freedBytes + ephemeralResult.freedBytes,
     );
+  }
+
+  static Future<Set<String>> _referencedPathsForLibrary(
+    List<ImageLibraryItem> libraryItems,
+  ) async {
+    final referencedPaths = <String>{
+      for (final item in libraryItems) ...[
+        item.path,
+        '${item.path}.metadata.json',
+      ],
+    };
+    for (final item in libraryItems) {
+      if (item.kind != ImageAssetKind.animationProject || item.path.isEmpty) {
+        continue;
+      }
+      try {
+        final decoded = jsonDecode(await File(item.path).readAsString());
+        if (decoded is! Map) {
+          continue;
+        }
+        final assets = decoded['assets'];
+        if (assets is! List) {
+          continue;
+        }
+        for (final asset in assets.whereType<Map>()) {
+          final path = asset['path'];
+          if (path is String && path.isNotEmpty) {
+            referencedPaths.add(path);
+          }
+        }
+      } catch (_) {
+        // 清理失败时保守处理：至少保留工程 JSON 本身。
+      }
+    }
+    return referencedPaths;
   }
 
   Future<String?> _readSecretWithLegacyMigration({

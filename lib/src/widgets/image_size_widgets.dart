@@ -19,6 +19,7 @@ class ImageSizeInput extends StatefulWidget {
     required this.capabilityOverride,
     required this.onChanged,
     this.compact = false,
+    this.enabled = true,
     this.onValidityChanged,
     super.key,
   });
@@ -29,6 +30,7 @@ class ImageSizeInput extends StatefulWidget {
   final ImageSizeCapabilityOverride capabilityOverride;
   final ValueChanged<String> onChanged;
   final bool compact;
+  final bool enabled;
   final ValueChanged<bool>? onValidityChanged;
 
   @override
@@ -143,11 +145,13 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
             child: Text('自定义尺寸'),
           ),
       ],
-      onChanged: (value) {
-        if (value != null) {
-          _applySelection(value);
-        }
-      },
+      onChanged: widget.enabled
+          ? (value) {
+              if (value != null) {
+                _applySelection(value);
+              }
+            }
+          : null,
     );
   }
 
@@ -182,11 +186,13 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
           child: Text('自定义尺寸'),
         ),
       ],
-      onChanged: (value) {
-        if (value != null) {
-          _applyScaleSelection(value);
-        }
-      },
+      onChanged: widget.enabled
+          ? (value) {
+              if (value != null) {
+                _applyScaleSelection(value);
+              }
+            }
+          : null,
     );
 
     if (selectedScale == _customSizeValue) {
@@ -209,7 +215,7 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
                 child: Text(_orientationLabel(orientation)),
               ),
           ],
-          onChanged: availableOrientations.length <= 1
+          onChanged: !widget.enabled || availableOrientations.length <= 1
               ? null
               : (orientation) {
                   if (orientation != null) {
@@ -371,6 +377,7 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
         gptImage2SizeConstraints;
     return TextField(
       controller: controller,
+      enabled: widget.enabled,
       keyboardType: TextInputType.number,
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,

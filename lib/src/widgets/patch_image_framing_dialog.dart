@@ -322,17 +322,28 @@ class _Checkerboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _CheckerboardPainter());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return CustomPaint(
+      painter: _CheckerboardPainter(
+        lightColor: isDark ? const Color(0xFF2A2D35) : const Color(0xFFF4F4F5),
+        darkColor: isDark ? const Color(0xFF1F222A) : const Color(0xFFE4E4E7),
+      ),
+    );
   }
 }
 
 class _CheckerboardPainter extends CustomPainter {
+  _CheckerboardPainter({required this.lightColor, required this.darkColor});
+
+  final Color lightColor;
+  final Color darkColor;
+
   static const double _cellSize = 12;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final light = Paint()..color = const Color(0xFFF4F4F5);
-    final dark = Paint()..color = const Color(0xFFE4E4E7);
+    final light = Paint()..color = lightColor;
+    final dark = Paint()..color = darkColor;
     canvas.drawRect(Offset.zero & size, light);
 
     for (var y = 0.0; y < size.height; y += _cellSize) {

@@ -5,14 +5,25 @@ import 'package:flutter/material.dart';
 import '../../models/generated_image.dart';
 import '../../models/sprite_sheet_frame_fit.dart';
 import '../../models/sprite_sheet_grid_spec.dart';
+import '../../services/general_image_editing_service.dart';
 import '../../services/sprite_sheet_service.dart';
 import '../../utils/sprite_sheet_text.dart';
 import '../editor_gif_widgets.dart';
+import '../general_image_editor_widgets.dart';
 import '../layout_navigation_widgets.dart';
 import '../preview_widgets.dart';
 
-class ImageEditorWorkspace extends StatelessWidget {
+enum _ImageEditorMode { general, spriteSheet }
+
+class ImageEditorWorkspace extends StatefulWidget {
   const ImageEditorWorkspace({
+    required this.generalImagePath,
+    required this.generalImageInfo,
+    required this.isProcessingGeneralImage,
+    required this.generalImageErrorMessage,
+    required this.onPickGeneralImage,
+    required this.onClearGeneralImage,
+    required this.onApplyGeneralImageEdit,
     required this.imagePath,
     required this.patchImagePath,
     required this.rows,
@@ -46,6 +57,13 @@ class ImageEditorWorkspace extends StatelessWidget {
     super.key,
   });
 
+  final String? generalImagePath;
+  final ImageInspectionResult? generalImageInfo;
+  final bool isProcessingGeneralImage;
+  final String? generalImageErrorMessage;
+  final VoidCallback onPickGeneralImage;
+  final VoidCallback onClearGeneralImage;
+  final GeneralImageEditApplyCallback onApplyGeneralImageEdit;
   final String? imagePath;
   final String? patchImagePath;
   final int rows;
@@ -78,25 +96,63 @@ class ImageEditorWorkspace extends StatelessWidget {
   final ValueChanged<SpriteSheetPreviewData> onSendToGif;
 
   @override
-  Widget build(BuildContext context) {
-    final editorImages = imagePath == null
-        ? const <GeneratedImage>[]
-        : [GeneratedImage.file(imagePath!)];
+  State<ImageEditorWorkspace> createState() => _ImageEditorWorkspaceState();
+}
 
+class _ImageEditorWorkspaceState extends State<ImageEditorWorkspace> {
+  _ImageEditorMode _mode = _ImageEditorMode.general;
+
+  @override
+  void didUpdateWidget(covariant ImageEditorWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.generalImagePath != widget.generalImagePath &&
+        widget.generalImagePath != null) {
+      _mode = _ImageEditorMode.general;
+      return;
+    }
+    if (oldWidget.imagePath != widget.imagePath && widget.imagePath != null) {
+      _mode = _ImageEditorMode.spriteSheet;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return WorkspacePage(
       title: '图片编辑',
-      description: '载入一张 Sprite Sheet，按行列快速查看第几帧',
-      compactHeader: true,
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+      description: _mode == _ImageEditorMode.general
+          ? '裁剪、旋转、缩放、调色和保存图片副本'
+          : '载入一张 Sprite Sheet，按行列快速查看第几帧',
+      compactHeader: widget.isFocusMode,
+      trailing: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          historyControls,
-          const SizedBox(width: 4),
+          SegmentedButton<_ImageEditorMode>(
+            segments: const [
+              ButtonSegment(
+                value: _ImageEditorMode.general,
+                icon: Icon(Icons.tune_outlined),
+                label: Text('普通图片'),
+              ),
+              ButtonSegment(
+                value: _ImageEditorMode.spriteSheet,
+                icon: Icon(Icons.grid_on_outlined),
+                label: Text('Sprite Sheet'),
+              ),
+            ],
+            selected: {_mode},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) {
+              setState(() => _mode = selection.single);
+            },
+          ),
+          widget.historyControls,
           IconButton.filledTonal(
-            tooltip: isFocusMode ? '退出专注模式' : '进入专注模式',
-            onPressed: () => onFocusModeChanged(!isFocusMode),
+            tooltip: widget.isFocusMode ? '退出专注模式' : '进入专注模式',
+            onPressed: () => widget.onFocusModeChanged(!widget.isFocusMode),
             icon: Icon(
-              isFocusMode
+              widget.isFocusMode
                   ? Icons.fullscreen_exit_outlined
                   : Icons.fullscreen_outlined,
             ),
@@ -104,56 +160,80 @@ class ImageEditorWorkspace extends StatelessWidget {
         ],
       ),
       children: [
-        ResponsiveWorkspaceSplit(
-          controlsWidth: isFocusMode ? 316 : 352,
-          minControlsWidth: isFocusMode ? 276 : 300,
-          maxControlsWidth: isFocusMode ? 420 : 500,
-          controls: SpriteSheetEditorPanel(
-            imagePath: imagePath,
-            patchImagePath: patchImagePath,
-            rows: rows,
-            columns: columns,
-            gridSpec: gridSpec,
-            targetFrameIndex: targetFrameIndex.clamp(0, rows * columns - 1),
-            frameFit: frameFit,
-            isReplacingFrame: isReplacingFrame,
-            onPickImage: onPickImage,
-            onClearImage: onClearImage,
-            onPickPatchImage: onPickPatchImage,
-            onClearPatchImage: onClearPatchImage,
-            onAdjustPatchFraming: onAdjustPatchFraming,
-            onMakePatchBackgroundTransparent: onMakePatchBackgroundTransparent,
-            onPixelateCurrentFrame: onPixelateCurrentFrame,
-            onPixelateWholeSheet: onPixelateWholeSheet,
-            onRowsChanged: onRowsChanged,
-            onColumnsChanged: onColumnsChanged,
-            onGridSpecChanged: onGridSpecChanged,
-            onTargetFrameChanged: onTargetFrameChanged,
-            onFrameFitChanged: onFrameFitChanged,
-            onReplaceFrame: onReplaceFrame,
-            onCopyPreviousFrame: onCopyPreviousFrame,
-            onClearTargetFrame: onClearTargetFrame,
-          ),
-          preview: FrameAnimationPreviewPanel(
-            title: '切片查看',
-            emptyMessage: '选择一张 Sprite Sheet 后，可以按行列查看第几帧',
-            errorMessage: errorMessage,
-            debugRecord: null,
-            generatedImages: editorImages,
-            isGenerating: false,
-            rows: rows,
-            columns: columns,
-            gridSpec: gridSpec,
-            selectedFrameIndex: targetFrameIndex,
-            onFrameSelected: onTargetFrameChanged,
-            enablePlayback: false,
-            labelBuilder: (index) =>
-                editorFrameGridLabel(index, columns: columns),
-            onExportSpriteSheet: onExportSpriteSheet,
-            onSendToGif: onSendToGif,
-          ),
-        ),
+        if (_mode == _ImageEditorMode.general)
+          GeneralImageEditorContent(
+            imagePath: widget.generalImagePath,
+            imageInfo: widget.generalImageInfo,
+            isProcessing: widget.isProcessingGeneralImage,
+            errorMessage: widget.generalImageErrorMessage,
+            onPickImage: widget.onPickGeneralImage,
+            onClearImage: widget.onClearGeneralImage,
+            onApplyEdit: widget.onApplyGeneralImageEdit,
+          )
+        else
+          _buildSpriteSheetEditor(),
       ],
+    );
+  }
+
+  Widget _buildSpriteSheetEditor() {
+    final editorImages = widget.imagePath == null
+        ? const <GeneratedImage>[]
+        : [GeneratedImage.file(widget.imagePath!)];
+
+    return ResponsiveWorkspaceSplit(
+      storageKey: 'image_editor',
+      controlsWidth: widget.isFocusMode ? 316 : 352,
+      minControlsWidth: widget.isFocusMode ? 276 : 300,
+      maxControlsWidth: widget.isFocusMode ? 420 : 500,
+      controls: SpriteSheetEditorPanel(
+        imagePath: widget.imagePath,
+        patchImagePath: widget.patchImagePath,
+        rows: widget.rows,
+        columns: widget.columns,
+        gridSpec: widget.gridSpec,
+        targetFrameIndex: widget.targetFrameIndex.clamp(
+          0,
+          widget.rows * widget.columns - 1,
+        ),
+        frameFit: widget.frameFit,
+        isReplacingFrame: widget.isReplacingFrame,
+        onPickImage: widget.onPickImage,
+        onClearImage: widget.onClearImage,
+        onPickPatchImage: widget.onPickPatchImage,
+        onClearPatchImage: widget.onClearPatchImage,
+        onAdjustPatchFraming: widget.onAdjustPatchFraming,
+        onMakePatchBackgroundTransparent:
+            widget.onMakePatchBackgroundTransparent,
+        onPixelateCurrentFrame: widget.onPixelateCurrentFrame,
+        onPixelateWholeSheet: widget.onPixelateWholeSheet,
+        onRowsChanged: widget.onRowsChanged,
+        onColumnsChanged: widget.onColumnsChanged,
+        onGridSpecChanged: widget.onGridSpecChanged,
+        onTargetFrameChanged: widget.onTargetFrameChanged,
+        onFrameFitChanged: widget.onFrameFitChanged,
+        onReplaceFrame: widget.onReplaceFrame,
+        onCopyPreviousFrame: widget.onCopyPreviousFrame,
+        onClearTargetFrame: widget.onClearTargetFrame,
+      ),
+      preview: FrameAnimationPreviewPanel(
+        title: '切片查看',
+        emptyMessage: '选择一张 Sprite Sheet 后，可以按行列查看第几帧',
+        errorMessage: widget.errorMessage,
+        debugRecord: null,
+        generatedImages: editorImages,
+        isGenerating: false,
+        rows: widget.rows,
+        columns: widget.columns,
+        gridSpec: widget.gridSpec,
+        selectedFrameIndex: widget.targetFrameIndex,
+        onFrameSelected: widget.onTargetFrameChanged,
+        enablePlayback: false,
+        labelBuilder: (index) =>
+            editorFrameGridLabel(index, columns: widget.columns),
+        onExportSpriteSheet: widget.onExportSpriteSheet,
+        onSendToGif: widget.onSendToGif,
+      ),
     );
   }
 }

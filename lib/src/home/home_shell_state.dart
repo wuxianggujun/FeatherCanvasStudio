@@ -4,6 +4,8 @@ part of 'package:feather_canvas_studio/main.dart';
 
 const int _historyMenuMaxItems = 8;
 
+enum _MessageLevel { info, success, warning, error }
+
 class _ResetDefaultsSnapshot {
   const _ResetDefaultsSnapshot({
     required this.apiConfigs,
@@ -39,6 +41,9 @@ class _ResetDefaultsSnapshot {
     required this.animationTemplateImagePath,
     required this.editorImagePath,
     required this.editorPatchImagePath,
+    required this.generalEditorImagePath,
+    required this.generalEditorImageInfo,
+    required this.generalEditorErrorMessage,
     required this.editorErrorMessage,
     required this.gifSourceFrames,
     required this.gifOutputPath,
@@ -83,6 +88,9 @@ class _ResetDefaultsSnapshot {
   final String? animationTemplateImagePath;
   final String? editorImagePath;
   final String? editorPatchImagePath;
+  final String? generalEditorImagePath;
+  final ImageInspectionResult? generalEditorImageInfo;
+  final String? generalEditorErrorMessage;
   final String? editorErrorMessage;
   final List<GifSourceFrame> gifSourceFrames;
   final String? gifOutputPath;
@@ -106,6 +114,7 @@ mixin _HomeShellStateMixin
         _HistoryStateMixin {
   @override
   AppLocalStore get _store;
+  ImageGenerationNotifier get _imageGenerationNotifier;
   @override
   bool get _isBootstrapping;
   set _isBootstrapping(bool value);
@@ -126,11 +135,19 @@ mixin _HomeShellStateMixin
   @override
   set _editorPatchImagePath(String? value);
   @override
+  set _generalEditorImagePath(String? value);
+  @override
+  set _generalEditorImageInfo(ImageInspectionResult? value);
+  @override
+  set _generalEditorErrorMessage(String? value);
+  @override
   set _editorErrorMessage(String? value);
   @override
   bool get _isImageEditorFocusMode;
   @override
   set _isImageEditorFocusMode(bool value);
+  bool get _isPixelArtFocusMode;
+  set _isPixelArtFocusMode(bool value);
   @override
   List<GifSourceFrame> get _gifSourceFrames;
   @override
@@ -399,6 +416,9 @@ mixin _HomeShellStateMixin
       animationTemplateImagePath: _animationTemplateImagePath,
       editorImagePath: _editorImagePath,
       editorPatchImagePath: _editorPatchImagePath,
+      generalEditorImagePath: _generalEditorImagePath,
+      generalEditorImageInfo: _generalEditorImageInfo,
+      generalEditorErrorMessage: _generalEditorErrorMessage,
       editorErrorMessage: _editorErrorMessage,
       gifSourceFrames: List<GifSourceFrame>.unmodifiable(_gifSourceFrames),
       gifOutputPath: _gifOutputPath,
@@ -453,6 +473,9 @@ mixin _HomeShellStateMixin
       animationTemplateImagePath: null,
       editorImagePath: null,
       editorPatchImagePath: null,
+      generalEditorImagePath: null,
+      generalEditorImageInfo: null,
+      generalEditorErrorMessage: null,
       editorErrorMessage: null,
       gifSourceFrames: const [],
       gifOutputPath: null,
@@ -515,6 +538,9 @@ mixin _HomeShellStateMixin
       _animationTemplateImagePath = snapshot.animationTemplateImagePath;
       _editorImagePath = snapshot.editorImagePath;
       _editorPatchImagePath = snapshot.editorPatchImagePath;
+      _generalEditorImagePath = snapshot.generalEditorImagePath;
+      _generalEditorImageInfo = snapshot.generalEditorImageInfo;
+      _generalEditorErrorMessage = snapshot.generalEditorErrorMessage;
       _editorErrorMessage = snapshot.editorErrorMessage;
       _gifSourceFrames = snapshot.gifSourceFrames;
       _gifOutputPath = snapshot.gifOutputPath;
@@ -544,56 +570,120 @@ mixin _HomeShellStateMixin
 
   @override
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    final messenger = ScaffoldMessenger.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final level = _classifyMessage(message);
+    final (icon, background, foreground) = switch (level) {
+      _MessageLevel.error => (
+        Icons.error_outline,
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+      ),
+      _MessageLevel.warning => (
+        Icons.warning_amber_outlined,
+        scheme.tertiaryContainer,
+        scheme.onTertiaryContainer,
+      ),
+      _MessageLevel.success => (
+        Icons.check_circle_outline,
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+      ),
+      _MessageLevel.info => (
+        Icons.info_outline,
+        scheme.inverseSurface,
+        scheme.onInverseSurface,
+      ),
+    };
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        backgroundColor: background,
+        duration: level == _MessageLevel.error
+            ? const Duration(seconds: 6)
+            : const Duration(seconds: 3),
+        content: Row(
+          children: [
+            Icon(icon, color: foreground, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(message, style: TextStyle(color: foreground)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  _MessageLevel _classifyMessage(String message) {
+    if (message.contains('失败') ||
+        message.contains('错误') ||
+        message.contains('无法') ||
+        message.contains('未能')) {
+      return _MessageLevel.error;
+    }
+    if (message.contains('请先') ||
+        message.contains('请选择') ||
+        message.contains('请填写') ||
+        message.contains('至少') ||
+        message.contains('没有')) {
+      return _MessageLevel.warning;
+    }
+    if (message.startsWith('已') ||
+        message.contains('成功') ||
+        message.contains('完成')) {
+      return _MessageLevel.success;
+    }
+    return _MessageLevel.info;
   }
 
   @override
   Widget build(BuildContext context) {
     final viewportWidth = MediaQuery.sizeOf(context).width;
+    final viewportHeight = MediaQuery.sizeOf(context).height;
     final imageEditorFocusMode =
         _selectedFeature == WorkspaceFeature.imageEditor &&
         _isImageEditorFocusMode;
-    final navigationCompact = _navigationRailCompact || viewportWidth < 720;
-    final navigationExtended = viewportWidth >= 980 && !navigationCompact;
+    final pixelArtFocusMode =
+        _selectedFeature == WorkspaceFeature.pixelArtEditor &&
+        _isPixelArtFocusMode;
+    final workspaceFocusMode = imageEditorFocusMode || pixelArtFocusMode;
+    final navigationCompact =
+        _navigationRailCompact || viewportWidth < AppBreakpoints.compact;
+    final navigationExtended =
+        (viewportWidth >= AppBreakpoints.expanded ||
+            (viewportWidth >= AppBreakpoints.railShortMinWidth &&
+                viewportHeight < AppBreakpoints.railShortHeight)) &&
+        !navigationCompact;
 
     if (_isBootstrapping) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Shortcuts(
-      shortcuts: const <ShortcutActivator, Intent>{
-        SingleActivator(LogicalKeyboardKey.keyZ, control: true): UndoIntent(),
-        SingleActivator(LogicalKeyboardKey.keyZ, meta: true): UndoIntent(),
-        SingleActivator(LogicalKeyboardKey.keyY, control: true): RedoIntent(),
-        SingleActivator(LogicalKeyboardKey.keyY, meta: true): RedoIntent(),
-        SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true):
-            RedoIntent(),
-        SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
-            RedoIntent(),
-      },
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          UndoIntent: CallbackAction<UndoIntent>(
-            onInvoke: (_) {
-              unawaited(_undoCurrentWorkspace());
-              return null;
-            },
-          ),
-          RedoIntent: CallbackAction<RedoIntent>(
-            onInvoke: (_) {
-              unawaited(_redoCurrentWorkspace());
-              return null;
-            },
-          ),
-        },
-        child: Scaffold(
-          body: SafeArea(
-            child: Row(
+    return ChangeNotifierProvider<ImageGenerationNotifier>.value(
+      value: _imageGenerationNotifier,
+      child: Shortcuts(
+        shortcuts: AppShortcuts.global,
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            UndoIntent: CallbackAction<UndoIntent>(
+              onInvoke: (_) {
+                unawaited(_undoCurrentWorkspace());
+                return null;
+              },
+            ),
+            RedoIntent: CallbackAction<RedoIntent>(
+              onInvoke: (_) {
+                unawaited(_redoCurrentWorkspace());
+                return null;
+              },
+            ),
+          },
+          child: Scaffold(
+            body: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (!imageEditorFocusMode) ...[
+                if (!workspaceFocusMode) ...[
                   FeatureNavigationRail(
                     selectedFeature: _selectedFeature,
                     extended: navigationExtended,
@@ -613,6 +703,7 @@ mixin _HomeShellStateMixin
                   child: Column(
                     children: [
                       if (!imageEditorFocusMode &&
+                          !pixelArtFocusMode &&
                           _selectedFeature != WorkspaceFeature.imageEditor)
                         _buildHistoryToolbar(),
                       Expanded(child: _buildSelectedWorkspace()),
@@ -722,7 +813,11 @@ mixin _HomeShellStateMixin
         visualDensity: VisualDensity.compact,
       ),
       PopupMenuButton<int>(
-        tooltip: '历史记录',
+        tooltip: isApplyingHistory
+            ? '历史操作执行中'
+            : hasHistory
+            ? '历史记录'
+            : '暂无历史',
         enabled: !isApplyingHistory && hasHistory,
         icon: const Icon(Icons.history, size: 20),
         iconSize: 20,
@@ -827,19 +922,64 @@ mixin _HomeShellStateMixin
 
   bool _workspaceSupportsHistory(WorkspaceFeature feature) {
     return feature == WorkspaceFeature.imageGeneration ||
-        feature == WorkspaceFeature.frameAnimation ||
+        feature == WorkspaceFeature.animationProject ||
         feature == WorkspaceFeature.imageEditor ||
+        feature == WorkspaceFeature.pixelArtEditor ||
         feature == WorkspaceFeature.gifComposer ||
         feature == WorkspaceFeature.imageLibrary ||
         feature == WorkspaceFeature.localSettings;
+  }
+
+  Future<void> _savePixelArtToLibrary(
+    Uint8List pngBytes,
+    int width,
+    int height,
+  ) async {
+    try {
+      final groupId = 'pixel_art_${DateTime.now().microsecondsSinceEpoch}';
+      final file = await _store.saveGeneratedImageBytes(
+        groupId: groupId,
+        index: 0,
+        bytes: pngBytes,
+      );
+      final item = await _imageLibraryService.addItem(
+        store: _store,
+        path: file.path,
+        kind: ImageAssetKind.editedImage,
+        title: '像素画',
+        source: '像素画编辑',
+        prompt: '像素画编辑 · $width x $height',
+        groupId: groupId,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _imageLibrary = [item, ..._imageLibrary]);
+      _pushImageLibraryAppendHistory(
+        feature: WorkspaceFeature.pixelArtEditor,
+        label: '保存像素画',
+        appendedItems: [item],
+      );
+      _showMessage('像素画已保存到作品库：${fileNameFromPath(file.path)}');
+    } catch (error) {
+      if (mounted) {
+        _showMessage('保存像素画失败：$error');
+      }
+    }
   }
 
   Widget _buildSelectedWorkspace() {
     return switch (_selectedFeature) {
       WorkspaceFeature.imageGeneration => _buildImageGenerationWorkspace(),
       WorkspaceFeature.batchGeneration => _buildBatchGenerationWorkspace(),
-      WorkspaceFeature.frameAnimation => _buildFrameAnimationWorkspace(),
+      WorkspaceFeature.animationProject => _buildAnimationProjectWorkspace(),
       WorkspaceFeature.imageEditor => _buildImageEditorWorkspace(),
+      WorkspaceFeature.pixelArtEditor => PixelArtWorkspace(
+        onSaveToLibrary: _savePixelArtToLibrary,
+        isFocusMode: _isPixelArtFocusMode,
+        onFocusModeChanged: (value) =>
+            setState(() => _isPixelArtFocusMode = value),
+      ),
       WorkspaceFeature.gifComposer => _buildGifComposerWorkspace(),
       WorkspaceFeature.imageLibrary => _buildImageLibraryWorkspace(),
       WorkspaceFeature.apiSettings => _buildApiSettingsWorkspace(),

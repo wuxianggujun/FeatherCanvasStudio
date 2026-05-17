@@ -1,0 +1,95 @@
+{
+  "@@locale": "zh",
+  "appTitle": "FeatherCanvas Studio",
+  "@appTitle": {
+    "description": "应用标题"
+  },
+  "navImageGeneration": "文本生图",
+  "@navImageGeneration": {
+    "description": "导航：文本生图工作区"
+  },
+  "navBatchGeneration": "批量生成",
+  "@navBatchGeneration": {
+    "description": "导航：批量生成工作区"
+  },
+  "navAnimationProject": "动画工程",
+  "@navAnimationProject": {
+    "description": "导航：动画工程工作区"
+  },
+  "navImageEditor": "图片编辑器",
+  "@navImageEditor": {
+    "description": "导航：图片编辑工作区"
+  },
+  "navPixelArtEditor": "像素画编辑",
+  "@navPixelArtEditor": {
+    "description": "导航：像素画编辑工作区"
+  },
+  "navGifComposer": "GIF 合成",
+  "@navGifComposer": {
+    "description": "导航：GIF 合成工作区"
+  },
+  "navImageLibrary": "作品库",
+  "@navImageLibrary": {
+    "description": "导航：作品库工作区"
+  },
+  "navApiSettings": "接口配置",
+  "@navApiSettings": {
+    "description": "导航：API 配置工作区"
+  },
+  "navLocalSettings": "设置",
+  "@navLocalSettings": {
+    "description": "导航：本地设置工作区"
+  },
+  "navExpandSidebar": "展开侧栏",
+  "@navExpandSidebar": {
+    "description": "导航：展开侧栏按钮"
+  },
+  "navCollapseSidebar": "收起侧栏",
+  "@navCollapseSidebar": {
+    "description": "导航：收起侧栏按钮"
+  },
+  "appearanceSectionTitle": "外观",
+  "@appearanceSectionTitle": {
+    "description": "外观设置区块标题"
+  },
+  "appearanceSectionDescription": "选择应用主题。深色模式适合长时间编辑作业。",
+  "@appearanceSectionDescription": {
+    "description": "外观设置区块说明"
+  },
+  "themeModeSystem": "跟随系统",
+  "@themeModeSystem": {
+    "description": "主题模式：跟随系统"
+  },
+  "themeModeLight": "浅色",
+  "@themeModeLight": {
+    "description": "主题模式：浅色"
+  },
+  "themeModeDark": "深色",
+  "@themeModeDark": {
+    "description": "主题模式：深色"
+  },
+  "historyUndo": "撤销",
+  "@historyUndo": {
+    "description": "历史：撤销按钮"
+  },
+  "historyRedo": "重做",
+  "@historyRedo": {
+    "description": "历史：重做按钮"
+  },
+  "historyMenuTitle": "历史记录",
+  "@historyMenuTitle": {
+    "description": "历史：菜单标题（有历史时）"
+  },
+  "historyMenuEmpty": "暂无历史",
+  "@historyMenuEmpty": {
+    "description": "历史：菜单标题（无历史时）"
+  },
+  "historyApplying": "历史操作执行中",
+  "@historyApplying": {
+    "description": "历史：操作执行中提示"
+  },
+  "splitHandleTooltip": "拖动调整宽度，双击复位",
+  "@splitHandleTooltip": {
+    "description": "工作区分隔条提示"
+  }
+}

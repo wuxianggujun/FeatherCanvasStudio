@@ -118,7 +118,7 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                 onChanged: _selectRow,
               ),
             ),
-            if (widget.enablePlayback)
+            if (widget.enablePlayback && !_usesCustomPlaybackDelays)
               SizedBox(
                 width: 156,
                 child: OptionDropdown<int>(
@@ -185,7 +185,7 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
         Text(
           isTargetSelection
               ? '点击右侧 Sprite Sheet 或网格切片，可以直接选择要替换的目标帧。'
-              : '按行检查动画轨道，按列检查动作连续性。',
+              : '点击右侧 Sprite Sheet 或网格切片，可以直接查看对应帧。',
           style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: fieldGap),
@@ -205,9 +205,7 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                 previewData: previewData,
                 selectedRow: safeRow,
                 selectedColumn: safeColumn,
-                onFrameSelected: widget.onFrameSelected == null
-                    ? null
-                    : _selectFrameIndex,
+                onFrameSelected: _selectFrameIndex,
               ),
             );
 

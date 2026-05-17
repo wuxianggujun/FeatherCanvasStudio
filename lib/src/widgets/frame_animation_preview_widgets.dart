@@ -36,6 +36,7 @@ class FrameAnimationPreviewPanel extends StatefulWidget {
     this.labelBuilder,
     this.onRetry,
     this.enablePlayback = true,
+    this.frameDelayMsByIndex,
     super.key,
   });
 
@@ -56,6 +57,7 @@ class FrameAnimationPreviewPanel extends StatefulWidget {
   final String Function(int index)? labelBuilder;
   final VoidCallback? onRetry;
   final bool enablePlayback;
+  final List<int>? frameDelayMsByIndex;
 
   @override
   State<FrameAnimationPreviewPanel> createState() =>
@@ -87,7 +89,10 @@ class FrameAnimationPreviewPanelState
   @override
   void didUpdateWidget(covariant FrameAnimationPreviewPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.generatedImages != widget.generatedImages ||
+    if (!_hasSamePreviewSources(
+          oldWidget.generatedImages,
+          widget.generatedImages,
+        ) ||
         oldWidget.rows != widget.rows ||
         oldWidget.columns != widget.columns ||
         oldWidget.gridSpec != widget.gridSpec) {
@@ -120,7 +125,11 @@ class FrameAnimationPreviewPanelState
     }
 
     if (oldWidget.isGenerating != widget.isGenerating ||
-        oldWidget.enablePlayback != widget.enablePlayback) {
+        oldWidget.enablePlayback != widget.enablePlayback ||
+        !_hasSameFrameDelays(
+          oldWidget.frameDelayMsByIndex,
+          widget.frameDelayMsByIndex,
+        )) {
       _restartPlaybackTimer();
     }
   }
@@ -146,6 +155,28 @@ class FrameAnimationPreviewPanelState
     );
   }
 
+  bool _hasSamePreviewSources(
+    List<GeneratedImage> previous,
+    List<GeneratedImage> current,
+  ) {
+    if (previous.length != current.length) {
+      return false;
+    }
+
+    for (var index = 0; index < previous.length; index++) {
+      if (!_hasSamePreviewSource(previous[index], current[index])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _hasSamePreviewSource(GeneratedImage previous, GeneratedImage current) {
+    return identical(previous.bytes, current.bytes) &&
+        previous.filePath == current.filePath &&
+        previous.url == current.url;
+  }
+
   void _syncSelectedFrameIndex() {
     final index = widget.selectedFrameIndex;
     if (index == null || widget.columns <= 0) {
@@ -168,6 +199,36 @@ class FrameAnimationPreviewPanelState
         .toInt();
   }
 
+  bool get _usesCustomPlaybackDelays =>
+      widget.frameDelayMsByIndex != null &&
+      widget.frameDelayMsByIndex!.isNotEmpty;
+
+  int get _currentPlaybackDelayMs {
+    final delays = widget.frameDelayMsByIndex;
+    if (delays == null || delays.isEmpty) {
+      return _frameDelayMs;
+    }
+    final index = _currentFrameIndex.clamp(0, delays.length - 1).toInt();
+    return delays[index].clamp(20, 5000).toInt();
+  }
+
+  bool _hasSameFrameDelays(List<int>? previous, List<int>? current) {
+    if (identical(previous, current)) {
+      return true;
+    }
+    if (previous == null ||
+        current == null ||
+        previous.length != current.length) {
+      return false;
+    }
+    for (var index = 0; index < previous.length; index++) {
+      if (previous[index] != current[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   void _restartPlaybackTimer() {
     _playbackTimer?.cancel();
     if (!widget.enablePlayback ||
@@ -178,7 +239,7 @@ class FrameAnimationPreviewPanelState
       return;
     }
 
-    _playbackTimer = Timer.periodic(Duration(milliseconds: _frameDelayMs), (_) {
+    _playbackTimer = Timer(Duration(milliseconds: _currentPlaybackDelayMs), () {
       if (!mounted) {
         return;
       }
@@ -186,6 +247,7 @@ class FrameAnimationPreviewPanelState
       setState(() {
         _currentColumn = (_currentColumn + 1) % widget.columns;
       });
+      _restartPlaybackTimer();
     });
   }
 
@@ -210,6 +272,7 @@ class FrameAnimationPreviewPanelState
       _currentColumn = 0;
     });
     widget.onFrameSelected?.call(_currentFrameIndex);
+    _restartPlaybackTimer();
   }
 
   void _selectFrameIndex(int index) {
@@ -223,6 +286,7 @@ class FrameAnimationPreviewPanelState
       _currentColumn = safeIndex % widget.columns;
     });
     widget.onFrameSelected?.call(safeIndex);
+    _restartPlaybackTimer();
   }
 
   void _setFrameDelay(int value) {
@@ -259,6 +323,7 @@ class FrameAnimationPreviewPanelState
         _currentColumn += widget.columns;
       }
     });
+    _restartPlaybackTimer();
   }
 
   @override

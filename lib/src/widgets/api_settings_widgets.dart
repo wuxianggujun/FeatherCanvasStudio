@@ -68,6 +68,7 @@ class ApiConfigSelector extends StatelessWidget {
     required this.apiConfigs,
     required this.selectedApiConfigId,
     required this.onChanged,
+    this.enabled = true,
     this.onOpenSettings,
     super.key,
   });
@@ -75,6 +76,7 @@ class ApiConfigSelector extends StatelessWidget {
   final List<ApiConfig> apiConfigs;
   final String selectedApiConfigId;
   final ValueChanged<String> onChanged;
+  final bool enabled;
   final VoidCallback? onOpenSettings;
 
   @override
@@ -106,7 +108,7 @@ class ApiConfigSelector extends StatelessWidget {
                   child: Text(config.name),
                 ),
             ],
-            onChanged: apiConfigs.isEmpty
+            onChanged: !enabled || apiConfigs.isEmpty
                 ? null
                 : (value) {
                     if (value != null) {

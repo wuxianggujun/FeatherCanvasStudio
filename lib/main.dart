@@ -1,12 +1,22 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'src/l10n/generated/app_localizations.dart';
+import 'src/state/image_generation_notifier.dart';
+import 'src/theme/app_theme.dart';
+import 'src/theme/layout_constants.dart';
 
 import 'src/history/history_action.dart';
 import 'src/history/history_intents.dart';
 import 'src/history/history_stack.dart';
+import 'src/models/animation_project.dart';
 import 'src/models/api_provider.dart';
 import 'src/models/app_config.dart';
 import 'src/models/app_preset.dart';
@@ -21,10 +31,12 @@ import 'src/models/sprite_sheet_grid_spec.dart';
 import 'src/models/workspace_feature.dart';
 import 'src/models/ui_state.dart';
 import 'src/services/api_config_service.dart';
+import 'src/services/animation_project_service.dart';
 import 'src/services/app_local_store.dart';
 import 'src/services/batch_image_generation_service.dart';
 import 'src/services/background_transparency_service.dart';
 import 'src/services/gif_composer_service.dart';
+import 'src/services/general_image_editing_service.dart';
 import 'src/services/image_api_client.dart';
 import 'src/services/image_generation_service.dart';
 import 'src/services/image_library_archive_service.dart';
@@ -33,6 +45,7 @@ import 'src/services/image_library_service.dart';
 import 'src/services/patch_image_framing_service.dart';
 import 'src/services/pixelation_service.dart';
 import 'src/services/sprite_sheet_service.dart';
+import 'src/shortcuts/app_shortcuts.dart';
 import 'src/utils/api_config_logic.dart';
 import 'src/utils/app_defaults.dart';
 import 'src/utils/batch_generation_queue.dart';
@@ -60,41 +73,90 @@ part 'src/home/image_generation_state.dart';
 part 'src/home/image_library_state.dart';
 part 'src/home/local_settings_state.dart';
 
-void main() {
+const String _themeModePrefsKey = 'app.themeMode';
+
+final ValueNotifier<ThemeMode> appThemeMode = ValueNotifier(ThemeMode.system);
+
+ThemeMode _decodeThemeMode(String? raw) {
+  switch (raw) {
+    case 'light':
+      return ThemeMode.light;
+    case 'dark':
+      return ThemeMode.dark;
+    case 'system':
+    default:
+      return ThemeMode.system;
+  }
+}
+
+String _encodeThemeMode(ThemeMode mode) {
+  switch (mode) {
+    case ThemeMode.light:
+      return 'light';
+    case ThemeMode.dark:
+      return 'dark';
+    case ThemeMode.system:
+      return 'system';
+  }
+}
+
+Future<void> setAppThemeMode(ThemeMode mode) async {
+  appThemeMode.value = mode;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_themeModePrefsKey, _encodeThemeMode(mode));
+}
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  appThemeMode.value = _decodeThemeMode(prefs.getString(_themeModePrefsKey));
   runApp(const FeatherCanvasApp());
 }
 
 class FeatherCanvasApp extends StatelessWidget {
   const FeatherCanvasApp({super.key});
 
-  static const String _fontFamily = 'Microsoft YaHei UI';
-  static const List<String> _fontFamilyFallback = <String>[
+  static String? get _platformFontFamily {
+    if (kIsWeb) return null;
+    if (Platform.isWindows) return 'Microsoft YaHei UI';
+    return null;
+  }
+
+  static const List<String> _platformFontFallback = <String>[
     'Microsoft YaHei',
-    'Segoe UI',
-    'Arial',
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Noto Sans CJK SC',
+    'Source Han Sans SC',
+    'WenQuanYi Micro Hei',
   ];
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF0F766E),
-      brightness: Brightness.light,
-    );
-
-    return MaterialApp(
-      title: 'FeatherCanvas Studio',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: colorScheme,
-        useMaterial3: true,
-        fontFamily: _fontFamily,
-        fontFamilyFallback: _fontFamilyFallback,
-        inputDecorationTheme: const InputDecorationTheme(
-          border: OutlineInputBorder(),
-          filled: true,
-        ),
-      ),
-      home: const FeatherCanvasHomePage(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: appThemeMode,
+      builder: (context, mode, _) {
+        return MaterialApp(
+          title: 'FeatherCanvas Studio',
+          debugShowCheckedModeBanner: false,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: AppTheme.light().copyWith(
+            textTheme: AppTheme.light().textTheme.apply(
+              fontFamily: _platformFontFamily,
+              fontFamilyFallback: _platformFontFallback,
+            ),
+          ),
+          darkTheme: AppTheme.dark().copyWith(
+            textTheme: AppTheme.dark().textTheme.apply(
+              fontFamily: _platformFontFamily,
+              fontFamilyFallback: _platformFontFallback,
+            ),
+          ),
+          themeMode: mode,
+          home: const FeatherCanvasHomePage(),
+        );
+      },
     );
   }
 }
@@ -128,7 +190,20 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   final ImageGenerationService _imageGenerationService =
       const ImageGenerationService();
   @override
+  final AnimationProjectImporter _animationProjectImporter =
+      const AnimationProjectImporter();
+  @override
+  final AnimationProjectStore _animationProjectStore =
+      const AnimationProjectStore();
+  @override
+  final AnimationProjectExportService _animationProjectExportService =
+      const AnimationProjectExportService();
+  @override
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  final ImageGenerationNotifier _imageGenerationNotifier =
+      ImageGenerationNotifier();
 
   @override
   WorkspaceFeature _selectedFeature = WorkspaceFeature.imageGeneration;
@@ -155,9 +230,16 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   @override
   SpriteSheetFrameFit _editorFrameFit = defaultEditorFrameFit;
   @override
-  bool _isGenerating = false;
+  // ignore: unused_element
+  bool get _isGenerating => _imageGenerationNotifier.isGenerating;
+  @override
+  // ignore: unused_element
+  set _isGenerating(bool value) =>
+      _imageGenerationNotifier.isGenerating = value;
   @override
   bool _isGeneratingAnimation = false;
+  @override
+  bool _isAnimationProjectBusy = false;
   @override
   bool _isComposingGif = false;
   @override
@@ -169,17 +251,34 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   @override
   List<AppPreset> _appPresets = const [];
   @override
-  String? _errorMessage;
+  String? get _errorMessage => _imageGenerationNotifier.errorMessage;
+  @override
+  set _errorMessage(String? value) =>
+      _imageGenerationNotifier.errorMessage = value;
   @override
   String? _animationErrorMessage;
   @override
-  ImageRequestDebugRecord? _imageRequestDebugRecord;
+  String? _animationProjectErrorMessage;
+  @override
+  ImageRequestDebugRecord? get _imageRequestDebugRecord =>
+      _imageGenerationNotifier.debugRecord;
+  @override
+  set _imageRequestDebugRecord(ImageRequestDebugRecord? value) =>
+      _imageGenerationNotifier.debugRecord = value;
   @override
   ImageRequestDebugRecord? _animationRequestDebugRecord;
   @override
-  List<GeneratedImage> _generatedImages = const [];
+  List<GeneratedImage> get _generatedImages =>
+      _imageGenerationNotifier.generatedImages;
+  @override
+  set _generatedImages(List<GeneratedImage> value) =>
+      _imageGenerationNotifier.generatedImages = value;
   @override
   List<GeneratedImage> _animationFrames = const [];
+  @override
+  AnimationProject? _animationProject;
+  @override
+  String? _selectedAnimationTrackId;
   @override
   final Set<String> _ephemeralTemplatePaths = <String>{};
   @override
@@ -191,7 +290,37 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   @override
   String? _editorErrorMessage;
   @override
-  bool _isImageEditorFocusMode = false;
+  String? _generalEditorImagePath;
+  @override
+  ImageInspectionResult? _generalEditorImageInfo;
+  @override
+  String? _generalEditorErrorMessage;
+  @override
+  bool _isProcessingGeneralImage = false;
+  WorkspaceFeature? _focusedFeature;
+  @override
+  bool get _isImageEditorFocusMode =>
+      _focusedFeature == WorkspaceFeature.imageEditor;
+  @override
+  set _isImageEditorFocusMode(bool value) {
+    if (value) {
+      _focusedFeature = WorkspaceFeature.imageEditor;
+    } else if (_focusedFeature == WorkspaceFeature.imageEditor) {
+      _focusedFeature = null;
+    }
+  }
+
+  @override
+  bool get _isPixelArtFocusMode =>
+      _focusedFeature == WorkspaceFeature.pixelArtEditor;
+  @override
+  set _isPixelArtFocusMode(bool value) {
+    if (value) {
+      _focusedFeature = WorkspaceFeature.pixelArtEditor;
+    } else if (_focusedFeature == WorkspaceFeature.pixelArtEditor) {
+      _focusedFeature = null;
+    }
+  }
   @override
   List<GifSourceFrame> _gifSourceFrames = const [];
   @override
@@ -230,6 +359,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     _client.close();
     _scrollController.dispose();
     _animationPromptController.dispose();
+    _imageGenerationNotifier.dispose();
     for (final path in _ephemeralTemplatePaths) {
       unawaited(_fileService.safeDeleteFile(path));
     }

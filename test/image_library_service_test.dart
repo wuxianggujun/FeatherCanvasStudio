@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -117,6 +118,43 @@ void main() {
     });
   });
 
+  test('adds animation project item with summary metadata', () async {
+    SharedPreferences.setMockInitialValues({});
+    final tempDir = await Directory.systemTemp.createTemp(
+      'image_library_animation_project_item_test_',
+    );
+    addTearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    final store = AppLocalStore(baseDirectoryOverride: tempDir);
+    const service = ImageLibraryService();
+    final project = AnimationProject.empty(
+      title: 'Walk',
+      canvasWidth: 32,
+      canvasHeight: 32,
+    );
+    final projectFile = await const AnimationProjectStore().saveProject(
+      store,
+      project,
+    );
+
+    final item = await service.addAnimationProject(
+      store: store,
+      path: projectFile.path,
+      project: project,
+    );
+    final restored = await store.loadImageLibrary();
+
+    expect(item.kind, ImageAssetKind.animationProject);
+    expect(item.groupId, project.id);
+    expect(item.animationProject?.id, project.id);
+    expect(item.animationProject?.trackCount, 1);
+    expect(restored.single.animationProject?.title, 'Walk');
+  });
+
   test('updates image library item metadata and trims user input', () async {
     SharedPreferences.setMockInitialValues({});
     final store = AppLocalStore();
@@ -213,6 +251,71 @@ void main() {
     expect(await removedFile.exists(), isFalse);
     expect(await keptFile.exists(), isTrue);
     expect(restored.single.id, 'kept');
+  });
+
+  test('deletes animation project json and referenced frame assets', () async {
+    SharedPreferences.setMockInitialValues({});
+    final tempDir = await Directory.systemTemp.createTemp(
+      'image_library_delete_animation_project_test_',
+    );
+    addTearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    final store = AppLocalStore(baseDirectoryOverride: tempDir);
+    final frameFile = File('${tempDir.path}${Platform.pathSeparator}frame.png');
+    final projectFile = File(
+      '${tempDir.path}${Platform.pathSeparator}project.json',
+    );
+    await frameFile.writeAsBytes([1, 2, 3], flush: true);
+    await projectFile.writeAsString(
+      jsonEncode({
+        'id': 'project-1',
+        'title': 'Project',
+        'createdAt': DateTime.now().toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'canvasWidth': 4,
+        'canvasHeight': 4,
+        'tracks': const [],
+        'assets': [
+          {
+            'id': 'asset-1',
+            'path': frameFile.path,
+            'width': 4,
+            'height': 4,
+            'source': 'spriteSheetSlice',
+          },
+        ],
+        'timeline': const {},
+        'exportSettings': const {},
+      }),
+      flush: true,
+    );
+    final item = ImageLibraryItem(
+      id: 'project-item',
+      path: projectFile.path,
+      createdAt: DateTime.parse('2026-05-17T12:00:00Z'),
+      kind: ImageAssetKind.animationProject,
+      title: 'Project',
+      source: '动画工程',
+      groupId: 'project-1',
+    );
+    await store.saveImageLibrary([item]);
+
+    final impact = await const ImageLibraryService().deleteItems(
+      store: store,
+      fileService: const ImageLibraryFileService(),
+      library: [item],
+      ids: {item.id},
+    );
+
+    expect(impact.removedPaths, contains(projectFile.path));
+    expect(impact.removedPaths, contains(frameFile.path));
+    expect(await projectFile.exists(), isFalse);
+    expect(await frameFile.exists(), isFalse);
+    expect(await store.loadImageLibrary(), isEmpty);
   });
 
   test(

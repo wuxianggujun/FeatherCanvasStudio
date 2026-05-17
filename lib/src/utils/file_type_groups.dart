@@ -17,6 +17,10 @@ const List<XTypeGroup> imageLibraryArchiveTypeGroups = <XTypeGroup>[
   XTypeGroup(label: 'FeatherCanvas Library Archive', extensions: ['zip']),
 ];
 
+const List<XTypeGroup> animationProjectTypeGroups = <XTypeGroup>[
+  XTypeGroup(label: 'FeatherCanvas Animation Project', extensions: ['json']),
+];
+
 const List<ImageAssetKind> spriteSheetLibraryKinds = <ImageAssetKind>[
   ImageAssetKind.spriteSheet,
   ImageAssetKind.editedImage,

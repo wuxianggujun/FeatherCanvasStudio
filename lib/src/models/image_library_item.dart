@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'animation_project.dart';
 import 'app_config.dart';
 import 'image_asset_kind.dart';
 import 'sprite_sheet_grid_spec.dart';
@@ -24,6 +25,7 @@ class ImageLibraryItem {
     this.frameWidth,
     this.frameHeight,
     this.frameIndex,
+    this.animationProject,
   });
 
   factory ImageLibraryItem.fromJson(Map<String, dynamic> json) {
@@ -37,6 +39,7 @@ class ImageLibraryItem {
         'spriteSheet' => ImageAssetKind.spriteSheet,
         'spriteFrame' => ImageAssetKind.spriteFrame,
         'editedImage' => ImageAssetKind.editedImage,
+        'animationProject' => ImageAssetKind.animationProject,
         'gif' => ImageAssetKind.gif,
         _ => ImageAssetKind.generatedImage,
       },
@@ -54,6 +57,9 @@ class ImageLibraryItem {
       frameWidth: (json['frameWidth'] as num?)?.toInt(),
       frameHeight: (json['frameHeight'] as num?)?.toInt(),
       frameIndex: (json['frameIndex'] as num?)?.toInt(),
+      animationProject: _animationProjectSummaryFromJson(
+        json['animationProject'],
+      ),
     );
   }
 
@@ -107,6 +113,7 @@ class ImageLibraryItem {
   final int? frameWidth;
   final int? frameHeight;
   final int? frameIndex;
+  final AnimationProjectSummary? animationProject;
 
   bool get existsSync => File(path).existsSync();
   bool get canUseAsSpriteSheet =>
@@ -135,6 +142,9 @@ class ImageLibraryItem {
   }
 
   bool get isImageFile {
+    if (kind == ImageAssetKind.animationProject) {
+      return false;
+    }
     final lower = path.toLowerCase();
     return lower.endsWith('.png') ||
         lower.endsWith('.jpg') ||
@@ -158,6 +168,7 @@ class ImageLibraryItem {
     int? frameHeight,
     int? frameIndex,
     GenerationSnapshot? generation,
+    AnimationProjectSummary? animationProject,
   }) {
     return ImageLibraryItem(
       id: id,
@@ -178,6 +189,7 @@ class ImageLibraryItem {
       frameWidth: frameWidth ?? this.frameWidth,
       frameHeight: frameHeight ?? this.frameHeight,
       frameIndex: frameIndex ?? this.frameIndex,
+      animationProject: animationProject ?? this.animationProject,
     );
   }
 
@@ -201,6 +213,8 @@ class ImageLibraryItem {
       if (frameWidth != null) 'frameWidth': frameWidth,
       if (frameHeight != null) 'frameHeight': frameHeight,
       if (frameIndex != null) 'frameIndex': frameIndex,
+      if (animationProject != null)
+        'animationProject': animationProject!.toJson(),
     };
   }
 }
@@ -212,6 +226,18 @@ SpriteSheetGridSpec? _gridSpecFromJson(Object? value) {
 
   try {
     return SpriteSheetGridSpec.fromJson(Map<String, dynamic>.from(value));
+  } catch (_) {
+    return null;
+  }
+}
+
+AnimationProjectSummary? _animationProjectSummaryFromJson(Object? value) {
+  if (value is! Map) {
+    return null;
+  }
+
+  try {
+    return AnimationProjectSummary.fromJson(Map<String, dynamic>.from(value));
   } catch (_) {
     return null;
   }

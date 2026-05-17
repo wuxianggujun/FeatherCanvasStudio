@@ -3,5 +3,6 @@ enum ImageAssetKind {
   spriteSheet,
   spriteFrame,
   editedImage,
+  animationProject,
   gif,
 }

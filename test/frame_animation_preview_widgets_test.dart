@@ -91,6 +91,50 @@ void main() {
     expect(openedPreviewData?.columns, 2);
   });
 
+  testWidgets('sprite sheet canvas can select frame in playback preview', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: SizedBox(
+              width: 1000,
+              child: FrameAnimationPreviewPanel(
+                title: 'Sprite Sheet 预览',
+                emptyMessage: '暂无预览',
+                errorMessage: null,
+                debugRecord: null,
+                generatedImages: [GeneratedImage.bytes(_spriteSheetPng())],
+                isGenerating: false,
+                rows: 2,
+                columns: 2,
+                gridSpec: const SpriteSheetGridSpec(rows: 2, columns: 2),
+                onExportSpriteSheet: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('当前播放：第 1 帧'), findsOneWidget);
+
+    final canvas = find.byKey(const ValueKey('sprite-sheet-preview-canvas'));
+    await tester.ensureVisible(canvas);
+    final canvasRect = tester.getRect(canvas);
+    await tester.tapAt(
+      canvasRect.topLeft +
+          Offset(canvasRect.width * 0.75, canvasRect.height * 0.75),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('当前播放：第 4 帧'), findsOneWidget);
+  });
+
   testWidgets('mouse wheel zoom does not scroll the parent page', (
     tester,
   ) async {
@@ -203,6 +247,60 @@ void main() {
     await tester.pump();
 
     expect(selectedFrameIndex, 3);
+    expect(find.textContaining('当前目标：第 4 帧'), findsOneWidget);
+  });
+
+  testWidgets('selecting a frame does not rebuild sprite sheet preview', (
+    tester,
+  ) async {
+    var selectedFrameIndex = 0;
+    final spriteSheetBytes = _spriteSheetPng();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              return SingleChildScrollView(
+                child: SizedBox(
+                  width: 1000,
+                  child: FrameAnimationPreviewPanel(
+                    title: '切片查看',
+                    emptyMessage: '暂无预览',
+                    errorMessage: null,
+                    debugRecord: null,
+                    generatedImages: [GeneratedImage.bytes(spriteSheetBytes)],
+                    isGenerating: false,
+                    rows: 2,
+                    columns: 2,
+                    gridSpec: const SpriteSheetGridSpec(rows: 2, columns: 2),
+                    selectedFrameIndex: selectedFrameIndex,
+                    enablePlayback: false,
+                    onFrameSelected: (index) =>
+                        setState(() => selectedFrameIndex = index),
+                    onExportSpriteSheet: (_) {},
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump();
+
+    final canvas = find.byKey(const ValueKey('sprite-sheet-preview-canvas'));
+    await tester.ensureVisible(canvas);
+    final canvasRect = tester.getRect(canvas);
+    await tester.tapAt(
+      canvasRect.topLeft +
+          Offset(canvasRect.width * 0.75, canvasRect.height * 0.75),
+    );
+    await tester.pump();
+
+    expect(find.text('正在生成切片预览'), findsNothing);
     expect(find.textContaining('当前目标：第 4 帧'), findsOneWidget);
   });
 }

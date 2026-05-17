@@ -90,6 +90,7 @@ String imageAssetKindLabel(ImageAssetKind kind) {
     ImageAssetKind.spriteSheet => '切片',
     ImageAssetKind.spriteFrame => '帧图',
     ImageAssetKind.editedImage => '编辑',
+    ImageAssetKind.animationProject => '动画',
     ImageAssetKind.gif => 'GIF',
   };
 }
@@ -100,6 +101,7 @@ String imageLibraryKindFilterLabel(ImageLibraryKindFilter filter) {
     ImageLibraryKindFilter.generated => '生图',
     ImageLibraryKindFilter.sprite => '切片 / 帧',
     ImageLibraryKindFilter.edited => '编辑',
+    ImageLibraryKindFilter.animation => '动画',
     ImageLibraryKindFilter.gif => 'GIF',
   };
 }
@@ -114,6 +116,7 @@ bool imageLibraryKindFilterMatches(
     ImageLibraryKindFilter.sprite =>
       kind == ImageAssetKind.spriteSheet || kind == ImageAssetKind.spriteFrame,
     ImageLibraryKindFilter.edited => kind == ImageAssetKind.editedImage,
+    ImageLibraryKindFilter.animation => kind == ImageAssetKind.animationProject,
     ImageLibraryKindFilter.gif => kind == ImageAssetKind.gif,
   };
 }
