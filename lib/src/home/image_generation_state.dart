@@ -1676,6 +1676,7 @@ mixin _ImageGenerationStateMixin
   Widget _buildImageGenerationWorkspace() {
     return ImageGenerationWorkspace(
       controller: _scrollController,
+      historyControls: _buildCompactHistoryControls(),
       apiConfigs: _apiConfigs,
       selectedApiConfig: _selectedApiConfig,
       promptController: _promptController,
@@ -1702,6 +1703,7 @@ mixin _ImageGenerationStateMixin
 
   Widget _buildAnimationProjectWorkspace() {
     return AnimationProjectWorkspace(
+      historyControls: _buildCompactHistoryControls(),
       apiConfigs: _apiConfigs,
       selectedApiConfig: _selectedApiConfig,
       promptController: _animationPromptController,

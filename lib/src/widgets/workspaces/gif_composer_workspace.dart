@@ -18,6 +18,7 @@ class GifComposerWorkspace extends StatelessWidget {
     required this.onLoopCountChanged,
     required this.onPlaybackModeChanged,
     required this.onCompose,
+    this.historyControls,
     super.key,
   });
 
@@ -31,12 +32,14 @@ class GifComposerWorkspace extends StatelessWidget {
   final ValueChanged<int> onLoopCountChanged;
   final ValueChanged<GifPlaybackMode> onPlaybackModeChanged;
   final VoidCallback onCompose;
+  final Widget? historyControls;
 
   @override
   Widget build(BuildContext context) {
     return WorkspacePage(
       title: 'GIF 合成',
       description: '选择多张本地图片，按当前顺序合成为一个 GIF 动图',
+      trailing: historyControls,
       children: [
         ResponsiveWorkspaceSplit(
           storageKey: 'gif_composer',

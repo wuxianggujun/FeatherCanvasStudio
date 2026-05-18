@@ -33,44 +33,60 @@ class WorkspacePage extends StatelessWidget {
         ? theme.textTheme.titleLarge
         : theme.textTheme.headlineMedium;
 
-    return SingleChildScrollView(
-      controller: controller,
-      padding: EdgeInsets.all(compactHeader ? 8 : workspacePadding),
+    final padding = EdgeInsets.all(compactHeader ? 8 : workspacePadding);
+
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final trailing = this.trailing;
+            if (trailing != null &&
+                constraints.maxWidth < AppBreakpoints.compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: headlineStyle),
+                  const SizedBox(height: fieldGap),
+                  Align(alignment: Alignment.centerLeft, child: trailing),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: Text(title, style: headlineStyle)),
+                if (trailing != null) ...[
+                  const SizedBox(width: fieldGap),
+                  trailing,
+                ],
+              ],
+            );
+          },
+        ),
+        if (!compactHeader) ...[
+          const SizedBox(height: 8),
+          Text(description, style: theme.textTheme.bodyLarge),
+        ],
+      ],
+    );
+
+    return Padding(
+      padding: padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final trailing = this.trailing;
-              if (trailing != null &&
-                  constraints.maxWidth < AppBreakpoints.compact) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: headlineStyle),
-                    const SizedBox(height: fieldGap),
-                    Align(alignment: Alignment.centerLeft, child: trailing),
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(child: Text(title, style: headlineStyle)),
-                  if (trailing != null) ...[
-                    const SizedBox(width: fieldGap),
-                    trailing,
-                  ],
-                ],
-              );
-            },
-          ),
-          if (!compactHeader) ...[
-            const SizedBox(height: 8),
-            Text(description, style: theme.textTheme.bodyLarge),
-          ],
+          header,
           SizedBox(height: compactHeader ? fieldGap : sectionGap),
-          ...children,
+          Expanded(
+            child: SingleChildScrollView(
+              controller: controller,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children,
+              ),
+            ),
+          ),
         ],
       ),
     );

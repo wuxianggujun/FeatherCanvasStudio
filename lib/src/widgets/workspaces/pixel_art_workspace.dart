@@ -18,12 +18,14 @@ class PixelArtWorkspace extends StatefulWidget {
     required this.onSaveToLibrary,
     this.isFocusMode = false,
     this.onFocusModeChanged,
+    this.historyControls,
     super.key,
   });
 
   final PixelArtSaveCallback onSaveToLibrary;
   final bool isFocusMode;
   final ValueChanged<bool>? onFocusModeChanged;
+  final Widget? historyControls;
 
   @override
   State<PixelArtWorkspace> createState() => _PixelArtWorkspaceState();
@@ -76,21 +78,33 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   @override
   Widget build(BuildContext context) {
     final onFocusModeChanged = widget.onFocusModeChanged;
+    final focusButton = onFocusModeChanged == null
+        ? null
+        : IconButton.filledTonal(
+            tooltip: widget.isFocusMode ? '退出全屏编辑' : '进入全屏编辑',
+            onPressed: () => onFocusModeChanged(!widget.isFocusMode),
+            icon: Icon(
+              widget.isFocusMode
+                  ? Icons.fullscreen_exit_outlined
+                  : Icons.fullscreen_outlined,
+            ),
+          );
+    final trailingChildren = <Widget>[
+      if (widget.historyControls != null) widget.historyControls!,
+      ?focusButton,
+    ];
 
     return WorkspacePage(
       title: '像素画编辑',
       description: '逐格绘制像素画，支持画笔、橡皮、取色和保存到作品库',
       compactHeader: widget.isFocusMode,
-      trailing: onFocusModeChanged == null
+      trailing: trailingChildren.isEmpty
           ? null
-          : IconButton.filledTonal(
-              tooltip: widget.isFocusMode ? '退出全屏编辑' : '进入全屏编辑',
-              onPressed: () => onFocusModeChanged(!widget.isFocusMode),
-              icon: Icon(
-                widget.isFocusMode
-                    ? Icons.fullscreen_exit_outlined
-                    : Icons.fullscreen_outlined,
-              ),
+          : Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: trailingChildren,
             ),
       children: [
         ResponsiveWorkspaceSplit(

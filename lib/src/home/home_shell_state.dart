@@ -722,10 +722,6 @@ mixin _HomeShellStateMixin
                 Expanded(
                   child: Column(
                     children: [
-                      if (!imageEditorFocusMode &&
-                          !pixelArtFocusMode &&
-                          _selectedFeature != WorkspaceFeature.imageEditor)
-                        _buildHistoryToolbar(),
                       Expanded(child: _buildSelectedWorkspace()),
                     ],
                   ),
@@ -734,36 +730,6 @@ mixin _HomeShellStateMixin
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHistoryToolbar() {
-    if (!_workspaceSupportsHistory(_selectedFeature)) {
-      return const SizedBox.shrink();
-    }
-    final stack = _peekHistoryStack(_selectedFeature);
-    if (stack == null) {
-      return _buildHistoryButtonRow(
-        isApplyingHistory: _isApplyingHistory,
-        canUndo: false,
-        canRedo: false,
-        undoLabel: null,
-        redoLabel: null,
-        undoActions: const [],
-        redoActions: const [],
-      );
-    }
-    return ListenableBuilder(
-      listenable: stack,
-      builder: (context, _) => _buildHistoryButtonRow(
-        isApplyingHistory: _isApplyingHistory,
-        canUndo: !_isApplyingHistory && stack.canUndo,
-        canRedo: !_isApplyingHistory && stack.canRedo,
-        undoLabel: stack.topUndo?.label,
-        redoLabel: stack.topRedo?.label,
-        undoActions: stack.recentUndoActions(limit: _historyMenuMaxItems),
-        redoActions: stack.recentRedoActions(limit: _historyMenuMaxItems),
       ),
     );
   }
@@ -999,6 +965,7 @@ mixin _HomeShellStateMixin
         isFocusMode: _isPixelArtFocusMode,
         onFocusModeChanged: (value) =>
             setState(() => _isPixelArtFocusMode = value),
+        historyControls: _buildCompactHistoryControls(),
       ),
       WorkspaceFeature.gifComposer => _buildGifComposerWorkspace(),
       WorkspaceFeature.imageLibrary => _buildImageLibraryWorkspace(),

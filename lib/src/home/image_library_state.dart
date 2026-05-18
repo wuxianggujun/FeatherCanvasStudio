@@ -161,6 +161,8 @@ mixin _ImageLibraryStateMixin
   @override
   void _showMessage(String message);
   @override
+  Widget _buildCompactHistoryControls();
+  @override
   void _pushHistory(WorkspaceFeature feature, HistoryAction action);
 
   ImageLibraryNotifier get _imageLibraryNotifier;
@@ -1428,6 +1430,7 @@ mixin _ImageLibraryStateMixin
 
   Widget _buildImageLibraryWorkspace() {
     return ImageLibraryWorkspace(
+      historyControls: _buildCompactHistoryControls(),
       itemExists: _isImageLibraryItemAvailable,
       searchController: _imageLibrarySearchController,
       searchQuery: _imageLibrarySearchQuery,

@@ -38,6 +38,7 @@ class LocalSettingsWorkspace extends StatelessWidget {
     required this.onImportLibrary,
     required this.onCleanupStorage,
     required this.onResetToDefaults,
+    this.historyControls,
     super.key,
   });
 
@@ -68,12 +69,14 @@ class LocalSettingsWorkspace extends StatelessWidget {
   final VoidCallback onImportLibrary;
   final VoidCallback onCleanupStorage;
   final VoidCallback onResetToDefaults;
+  final Widget? historyControls;
 
   @override
   Widget build(BuildContext context) {
     return WorkspacePage(
       title: '本地设置',
       description: '管理本机保存的默认生成参数、接口配置入口和恢复默认操作',
+      trailing: historyControls,
       children: [
         const _ThemeModeSection(),
         const SizedBox(height: sectionGap),

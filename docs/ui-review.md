@@ -547,11 +547,25 @@ Phase 7-11D 已完整完成评审项 P0-1。最终形态：
 
 **P0-1 整体收益**：父级 `setState` 不再因 notifier 字段变更触发全树重建。生成图片、批量结果、GIF 合成、编辑器调整、库 prepend 等高频操作都只触发对应 `Selector` 子树重建。后续 P1/P2 工作（导航重组、历史工具栏统一、Sliver 化等）不依赖 P0-1 的剩余子项，可独立推进。
 
+### P1 #4：统一历史工具栏可见性规则
+
+之前形态：父级 `Column` 顶部条件渲染 `_buildHistoryToolbar()`，仅图片编辑器特殊处理（`_selectedFeature != WorkspaceFeature.imageEditor` 才显示），编辑器自己把 `historyControls` 塞进 `WorkspacePage.trailing`。规则不统一，新加工作区时容易遗漏。
+
+| 改动 | 文件 | 备注 |
+|---|---|---|
+| 6 个 workspace 加 `historyControls` prop，并放入各自 `WorkspacePage.trailing` | [image_generation](lib/src/widgets/workspaces/image_generation_workspace.dart) / [animation_project](lib/src/widgets/workspaces/animation_project_workspace.dart) / [gif_composer](lib/src/widgets/workspaces/gif_composer_workspace.dart) / [pixel_art](lib/src/widgets/workspaces/pixel_art_workspace.dart) / [local_settings](lib/src/widgets/workspaces/local_settings_workspace.dart) | pixel_art 把 historyControls 与原有 focus toggle 合并到一个 Wrap |
+| `image_library_workspace` 不走 `WorkspacePage`（保留自定义 Padding 布局，因含 `Expanded(Selector)`），自加 history header Row | [image_library_workspace.dart](lib/src/widgets/workspaces/image_library_workspace.dart) | 用 Row 在标题旁放 historyControls，避免 `Expanded` 在 SingleChildScrollView 内崩 |
+| `WorkspacePage` 重构：header（title + trailing）固定在顶部，children 在下方 `Expanded > SingleChildScrollView` 内单独滚动 | [layout_navigation_widgets.dart](lib/src/widgets/layout_navigation_widgets.dart) | 关键修复：原来整体在 SingleChildScrollView 内，长表单滚动时 trailing 按钮会被推出视口（测试 hit test 落在 y=-1061） |
+| 删 `_buildHistoryToolbar` 方法与父级条件渲染；6 个 `_build*Workspace` 调用方传 `_buildCompactHistoryControls()` | [home_shell_state.dart](lib/src/home/home_shell_state.dart) + 4 个 mixin | `_ImageLibraryStateMixin` / `_LocalSettingsStateMixin` 加 `_buildCompactHistoryControls` 抽象声明（mixin 线性化在 `_EditorGifStateMixin` 之前看不到 `_HomeShellStateMixin` 的实现） |
+
+**收益**：
+- 所有支持历史的工作区使用同一接入方式，可见性规则消失。
+- header 固定带来副利：长表单（设置、动画工程）下撤销/重做按钮始终可达。
+- `flutter analyze` 通过，`flutter test` 191/191 全绿。
+
 | 评审项 | 优先级 | 工作量 |
 |---|---|---|
 | 2. 重组导航分组 / 收纳设置入口 | P1 | 2 天 |
-| 2. 重组导航分组 / 收纳设置入口 | P1 | 2 天 |
-| 4. 统一历史工具栏可见性规则（编辑器内栈接入全局） | P1 | 1 天 |
 | 8. 长列表 Sliver 化 + Scrollbar 主题 | P1 | 2-3 天 |
 | 5. l10n 字面量全量替换（剩余 50+ 处） | P2 | 3 天 |
 | 10. 快捷键集中管理 + 速查表 | P2 | 1 天 |

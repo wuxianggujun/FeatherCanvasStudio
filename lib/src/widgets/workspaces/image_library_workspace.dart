@@ -43,6 +43,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
     required this.onOpenSliceExplorer,
     required this.showStandaloneFrames,
     required this.onToggleStandaloneFrames,
+    this.historyControls,
     super.key,
   });
 
@@ -79,6 +80,7 @@ class ImageLibraryWorkspace extends StatelessWidget {
   final ValueChanged<ImageLibraryItem> onOpenSliceExplorer;
   final bool showStandaloneFrames;
   final ValueChanged<bool> onToggleStandaloneFrames;
+  final Widget? historyControls;
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +90,17 @@ class ImageLibraryWorkspace extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('作品', style: theme.textTheme.headlineMedium),
+          Row(
+            children: [
+              Expanded(
+                child: Text('作品', style: theme.textTheme.headlineMedium),
+              ),
+              if (historyControls != null) ...[
+                const SizedBox(width: fieldGap),
+                historyControls!,
+              ],
+            ],
+          ),
           const SizedBox(height: 8),
           Text(
             '集中保存生成、切片、编辑和合成后的图片，其他功能可以直接复用',

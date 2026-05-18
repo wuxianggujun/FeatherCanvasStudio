@@ -30,6 +30,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
     required this.onCopyImage,
     required this.onExportImage,
     required this.onMakeBackgroundTransparent,
+    this.historyControls,
     super.key,
   });
 
@@ -52,6 +53,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
   final void Function(int index, GeneratedImage image) onExportImage;
   final void Function(int index, GeneratedImage image)
   onMakeBackgroundTransparent;
+  final Widget? historyControls;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
       title: '文本生图',
       description: '选择已保存的接口配置，再填写提示词生成图片',
       controller: controller,
+      trailing: historyControls,
       children: [
         ResponsiveWorkspaceSplit(
           storageKey: 'image_generation',

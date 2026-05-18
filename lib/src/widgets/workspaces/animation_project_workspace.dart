@@ -83,6 +83,7 @@ class AnimationProjectWorkspace extends StatelessWidget {
     required this.onSendRenderedToGif,
     required this.onOpenRenderedInEditor,
     this.enablePreviewPlayback = true,
+    this.historyControls,
     super.key,
   });
 
@@ -152,6 +153,7 @@ class AnimationProjectWorkspace extends StatelessWidget {
   final ValueChanged<AnimationSpriteSheetRender> onSendRenderedToGif;
   final ValueChanged<AnimationSpriteSheetRender> onOpenRenderedInEditor;
   final bool enablePreviewPlayback;
+  final Widget? historyControls;
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +161,7 @@ class AnimationProjectWorkspace extends StatelessWidget {
     return WorkspacePage(
       title: '动画工程',
       description: '用工程、轨道和序列帧管理动画，Sprite Sheet 与 GIF 只作为导入和导出格式。',
+      trailing: historyControls,
       children: [
         ResponsiveWorkspaceSplit(
           storageKey: 'animation_project',

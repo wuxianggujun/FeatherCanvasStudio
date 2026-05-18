@@ -2049,6 +2049,7 @@ mixin _EditorGifStateMixin
 
   Widget _buildGifComposerWorkspace() {
     return GifComposerWorkspace(
+      historyControls: _buildCompactHistoryControls(),
       onPickImages: _pickGifSourceImages,
       onClearImages: _clearGifSourceImages,
       onReorderImages: _reorderGifSourceImages,

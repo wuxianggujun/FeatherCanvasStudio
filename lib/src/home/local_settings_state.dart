@@ -166,6 +166,7 @@ mixin _LocalSettingsStateMixin
   });
   @override
   void _showMessage(String message);
+  Widget _buildCompactHistoryControls();
 
   final TextEditingController _promptController = TextEditingController(
     text: defaultAppSettings.prompt,
@@ -1111,6 +1112,7 @@ mixin _LocalSettingsStateMixin
 
   Widget _buildLocalSettingsWorkspace() {
     return LocalSettingsWorkspace(
+      historyControls: _buildCompactHistoryControls(),
       apiConfigCount: _apiConfigs.length,
       imageLibraryCount: _imageLibrary.length,
       generatedPreviewCount: _generatedImages.length + _animationFrames.length,
