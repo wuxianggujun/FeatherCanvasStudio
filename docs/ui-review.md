@@ -2832,3 +2832,72 @@ Phase 21 第二批：从 image_library_state.dart 开始做小批次状态边界
 2. 验证：
    - `D:\Programs\flutter\bin\flutter.bat test test\gif_composer_test.dart --timeout 60s` 通过。
    - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+---
+
+### Phase 22：Sprite Sheet 预览后台化（补充性能修正已完成）
+
+本轮继续收口动画和 Sprite Sheet 相关性能问题。此前导入、GIF 合成和导出 metadata 已经后台化，但预览面板在生成切片预览时仍可能在 UI 线程执行图片解码、裁切、整表合成和 PNG 编码，遇到大图或多帧时仍有卡顿风险。
+
+完成项：
+
+1. `sprite_sheet_preview_service.dart`
+   - `SpriteSheetPreviewComposer.build` 的单张 Sprite Sheet 路径改为调用后台入口。
+   - 新增 `buildFromSheetBytesInBackground`，通过 `compute` 在后台 isolate 中执行整图解码、网格裁切和帧 PNG 编码。
+   - 多帧输入路径先解析 `GeneratedImage` 字节，再把帧字节和网格配置交给后台 isolate 合成整张 Sprite Sheet。
+   - 保留同步 `buildFromSheetBytes`，供底层测试和明确同步场景继续使用。
+2. `frame_animation_preview_widgets_test.dart`
+   - 预览等待 helper 改为使用 `tester.runAsync` 等待真实 isolate Future 返回。
+   - 修复 widget test 只推进测试时钟时无法等到后台任务完成的问题。
+3. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\sprite_sheet_preview_test.dart test\frame_animation_preview_widgets_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+### Phase 22：Sprite Sheet 编辑辅助路径后台化（补充性能修正已完成）
+
+本轮继续沿 Sprite Sheet 交互链路收口。预览面板后台化后，切片弹窗、作品库切片浏览、旧编辑器替换帧确认和保存服务里的替换 / 复制 / 清空帧仍可能同步解码、裁切和编码整张表。
+
+完成项：
+
+1. `sprite_sheet_editor_service.dart`
+   - 新增 `copyFrameInBackground`、`clearFrameInBackground`、`replaceFrameInBackground` 和 `buildReplacementPreviewInBackground`。
+   - 同步方法继续保留给底层测试和明确同步场景，UI 与保存链路改走后台入口。
+2. `sprite_sheet_output_service.dart`
+   - `saveSheetOnly` 改用后台预览入口读取帧尺寸。
+   - `replaceFrameAndSave`、`copyFrameAndSave`、`clearFrameAndSave` 改用后台编辑入口，主线程只负责文件读写和导出 metadata。
+3. `sprite_sheet_slice_picker_dialog.dart` / `image_library_dialog_widgets.dart` / `editor_gif_state.dart`
+   - 切片选择、切片浏览和替换帧确认前的预览构建都改为后台执行。
+4. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\sprite_sheet_preview_test.dart test\image_library_dialog_widgets_accessibility_test.dart test\sprite_sheet_slice_picker_dialog_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+### Phase 22：补充性能收口（2026-05-20）
+
+本轮继续处理用户反馈的“导入 / 导出 / 预览卡死”风险，把更多重图像计算移出 UI 线程。
+
+完成项：
+
+1. `patch_image_framing_service.dart`
+   - 新增后台 `renderInBackground` 入口，单帧取景渲染可通过 `compute` 执行。
+   - 旧图片编辑器调用取景渲染时已切换到后台入口。
+2. `editor_gif_state.dart`
+   - 背景转透明调用已切换到 `BackgroundTransparencyService.makeBackgroundTransparentInBackground`。
+   - Patch 取景调用已切换到 `PatchImageFramingService.renderInBackground`。
+3. `sprite_sheet_preview_service.dart` / `sprite_sheet_editor_service.dart` / `sprite_sheet_output_service.dart`
+   - Sprite Sheet 预览、切片、替换预览、复制帧、清空帧、替换帧与保存链路继续后台化。
+   - UI 链路只保留状态更新、文件读写和结果展示，重计算交给后台 isolate。
+4. `pixel_art_workspace.dart`
+   - 像素画保存到作品库和导出 PNG 的编码改为后台 isolate。
+   - 避免大画布或高缩放场景下 PNG 编码阻塞主界面。
+5. `pixel_art_workspace_test.dart`
+   - 补齐 `SharedPreferences` mock。
+   - 后台编码后的测试等待改为真实异步等待，避免只推进测试时钟导致误判。
+
+已验证：
+
+- `D:\Programs\flutter\bin\flutter.bat test test\pixel_art_workspace_test.dart --timeout 60s --reporter expanded` 通过。
+
+后续建议：
+
+- 继续用定向测试覆盖图片编辑器滤镜预览、作品库批量导入缩略图生成、动画工程导出校验等可能残留的同步大图路径。

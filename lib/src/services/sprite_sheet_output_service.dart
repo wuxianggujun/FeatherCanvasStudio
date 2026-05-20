@@ -12,12 +12,13 @@ class SpriteSheetOutputCache {
     required Future<Uint8List> Function(GeneratedImage image) resolveImageBytes,
   }) async {
     final sourceBytes = await resolveImageBytes(sourceImage);
-    final previewData = SpriteSheetPreviewComposer.buildFromSheetBytes(
-      sourceBytes,
-      rows: rows,
-      columns: columns,
-      gridSpec: SpriteSheetGridSpec(rows: rows, columns: columns),
-    );
+    final previewData =
+        await SpriteSheetPreviewComposer.buildFromSheetBytesInBackground(
+          sourceBytes,
+          rows: rows,
+          columns: columns,
+          gridSpec: SpriteSheetGridSpec(rows: rows, columns: columns),
+        );
 
     final sheetFile = await store.saveGeneratedImageBytes(
       groupId: groupId,
@@ -139,15 +140,16 @@ class SpriteSheetFileService {
   }) async {
     final sheetBytes = await readFileBytes(sheetPath);
     final patchBytes = await readFileBytes(patchPath);
-    final editedBytes = SpriteSheetEditorComposer.replaceFrame(
-      sheetBytes: sheetBytes,
-      patchBytes: patchBytes,
-      rows: rows,
-      columns: columns,
-      frameIndex: frameIndex,
-      fit: fit,
-      gridSpec: gridSpec,
-    );
+    final editedBytes =
+        await SpriteSheetEditorComposer.replaceFrameInBackground(
+          sheetBytes: sheetBytes,
+          patchBytes: patchBytes,
+          rows: rows,
+          columns: columns,
+          frameIndex: frameIndex,
+          fit: fit,
+          gridSpec: gridSpec,
+        );
 
     return exportPng(
       store: store,
@@ -169,7 +171,7 @@ class SpriteSheetFileService {
     SpriteSheetGridSpec? gridSpec,
   }) async {
     final sheetBytes = await readFileBytes(sheetPath);
-    final editedBytes = SpriteSheetEditorComposer.copyFrame(
+    final editedBytes = await SpriteSheetEditorComposer.copyFrameInBackground(
       sheetBytes: sheetBytes,
       rows: rows,
       columns: columns,
@@ -197,7 +199,7 @@ class SpriteSheetFileService {
     SpriteSheetGridSpec? gridSpec,
   }) async {
     final sheetBytes = await readFileBytes(sheetPath);
-    final editedBytes = SpriteSheetEditorComposer.clearFrame(
+    final editedBytes = await SpriteSheetEditorComposer.clearFrameInBackground(
       sheetBytes: sheetBytes,
       rows: rows,
       columns: columns,

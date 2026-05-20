@@ -356,7 +356,7 @@ void main() {
     expect(find.text('创建动画工程'), findsOneWidget);
     expect(find.text('Sprite Sheet 来源预览'), findsNothing);
     await tester.tap(find.widgetWithText(OutlinedButton, '导出来源 Sprite Sheet'));
-    await _pumpBounded(tester);
+    await _pumpAsyncRender(tester);
 
     expect(exportedBytes, isNotNull);
     expect(exportedBytes, equals(_spriteSheetPng()));

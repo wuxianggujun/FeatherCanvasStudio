@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
@@ -790,7 +791,11 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   Future<void> _saveToLibrary() async {
     setState(() => _isSaving = true);
     try {
-      await widget.onSaveToLibrary(_encodePng(), _canvasWidth, _canvasHeight);
+      await widget.onSaveToLibrary(
+        await _encodePngInBackground(),
+        _canvasWidth,
+        _canvasHeight,
+      );
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -805,7 +810,11 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
     }
     setState(() => _isExporting = true);
     try {
-      await onExportPng(_encodePng(), _canvasWidth, _canvasHeight);
+      await onExportPng(
+        await _encodePngInBackground(),
+        _canvasWidth,
+        _canvasHeight,
+      );
     } finally {
       if (mounted) {
         setState(() => _isExporting = false);
@@ -813,27 +822,59 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
     }
   }
 
-  Uint8List _encodePng() {
-    final image = image_lib.Image(
-      width: _canvasWidth,
-      height: _canvasHeight,
-      numChannels: 4,
+  Future<Uint8List> _encodePngInBackground() {
+    return compute(
+      _encodePixelArtPngInIsolate,
+      _PixelArtPngTask(
+        pixels: List<int>.of(_pixels),
+        width: _canvasWidth,
+        height: _canvasHeight,
+      ),
+      debugLabel: 'pixel-art-png-encode',
     );
-    for (var y = 0; y < _canvasHeight; y++) {
-      for (var x = 0; x < _canvasWidth; x++) {
-        final value = _pixels[y * _canvasWidth + x];
-        image.setPixelRgba(
-          x,
-          y,
-          (value >> 16) & 0xff,
-          (value >> 8) & 0xff,
-          value & 0xff,
-          (value >> 24) & 0xff,
-        );
-      }
-    }
-    return Uint8List.fromList(image_lib.encodePng(image));
   }
+}
+
+Uint8List _encodePixelArtPngInIsolate(_PixelArtPngTask task) {
+  return _encodePixelArtPng(
+    pixels: task.pixels,
+    width: task.width,
+    height: task.height,
+  );
+}
+
+Uint8List _encodePixelArtPng({
+  required List<int> pixels,
+  required int width,
+  required int height,
+}) {
+  final image = image_lib.Image(width: width, height: height, numChannels: 4);
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      final value = pixels[y * width + x];
+      image.setPixelRgba(
+        x,
+        y,
+        (value >> 16) & 0xff,
+        (value >> 8) & 0xff,
+        value & 0xff,
+        (value >> 24) & 0xff,
+      );
+    }
+  }
+  return Uint8List.fromList(image_lib.encodePng(image));
+}
+
+class _PixelArtPngTask {
+  const _PixelArtPngTask({
+    required this.pixels,
+    required this.width,
+    required this.height,
+  });
+
+  final List<int> pixels;
+  final int width;
+  final int height;
 }
 
 class _ColorSwatchButton extends StatelessWidget {

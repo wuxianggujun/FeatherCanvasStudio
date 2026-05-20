@@ -203,3 +203,34 @@ Phase 22 GIF 合成后台化已完成：GIF 合成中的读图、解码、缩放
 - 动画工程相关状态以 `docs/animation-timeline-architecture.md` 为准，当前已完成，不要重复开新主线。
 - 所有回答和文档新增内容使用简体中文。
 - 不要执行 `git reset --hard`、`git checkout --` 等会回滚用户改动的命令。
+
+---
+
+## 2026-05-20 补充性能进度
+
+- Sprite Sheet 预览构建已后台化：单张 Sprite Sheet 的解码、裁切和 PNG 编码，以及多帧合成整表、单帧 PNG 编码，都改为通过 `compute` 在后台 isolate 执行。
+- `buildFromSheetBytes` 保留为低层同步入口；公开异步入口新增 `buildFromSheetBytesInBackground`，供 UI 预览链路使用。
+- `frame_animation_preview_widgets_test.dart` 已适配后台 isolate 异步完成机制，等待 helper 使用 `tester.runAsync` 等待真实异步返回，避免 widget test 只推进测试时钟导致误判。
+- Sprite Sheet 切片选择弹窗、作品库切片浏览弹窗、旧编辑器替换帧预览已改为后台构建预览数据，避免弹窗打开或替换确认前同步裁切大图。
+- `SpriteSheetFileService` 的替换帧、复制帧、清空帧和保存整表元数据路径已改为复用后台入口，主线程只负责读写文件和状态更新。
+- 本轮追加验证通过：`flutter analyze`、`sprite_sheet_preview_test.dart`、`frame_animation_preview_widgets_test.dart`、`image_library_dialog_widgets_accessibility_test.dart`、`sprite_sheet_slice_picker_dialog_test.dart`、`general_image_editor_widgets_test.dart`、`image_editor_pixelation_entry_test.dart`。
+
+下一步建议：继续排查图片编辑器滤镜预览、像素化导出前 PNG 编码、作品库批量导入缩略图生成等仍可能卡 UI 线程的路径。
+
+## 2026-05-20 补充性能进度
+
+- 旧图片编辑器的背景转透明流程已改为后台 isolate 执行，避免大图抠透明时阻塞 UI 线程。
+- 单帧取景 / Patch framing 渲染已新增后台入口，旧编辑器调用链已切换到后台渲染。
+- Sprite Sheet 预览、切片选择、作品库切片浏览、替换帧预览、复制帧、清空帧、替换帧与保存链路已切到后台 isolate。
+- 像素画保存到作品库与导出 PNG 的编码流程已切到后台 isolate，避免大尺寸像素画导出时卡住界面。
+- `pixel_art_workspace_test.dart` 已补齐 `SharedPreferences` mock，并适配后台编码的真实异步等待。
+
+本轮验证：
+
+- `D:\Programs\flutter\bin\flutter.bat test test\pixel_art_workspace_test.dart --timeout 60s --reporter expanded` 通过。
+
+下一步建议：
+
+1. 继续跑 `flutter analyze` 和 Windows debug 编译确认整体状态。
+2. 清理旧 `feather_canvas_studio` 进程，只启动一个 debug exe 实例给用户查看。
+3. 后续性能收口优先排查图片编辑器滤镜预览、作品库批量导入缩略图生成、动画工程导出前校验等仍可能同步处理大图的路径。

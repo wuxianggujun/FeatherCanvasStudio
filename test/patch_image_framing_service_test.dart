@@ -56,6 +56,24 @@ void main() {
     expect(output.getPixel(1, 1).b.toInt(), 240);
   });
 
+  test('renders patch framing in background isolate', () async {
+    final patch = image_lib.Image(width: 3, height: 3, numChannels: 4)
+      ..clear(image_lib.ColorRgba8(20, 120, 220, 255));
+
+    final outputBytes = await PatchImageFramingService.renderInBackground(
+      imageBytes: Uint8List.fromList(image_lib.encodePng(patch)),
+      targetWidth: 5,
+      targetHeight: 5,
+      framing: const PatchImageFraming(scale: 1),
+    );
+    final output = image_lib.decodeImage(outputBytes)!;
+
+    expect(output.width, 5);
+    expect(output.height, 5);
+    expect(output.getPixel(0, 0).a.toInt(), 0);
+    expect(output.getPixel(2, 2).b.toInt(), 220);
+  });
+
   test(
     'replace frame clears old pixels before compositing transparent patch',
     () {

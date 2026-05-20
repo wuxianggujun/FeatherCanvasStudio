@@ -560,10 +560,11 @@ mixin _EditorGifStateMixin
 
     try {
       final sourceBytes = await _fileService.readFileBytes(patchPath);
-      final result = BackgroundTransparencyService.makeBackgroundTransparent(
-        sourceBytes,
-        tolerance: tolerance,
-      );
+      final result =
+          await BackgroundTransparencyService.makeBackgroundTransparentInBackground(
+            sourceBytes,
+            tolerance: tolerance,
+          );
       if (!mounted) {
         return;
       }
@@ -642,12 +643,13 @@ mixin _EditorGifStateMixin
 
     try {
       final sheetBytes = await _fileService.readFileBytes(sheetPath);
-      final previewData = SpriteSheetPreviewComposer.buildFromSheetBytes(
-        sheetBytes,
-        rows: _editorRows,
-        columns: _editorColumns,
-        gridSpec: _editorGridSpec,
-      );
+      final previewData =
+          await SpriteSheetPreviewComposer.buildFromSheetBytesInBackground(
+            sheetBytes,
+            rows: _editorRows,
+            columns: _editorColumns,
+            gridSpec: _editorGridSpec,
+          );
       if (!mounted) {
         return;
       }
@@ -673,7 +675,7 @@ mixin _EditorGifStateMixin
         _editorErrorMessage = null;
       });
 
-      final framedBytes = PatchImageFramingService.render(
+      final framedBytes = await PatchImageFramingService.renderInBackground(
         imageBytes: patchBytes,
         targetWidth: previewData.frameWidth,
         targetHeight: previewData.frameHeight,
@@ -981,15 +983,16 @@ mixin _EditorGifStateMixin
     try {
       final sheetBytes = await _fileService.readFileBytes(sheetPath);
       final patchBytes = await _fileService.readFileBytes(patchPath);
-      final preview = SpriteSheetEditorComposer.buildReplacementPreview(
-        sheetBytes: sheetBytes,
-        patchBytes: patchBytes,
-        rows: rows,
-        columns: columns,
-        frameIndex: frameIndex,
-        fit: frameFit,
-        gridSpec: gridSpec,
-      );
+      final preview =
+          await SpriteSheetEditorComposer.buildReplacementPreviewInBackground(
+            sheetBytes: sheetBytes,
+            patchBytes: patchBytes,
+            rows: rows,
+            columns: columns,
+            frameIndex: frameIndex,
+            fit: frameFit,
+            gridSpec: gridSpec,
+          );
       if (!mounted) {
         return;
       }

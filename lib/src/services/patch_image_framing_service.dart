@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as image_lib;
 
 import '../models/exceptions.dart';
@@ -130,6 +129,24 @@ class PatchImageFramingService {
 
     return Uint8List.fromList(image_lib.encodePng(canvas));
   }
+
+  static Future<Uint8List> renderInBackground({
+    required Uint8List imageBytes,
+    required int targetWidth,
+    required int targetHeight,
+    required PatchImageFraming framing,
+  }) {
+    return compute(
+      _renderPatchImageFramingInIsolate,
+      _PatchImageFramingTask(
+        imageBytes: imageBytes,
+        targetWidth: targetWidth,
+        targetHeight: targetHeight,
+        framing: framing,
+      ),
+      debugLabel: 'patch-image-framing',
+    );
+  }
 }
 
 double _minDouble(double a, double b) => a < b ? a : b;
@@ -139,3 +156,26 @@ double _maxDouble(double a, double b) => a > b ? a : b;
 int _minInt(int a, int b) => a < b ? a : b;
 
 int _maxInt(int a, int b) => a > b ? a : b;
+
+Uint8List _renderPatchImageFramingInIsolate(_PatchImageFramingTask task) {
+  return PatchImageFramingService.render(
+    imageBytes: task.imageBytes,
+    targetWidth: task.targetWidth,
+    targetHeight: task.targetHeight,
+    framing: task.framing,
+  );
+}
+
+class _PatchImageFramingTask {
+  const _PatchImageFramingTask({
+    required this.imageBytes,
+    required this.targetWidth,
+    required this.targetHeight,
+    required this.framing,
+  });
+
+  final Uint8List imageBytes;
+  final int targetWidth;
+  final int targetHeight;
+  final PatchImageFraming framing;
+}

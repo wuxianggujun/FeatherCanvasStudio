@@ -107,7 +107,7 @@ class SpriteSheetPreviewComposer {
       final sheetBytes = await _resolveGeneratedImageBytesForPreview(
         images.single,
       );
-      return buildFromSheetBytes(
+      return buildFromSheetBytesInBackground(
         sheetBytes,
         rows: spec.rows,
         columns: spec.columns,
@@ -133,15 +133,53 @@ class SpriteSheetPreviewComposer {
     return _buildFromSheetBytes(sheetBytes, gridSpec: spec);
   }
 
+  static Future<SpriteSheetPreviewData> buildFromSheetBytesInBackground(
+    Uint8List sheetBytes, {
+    required int rows,
+    required int columns,
+    SpriteSheetGridSpec? gridSpec,
+  }) {
+    return compute(
+      _buildSpriteSheetPreviewFromSheetInIsolate,
+      _SpriteSheetPreviewSheetTask(
+        sheetBytes: sheetBytes,
+        rows: rows,
+        columns: columns,
+        gridSpec: gridSpec,
+      ),
+      debugLabel: 'sprite-sheet-preview-from-sheet',
+    );
+  }
+
   static Future<SpriteSheetPreviewData> _buildFromFrames(
     List<GeneratedImage> images, {
     required SpriteSheetGridSpec gridSpec,
   }) async {
     final totalFrames = gridSpec.totalFrameCount;
-    final decodedFrames = <image_lib.Image>[];
+    final frameBytes = <Uint8List>[];
 
     for (final image in images.take(totalFrames)) {
-      final bytes = await _resolveGeneratedImageBytesForPreview(image);
+      frameBytes.add(await _resolveGeneratedImageBytesForPreview(image));
+    }
+
+    return compute(
+      _buildSpriteSheetPreviewFromFramesInIsolate,
+      _SpriteSheetPreviewFramesTask(
+        frameBytes: frameBytes,
+        gridSpec: gridSpec,
+      ),
+      debugLabel: 'sprite-sheet-preview-from-frames',
+    );
+  }
+
+  static SpriteSheetPreviewData _buildFromFrameBytes(
+    List<Uint8List> frameBytes, {
+    required SpriteSheetGridSpec gridSpec,
+  }) {
+    final totalFrames = gridSpec.totalFrameCount;
+    final decodedFrames = <image_lib.Image>[];
+
+    for (final bytes in frameBytes.take(totalFrames)) {
       final decodedFrame = image_lib.decodeImage(bytes);
       if (decodedFrame == null) {
         throw const ImageGenerationException('有图片无法解码，无法生成切片预览。');
@@ -260,6 +298,50 @@ class SpriteSheetPreviewComposer {
       gridSpec: gridSpec,
     );
   }
+}
+
+SpriteSheetPreviewData _buildSpriteSheetPreviewFromSheetInIsolate(
+  _SpriteSheetPreviewSheetTask task,
+) {
+  return SpriteSheetPreviewComposer.buildFromSheetBytes(
+    task.sheetBytes,
+    rows: task.rows,
+    columns: task.columns,
+    gridSpec: task.gridSpec,
+  );
+}
+
+SpriteSheetPreviewData _buildSpriteSheetPreviewFromFramesInIsolate(
+  _SpriteSheetPreviewFramesTask task,
+) {
+  return SpriteSheetPreviewComposer._buildFromFrameBytes(
+    task.frameBytes,
+    gridSpec: task.gridSpec,
+  );
+}
+
+class _SpriteSheetPreviewSheetTask {
+  const _SpriteSheetPreviewSheetTask({
+    required this.sheetBytes,
+    required this.rows,
+    required this.columns,
+    required this.gridSpec,
+  });
+
+  final Uint8List sheetBytes;
+  final int rows;
+  final int columns;
+  final SpriteSheetGridSpec? gridSpec;
+}
+
+class _SpriteSheetPreviewFramesTask {
+  const _SpriteSheetPreviewFramesTask({
+    required this.frameBytes,
+    required this.gridSpec,
+  });
+
+  final List<Uint8List> frameBytes;
+  final SpriteSheetGridSpec gridSpec;
 }
 
 SpriteSheetGridSpec _resolveGridSpec({

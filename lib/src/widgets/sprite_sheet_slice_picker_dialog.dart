@@ -39,12 +39,13 @@ class SpriteSheetSlicePickerDialogState
           l10n.imageLibrarySliceMissingGridMetadata,
         );
       }
-      final data = SpriteSheetPreviewComposer.buildFromSheetBytes(
-        bytes,
-        rows: gridSpec.rows,
-        columns: gridSpec.columns,
-        gridSpec: gridSpec,
-      );
+      final data =
+          await SpriteSheetPreviewComposer.buildFromSheetBytesInBackground(
+            bytes,
+            rows: gridSpec.rows,
+            columns: gridSpec.columns,
+            gridSpec: gridSpec,
+          );
       if (!mounted) return;
       setState(() => _previewData = data);
     } catch (error) {

@@ -33,8 +33,7 @@ void main() {
       ),
     );
 
-    await tester.pump();
-    await tester.pump();
+    await _pumpPreviewReady(tester);
 
     expect(find.byType(InteractiveViewer), findsOneWidget);
     expect(find.text('100%'), findsOneWidget);
@@ -94,8 +93,7 @@ void main() {
       ),
     );
 
-    await tester.pump();
-    await tester.pump();
+    await _pumpPreviewReady(tester);
 
     final shortcut = find.text('像素化编辑');
     expect(shortcut, findsOneWidget);
@@ -135,8 +133,7 @@ void main() {
       ),
     );
 
-    await tester.pump();
-    await tester.pump();
+    await _pumpPreviewReady(tester);
 
     expect(find.textContaining('当前播放：第 1 帧'), findsOneWidget);
     expect(
@@ -201,8 +198,7 @@ void main() {
       ),
     );
 
-    await tester.pump();
-    await tester.pump();
+    await _pumpPreviewReady(tester);
 
     await tester.ensureVisible(find.byType(InteractiveViewer));
     await tester.pump();
@@ -256,8 +252,7 @@ void main() {
       ),
     );
 
-    await tester.pump();
-    await tester.pump();
+    await _pumpPreviewReady(tester);
 
     expect(find.textContaining('当前目标：第 1 帧'), findsOneWidget);
 
@@ -268,8 +263,7 @@ void main() {
       canvasRect.topLeft +
           Offset(canvasRect.width * 0.75, canvasRect.height * 0.75),
     );
-    await tester.pump();
-    await tester.pump();
+    await _pumpPreviewReady(tester);
 
     expect(selectedFrameIndex, 3);
     expect(find.textContaining('当前目标：第 4 帧'), findsOneWidget);
@@ -313,8 +307,7 @@ void main() {
       ),
     );
 
-    await tester.pump();
-    await tester.pump();
+    await _pumpPreviewReady(tester);
 
     final canvas = find.byKey(const ValueKey('sprite-sheet-preview-canvas'));
     await tester.ensureVisible(canvas);
@@ -334,6 +327,20 @@ Finder _semanticsWithValue(String value) {
   return find.byWidgetPredicate(
     (widget) => widget is Semantics && widget.properties.value == value,
   );
+}
+
+Future<void> _pumpPreviewReady(WidgetTester tester) async {
+  final canvas = find.byKey(const ValueKey('sprite-sheet-preview-canvas'));
+  for (var attempt = 0; attempt < 30; attempt++) {
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
+    await tester.pump(const Duration(milliseconds: 50));
+    if (canvas.evaluate().isNotEmpty ||
+        find.byType(InteractiveViewer).evaluate().isNotEmpty) {
+      return;
+    }
+  }
 }
 
 Uint8List _pngOfColor(int red, int green, int blue) {

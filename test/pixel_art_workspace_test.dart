@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image_lib;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui' show Tristate;
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('pixel art workspace draws and saves png bytes', (tester) async {
     Uint8List? savedBytes;
     int? savedWidth;
@@ -34,7 +39,7 @@ void main() {
 
     await tester.ensureVisible(find.text('保存到作品库'));
     await tester.tap(find.text('保存到作品库'));
-    await tester.pumpAndSettle();
+    await _pumpPixelArtIo(tester);
 
     expect(savedWidth, 32);
     expect(savedHeight, 32);
@@ -78,7 +83,7 @@ void main() {
     await tester.enterText(widthField, '48');
     await tester.enterText(heightField, '40');
     await tester.tap(find.text('应用画布尺寸'));
-    await tester.pumpAndSettle();
+    await _pumpPixelArtIo(tester);
 
     final canvas = find.byKey(const ValueKey('pixel-art-canvas'));
     final canvasRect = tester.getRect(canvas);
@@ -87,7 +92,7 @@ void main() {
 
     await tester.ensureVisible(find.text('保存到作品库'));
     await tester.tap(find.text('保存到作品库'));
-    await tester.pumpAndSettle();
+    await _pumpPixelArtIo(tester);
 
     expect(savedWidth, 48);
     expect(savedHeight, 40);
@@ -131,7 +136,7 @@ void main() {
       find.byKey(const ValueKey('pixel-art-export-png')),
     );
     await tester.tap(find.byKey(const ValueKey('pixel-art-export-png')));
-    await tester.pumpAndSettle();
+    await _pumpPixelArtIo(tester);
 
     expect(exportedWidth, 32);
     expect(exportedHeight, 32);
@@ -181,13 +186,13 @@ void main() {
     await gesture.moveBy(const Offset(160, 160));
     await tester.pump();
     await gesture.up();
-    await tester.pumpAndSettle();
+    await _pumpPixelArtIo(tester);
 
     await tester.ensureVisible(
       find.byKey(const ValueKey('pixel-art-export-png')),
     );
     await tester.tap(find.byKey(const ValueKey('pixel-art-export-png')));
-    await tester.pumpAndSettle();
+    await _pumpPixelArtIo(tester);
 
     final image = image_lib.decodePng(exportedBytes!);
     expect(image, isNotNull);
@@ -344,7 +349,7 @@ void main() {
     await tester.pump();
     await tester.ensureVisible(find.text('保存到作品库'));
     await tester.tap(find.text('保存到作品库'));
-    await tester.pumpAndSettle();
+    await _pumpPixelArtIo(tester);
 
     final image = image_lib.decodePng(savedBytes!);
     expect(image, isNotNull);
@@ -357,4 +362,16 @@ Finder _semanticsWithValue(String value) {
   return find.byWidgetPredicate(
     (widget) => widget is Semantics && widget.properties.value == value,
   );
+}
+
+Future<void> _pumpPixelArtIo(WidgetTester tester) async {
+  for (var attempt = 0; attempt < 20; attempt++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 25)),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+    if (!tester.binding.hasScheduledFrame) {
+      return;
+    }
+  }
 }

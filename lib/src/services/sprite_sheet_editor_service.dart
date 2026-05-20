@@ -69,6 +69,28 @@ class SpriteSheetEditorComposer {
     return Uint8List.fromList(image_lib.encodePng(editedSheet));
   }
 
+  static Future<Uint8List> copyFrameInBackground({
+    required Uint8List sheetBytes,
+    required int rows,
+    required int columns,
+    required int sourceFrameIndex,
+    required int targetFrameIndex,
+    SpriteSheetGridSpec? gridSpec,
+  }) {
+    return compute(
+      _copySpriteSheetFrameInIsolate,
+      _CopySpriteSheetFrameTask(
+        sheetBytes: sheetBytes,
+        rows: rows,
+        columns: columns,
+        sourceFrameIndex: sourceFrameIndex,
+        targetFrameIndex: targetFrameIndex,
+        gridSpec: gridSpec,
+      ),
+      debugLabel: 'sprite-sheet-frame-copy',
+    );
+  }
+
   static Uint8List clearFrame({
     required Uint8List sheetBytes,
     required int rows,
@@ -98,6 +120,26 @@ class SpriteSheetEditorComposer {
     _clearRectTransparent(editedSheet, rect);
 
     return Uint8List.fromList(image_lib.encodePng(editedSheet));
+  }
+
+  static Future<Uint8List> clearFrameInBackground({
+    required Uint8List sheetBytes,
+    required int rows,
+    required int columns,
+    required int frameIndex,
+    SpriteSheetGridSpec? gridSpec,
+  }) {
+    return compute(
+      _clearSpriteSheetFrameInIsolate,
+      _ClearSpriteSheetFrameTask(
+        sheetBytes: sheetBytes,
+        rows: rows,
+        columns: columns,
+        frameIndex: frameIndex,
+        gridSpec: gridSpec,
+      ),
+      debugLabel: 'sprite-sheet-frame-clear',
+    );
   }
 
   static Uint8List pixelateFrame({
@@ -167,6 +209,27 @@ class SpriteSheetEditorComposer {
       fit: fit,
       gridSpec: gridSpec,
     ).editedSheetBytes;
+  }
+
+  static Future<Uint8List> replaceFrameInBackground({
+    required Uint8List sheetBytes,
+    required Uint8List patchBytes,
+    required int rows,
+    required int columns,
+    required int frameIndex,
+    required SpriteSheetFrameFit fit,
+    SpriteSheetGridSpec? gridSpec,
+  }) async {
+    final preview = await buildReplacementPreviewInBackground(
+      sheetBytes: sheetBytes,
+      patchBytes: patchBytes,
+      rows: rows,
+      columns: columns,
+      frameIndex: frameIndex,
+      fit: fit,
+      gridSpec: gridSpec,
+    );
+    return preview.editedSheetBytes;
   }
 
   static SpriteSheetFrameReplacementPreview buildReplacementPreview({
@@ -255,6 +318,31 @@ class SpriteSheetEditorComposer {
       frameIndex: frameIndex,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
+    );
+  }
+
+  static Future<SpriteSheetFrameReplacementPreview>
+  buildReplacementPreviewInBackground({
+    required Uint8List sheetBytes,
+    required Uint8List patchBytes,
+    required int rows,
+    required int columns,
+    required int frameIndex,
+    required SpriteSheetFrameFit fit,
+    SpriteSheetGridSpec? gridSpec,
+  }) {
+    return compute(
+      _buildSpriteSheetReplacementPreviewInIsolate,
+      _SpriteSheetReplacementPreviewTask(
+        sheetBytes: sheetBytes,
+        patchBytes: patchBytes,
+        rows: rows,
+        columns: columns,
+        frameIndex: frameIndex,
+        fit: fit,
+        gridSpec: gridSpec,
+      ),
+      debugLabel: 'sprite-sheet-replacement-preview',
     );
   }
 
@@ -368,3 +456,92 @@ class SpriteSheetEditorComposer {
 double _minDouble(double a, double b) => a < b ? a : b;
 
 double _maxDouble(double a, double b) => a > b ? a : b;
+
+Uint8List _copySpriteSheetFrameInIsolate(_CopySpriteSheetFrameTask task) {
+  return SpriteSheetEditorComposer.copyFrame(
+    sheetBytes: task.sheetBytes,
+    rows: task.rows,
+    columns: task.columns,
+    sourceFrameIndex: task.sourceFrameIndex,
+    targetFrameIndex: task.targetFrameIndex,
+    gridSpec: task.gridSpec,
+  );
+}
+
+Uint8List _clearSpriteSheetFrameInIsolate(_ClearSpriteSheetFrameTask task) {
+  return SpriteSheetEditorComposer.clearFrame(
+    sheetBytes: task.sheetBytes,
+    rows: task.rows,
+    columns: task.columns,
+    frameIndex: task.frameIndex,
+    gridSpec: task.gridSpec,
+  );
+}
+
+SpriteSheetFrameReplacementPreview _buildSpriteSheetReplacementPreviewInIsolate(
+  _SpriteSheetReplacementPreviewTask task,
+) {
+  return SpriteSheetEditorComposer.buildReplacementPreview(
+    sheetBytes: task.sheetBytes,
+    patchBytes: task.patchBytes,
+    rows: task.rows,
+    columns: task.columns,
+    frameIndex: task.frameIndex,
+    fit: task.fit,
+    gridSpec: task.gridSpec,
+  );
+}
+
+class _CopySpriteSheetFrameTask {
+  const _CopySpriteSheetFrameTask({
+    required this.sheetBytes,
+    required this.rows,
+    required this.columns,
+    required this.sourceFrameIndex,
+    required this.targetFrameIndex,
+    required this.gridSpec,
+  });
+
+  final Uint8List sheetBytes;
+  final int rows;
+  final int columns;
+  final int sourceFrameIndex;
+  final int targetFrameIndex;
+  final SpriteSheetGridSpec? gridSpec;
+}
+
+class _ClearSpriteSheetFrameTask {
+  const _ClearSpriteSheetFrameTask({
+    required this.sheetBytes,
+    required this.rows,
+    required this.columns,
+    required this.frameIndex,
+    required this.gridSpec,
+  });
+
+  final Uint8List sheetBytes;
+  final int rows;
+  final int columns;
+  final int frameIndex;
+  final SpriteSheetGridSpec? gridSpec;
+}
+
+class _SpriteSheetReplacementPreviewTask {
+  const _SpriteSheetReplacementPreviewTask({
+    required this.sheetBytes,
+    required this.patchBytes,
+    required this.rows,
+    required this.columns,
+    required this.frameIndex,
+    required this.fit,
+    required this.gridSpec,
+  });
+
+  final Uint8List sheetBytes;
+  final Uint8List patchBytes;
+  final int rows;
+  final int columns;
+  final int frameIndex;
+  final SpriteSheetFrameFit fit;
+  final SpriteSheetGridSpec? gridSpec;
+}
