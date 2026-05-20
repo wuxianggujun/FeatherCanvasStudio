@@ -1,4 +1,5 @@
 import 'package:feather_canvas_studio/feather_canvas_studio.dart';
+import 'package:feather_canvas_studio/src/history/history_action.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -261,6 +262,63 @@ void main() {
     expect(_semanticsWithValue('暂无可重做操作'), findsWidgets);
   });
 
+  testWidgets('pixel art drawing registers undoable history action', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1400, 1800)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final historyActions = <HistoryAction>[];
+    Uint8List? exportedBytes;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PixelArtWorkspace(
+            onSaveToLibrary: (_, _, _) async {},
+            onExportPng: (bytes, _, _) async {
+              exportedBytes = bytes;
+            },
+            onHistoryAction: historyActions.add,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final canvas = find.byKey(const ValueKey('pixel-art-canvas'));
+    final canvasRect = tester.getRect(canvas);
+    await tester.tapAt(canvasRect.topLeft + const Offset(12, 12));
+    await tester.pump();
+    expect(FocusManager.instance.primaryFocus?.debugLabel, 'pixel_art_canvas');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(historyActions, isNotEmpty);
+
+    await historyActions.last.revert();
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('pixel-art-export-png')));
+    await _pumpPixelArtIo(tester);
+
+    var image = image_lib.decodePng(exportedBytes!);
+    expect(image, isNotNull);
+    expect(_countPaintedPixels(image!), 1);
+
+    await historyActions.last.apply();
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('pixel-art-export-png')));
+    await _pumpPixelArtIo(tester);
+
+    image = image_lib.decodePng(exportedBytes!);
+    expect(image, isNotNull);
+    expect(_countPaintedPixels(image!), 2);
+  });
+
   testWidgets('pixel art color swatches expose labels and selection state', (
     tester,
   ) async {
@@ -362,6 +420,18 @@ Finder _semanticsWithValue(String value) {
   return find.byWidgetPredicate(
     (widget) => widget is Semantics && widget.properties.value == value,
   );
+}
+
+int _countPaintedPixels(image_lib.Image image) {
+  var paintedPixels = 0;
+  for (var y = 0; y < image.height; y++) {
+    for (var x = 0; x < image.width; x++) {
+      if (image.getPixel(x, y).a > 0) {
+        paintedPixels += 1;
+      }
+    }
+  }
+  return paintedPixels;
 }
 
 Future<void> _pumpPixelArtIo(WidgetTester tester) async {

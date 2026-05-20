@@ -1,7 +1,7 @@
 name: feather_canvas_studio
 description: "FeatherCanvas Studio is a Flutter client for OpenAI-compatible image generation APIs."
 publish_to: 'none'
-version: 0.2.5
+version: 0.2.6
 
 environment:
   sdk: ^3.11.5

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
 
+import '../../history/history_action.dart';
 import '../../l10n/app_l10n.dart';
 import '../../theme/layout_constants.dart';
 import '../common_form_widgets.dart';
@@ -16,12 +17,17 @@ enum PixelArtTool { brush, eraser, eyedropper }
 typedef PixelArtSaveCallback =
     Future<void> Function(Uint8List pngBytes, int width, int height);
 
+typedef PixelArtHistoryCallback = void Function(HistoryAction action);
+
 class PixelArtWorkspace extends StatefulWidget {
   const PixelArtWorkspace({
     required this.onSaveToLibrary,
     this.onExportPng,
     this.isFocusMode = false,
     this.onFocusModeChanged,
+    this.onHistoryAction,
+    this.onUndoRequested,
+    this.onRedoRequested,
     this.historyControls,
     super.key,
   });
@@ -30,6 +36,9 @@ class PixelArtWorkspace extends StatefulWidget {
   final PixelArtSaveCallback? onExportPng;
   final bool isFocusMode;
   final ValueChanged<bool>? onFocusModeChanged;
+  final PixelArtHistoryCallback? onHistoryAction;
+  final VoidCallback? onUndoRequested;
+  final VoidCallback? onRedoRequested;
   final Widget? historyControls;
 
   @override
@@ -67,8 +76,8 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   Color _selectedColor = _palette.first;
   PixelArtTool _tool = PixelArtTool.brush;
   List<int> _pixels = List<int>.filled(32 * 32, _transparentPixel);
-  final List<List<int>> _undoStack = <List<int>>[];
-  final List<List<int>> _redoStack = <List<int>>[];
+  final List<_PixelArtSnapshot> _undoStack = <_PixelArtSnapshot>[];
+  final List<_PixelArtSnapshot> _redoStack = <_PixelArtSnapshot>[];
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
   final FocusNode _canvasFocusNode = FocusNode(debugLabel: 'pixel_art_canvas');
@@ -78,13 +87,14 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   bool _isCanvasPanning = false;
   bool _suppressCanvasTapAfterPan = false;
   Offset? _canvasPointerDownGlobalPosition;
-  Offset? _canvasPointerDownLocalPosition;
   Offset? _lastCanvasPanGlobalPosition;
   Timer? _canvasLongPressTimer;
   bool _canvasPointerMovedBeyondTapThreshold = false;
   bool _canvasTapHandled = false;
   int _keyboardCursorX = 0;
   int _keyboardCursorY = 0;
+  _PixelArtSnapshot? _activeStrokeBeforeSnapshot;
+  bool _activeStrokeChanged = false;
 
   @override
   void dispose() {
@@ -401,15 +411,13 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
                                     behavior: HitTestBehavior.opaque,
                                     onPointerDown: (event) {
                                       _canvasFocusNode.requestFocus();
-                                      _isDrawingStroke = false;
+                                      _cancelPixelStroke();
                                       _suppressCanvasTapAfterPan = false;
                                       _canvasTapHandled = false;
                                       _canvasPointerMovedBeyondTapThreshold =
                                           false;
                                       _canvasPointerDownGlobalPosition =
                                           event.position;
-                                      _canvasPointerDownLocalPosition =
-                                          event.localPosition;
                                       _lastCanvasPanGlobalPosition =
                                           event.position;
                                       _canvasLongPressTimer?.cancel();
@@ -422,7 +430,7 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
                                             return;
                                           }
                                           _isCanvasPanning = true;
-                                          _isDrawingStroke = false;
+                                          _cancelPixelStroke();
                                         },
                                       );
                                     },
@@ -462,25 +470,24 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
                                       _lastCanvasPanGlobalPosition =
                                           event.position;
                                     },
-                                    onPointerUp: (_) {
+                                    onPointerUp: (event) {
                                       final didPan =
                                           _isCanvasPanning ||
                                           _suppressCanvasTapAfterPan;
                                       if (!didPan &&
                                           !_canvasPointerMovedBeyondTapThreshold &&
                                           !_canvasTapHandled) {
-                                        final localPosition =
-                                            _canvasPointerDownLocalPosition;
-                                        if (localPosition != null) {
-                                          _canvasTapHandled = true;
-                                          _moveKeyboardCursorTo(localPosition);
-                                          _paintAt(localPosition);
-                                        }
+                                        _canvasTapHandled = true;
+                                        _moveKeyboardCursorTo(
+                                          event.localPosition,
+                                        );
+                                        _paintStrokeAt(event.localPosition);
+                                      } else if (_isDrawingStroke) {
+                                        _endPixelStroke();
                                       }
                                       _canvasLongPressTimer?.cancel();
                                       _canvasLongPressTimer = null;
                                       _canvasPointerDownGlobalPosition = null;
-                                      _canvasPointerDownLocalPosition = null;
                                       _isCanvasPanning = false;
                                       _suppressCanvasTapAfterPan = didPan;
                                       _lastCanvasPanGlobalPosition = null;
@@ -489,10 +496,9 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
                                       _canvasLongPressTimer?.cancel();
                                       _canvasLongPressTimer = null;
                                       _canvasPointerDownGlobalPosition = null;
-                                      _canvasPointerDownLocalPosition = null;
                                       _isCanvasPanning = false;
                                       _lastCanvasPanGlobalPosition = null;
-                                      _isDrawingStroke = false;
+                                      _cancelPixelStroke();
                                     },
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.opaque,
@@ -500,17 +506,21 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
                                         if (_isCanvasPanning) {
                                           return;
                                         }
-                                        _isDrawingStroke = false;
-                                        _paintAt(details.localPosition);
+                                        _beginPixelStroke();
+                                        if (_paintAt(details.localPosition)) {
+                                          _activeStrokeChanged = true;
+                                        }
                                       },
                                       onPanUpdate: (details) {
                                         if (_isCanvasPanning) {
                                           return;
                                         }
-                                        _paintAt(details.localPosition);
+                                        if (_paintAt(details.localPosition)) {
+                                          _activeStrokeChanged = true;
+                                        }
                                       },
                                       onPanEnd: (_) {
-                                        _isDrawingStroke = false;
+                                        _endPixelStroke();
                                       },
                                       onTapDown: (details) {
                                         _moveKeyboardCursorTo(
@@ -525,15 +535,13 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
                                           return;
                                         }
                                         _canvasTapHandled = true;
-                                        _isDrawingStroke = false;
                                         _moveKeyboardCursorTo(
                                           details.localPosition,
                                         );
-                                        _paintAt(details.localPosition);
-                                        _isDrawingStroke = false;
+                                        _paintStrokeAt(details.localPosition);
                                       },
                                       onTapCancel: () {
-                                        _isDrawingStroke = false;
+                                        _cancelPixelStroke();
                                       },
                                       child: CustomPaint(
                                         key: const ValueKey('pixel-art-canvas'),
@@ -584,13 +592,14 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   }
 
   void _resizeCanvas({int? width, int? height}) {
+    final l10n = appL10nOf(context);
     final nextWidth = width ?? _canvasWidth;
     final nextHeight = height ?? _canvasHeight;
     if (nextWidth == _canvasWidth && nextHeight == _canvasHeight) {
       return;
     }
 
-    _pushUndoSnapshot();
+    final before = _snapshot();
     final nextPixels = List<int>.filled(
       nextWidth * nextHeight,
       _transparentPixel,
@@ -612,6 +621,11 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
       _keyboardCursorX = _keyboardCursorX.clamp(0, nextWidth - 1);
       _keyboardCursorY = _keyboardCursorY.clamp(0, nextHeight - 1);
     });
+    _pushHistorySnapshot(
+      label: l10n.pixelArtApplyCanvasSize,
+      before: before,
+      after: _snapshot(),
+    );
   }
 
   KeyEventResult _handleCanvasKeyEvent(FocusNode node, KeyEvent event) {
@@ -667,14 +681,31 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   }
 
   void _paintAtKeyboardCursor() {
-    _isDrawingStroke = false;
-    _paintAt(
+    final before = _snapshot();
+    final changed = _paintAt(
       Offset(
         (_keyboardCursorX + 0.5) * _cellSize,
         (_keyboardCursorY + 0.5) * _cellSize,
       ),
     );
-    _isDrawingStroke = false;
+    if (changed) {
+      _pushHistorySnapshot(
+        label: appL10nOf(context).pixelArtBrushTool,
+        before: before,
+        after: _snapshot(),
+      );
+    }
+  }
+
+  void _paintStrokeAt(Offset position) {
+    final before = _snapshot();
+    if (_paintAt(position)) {
+      _pushHistorySnapshot(
+        label: appL10nOf(context).pixelArtBrushTool,
+        before: before,
+        after: _snapshot(),
+      );
+    }
   }
 
   void _scrollCanvasBy(Offset delta) {
@@ -694,11 +725,11 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
     }
   }
 
-  void _paintAt(Offset position) {
+  bool _paintAt(Offset position) {
     final x = (position.dx / _cellSize).floor();
     final y = (position.dy / _cellSize).floor();
     if (x < 0 || y < 0 || x >= _canvasWidth || y >= _canvasHeight) {
-      return;
+      return false;
     }
 
     if (_tool == PixelArtTool.eyedropper) {
@@ -709,12 +740,7 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
           _tool = PixelArtTool.brush;
         });
       }
-      return;
-    }
-
-    if (!_isDrawingStroke) {
-      _pushUndoSnapshot();
-      _isDrawingStroke = true;
+      return false;
     }
 
     final nextPixels = List<int>.of(_pixels);
@@ -741,44 +767,185 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
     if (changed) {
       setState(() => _pixels = nextPixels);
     }
+    return changed;
   }
 
-  void _pushUndoSnapshot() {
-    _undoStack.add(List<int>.of(_pixels));
+  void _beginPixelStroke() {
+    if (_isDrawingStroke) {
+      return;
+    }
+    _isDrawingStroke = true;
+    _activeStrokeChanged = false;
+    _activeStrokeBeforeSnapshot = _snapshot();
+  }
+
+  void _endPixelStroke() {
+    if (!_isDrawingStroke) {
+      return;
+    }
+    final before = _activeStrokeBeforeSnapshot;
+    final changed = _activeStrokeChanged;
+    _isDrawingStroke = false;
+    _activeStrokeBeforeSnapshot = null;
+    _activeStrokeChanged = false;
+    if (before == null || !changed) {
+      return;
+    }
+    _pushHistorySnapshot(
+      label: appL10nOf(context).pixelArtBrushTool,
+      before: before,
+      after: _snapshot(),
+    );
+  }
+
+  void _cancelPixelStroke() {
+    if (_activeStrokeChanged) {
+      _endPixelStroke();
+      return;
+    }
+    _isDrawingStroke = false;
+    _activeStrokeBeforeSnapshot = null;
+    _activeStrokeChanged = false;
+  }
+
+  _PixelArtSnapshot _snapshot() {
+    return _PixelArtSnapshot(
+      canvasWidth: _canvasWidth,
+      canvasHeight: _canvasHeight,
+      draftCanvasWidth: _draftCanvasWidth,
+      draftCanvasHeight: _draftCanvasHeight,
+      pixels: List<int>.of(_pixels),
+      keyboardCursorX: _keyboardCursorX,
+      keyboardCursorY: _keyboardCursorY,
+    );
+  }
+
+  void _restoreSnapshot(_PixelArtSnapshot snapshot) {
+    setState(() {
+      _canvasWidth = snapshot.canvasWidth;
+      _canvasHeight = snapshot.canvasHeight;
+      _draftCanvasWidth = snapshot.draftCanvasWidth;
+      _draftCanvasHeight = snapshot.draftCanvasHeight;
+      _pixels = List<int>.of(snapshot.pixels);
+      _keyboardCursorX = snapshot.keyboardCursorX.clamp(0, _canvasWidth - 1);
+      _keyboardCursorY = snapshot.keyboardCursorY.clamp(0, _canvasHeight - 1);
+      _isDrawingStroke = false;
+      _activeStrokeBeforeSnapshot = null;
+      _activeStrokeChanged = false;
+    });
+  }
+
+  void _pushHistorySnapshot({
+    required String label,
+    required _PixelArtSnapshot before,
+    required _PixelArtSnapshot after,
+  }) {
+    if (before == after) {
+      return;
+    }
+    _undoStack.add(before);
     if (_undoStack.length > _maxHistoryLength) {
       _undoStack.removeAt(0);
     }
     _redoStack.clear();
+    widget.onHistoryAction?.call(
+      HistoryAction(
+        label: label,
+        estimatedBytes: before.estimatedBytes + after.estimatedBytes,
+        apply: () => _redoSnapshotFromHistory(before: before, after: after),
+        revert: () => _undoSnapshotFromHistory(before: before, after: after),
+      ),
+    );
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _undo() {
-    if (_undoStack.isEmpty) {
+    final onUndoRequested = widget.onUndoRequested;
+    if (onUndoRequested != null) {
+      onUndoRequested();
       return;
     }
-    setState(() {
-      _redoStack.add(List<int>.of(_pixels));
-      _pixels = _undoStack.removeLast();
-    });
+    _undoLocal();
   }
 
   void _redo() {
+    final onRedoRequested = widget.onRedoRequested;
+    if (onRedoRequested != null) {
+      onRedoRequested();
+      return;
+    }
+    _redoLocal();
+  }
+
+  void _undoLocal() {
+    if (_undoStack.isEmpty) {
+      return;
+    }
+    final target = _undoStack.removeLast();
+    final current = _snapshot();
+    setState(() {
+      _redoStack.add(current);
+    });
+    _restoreSnapshot(target);
+  }
+
+  void _redoLocal() {
     if (_redoStack.isEmpty) {
       return;
     }
+    final target = _redoStack.removeLast();
+    final current = _snapshot();
     setState(() {
-      _undoStack.add(List<int>.of(_pixels));
-      _pixels = _redoStack.removeLast();
+      _undoStack.add(current);
     });
+    _restoreSnapshot(target);
+  }
+
+  void _undoSnapshotFromHistory({
+    required _PixelArtSnapshot before,
+    required _PixelArtSnapshot after,
+  }) {
+    _removeMatchingLast(_undoStack, before);
+    _redoStack.add(after);
+    _restoreSnapshot(before);
+  }
+
+  void _redoSnapshotFromHistory({
+    required _PixelArtSnapshot before,
+    required _PixelArtSnapshot after,
+  }) {
+    _removeMatchingLast(_redoStack, after);
+    _undoStack.add(before);
+    if (_undoStack.length > _maxHistoryLength) {
+      _undoStack.removeAt(0);
+    }
+    _restoreSnapshot(after);
+  }
+
+  void _removeMatchingLast(
+    List<_PixelArtSnapshot> snapshots,
+    _PixelArtSnapshot expected,
+  ) {
+    if (snapshots.isNotEmpty && snapshots.last == expected) {
+      snapshots.removeLast();
+    }
   }
 
   void _newCanvas() {
-    _pushUndoSnapshot();
+    final before = _snapshot();
     setState(() {
       _pixels = List<int>.filled(
         _canvasWidth * _canvasHeight,
         _transparentPixel,
       );
     });
+    _pushHistorySnapshot(
+      label: appL10nOf(context).pixelArtNewBlankCanvas,
+      before: before,
+      after: _snapshot(),
+    );
   }
 
   void _clearCanvas() {
@@ -875,6 +1042,54 @@ class _PixelArtPngTask {
   final List<int> pixels;
   final int width;
   final int height;
+}
+
+class _PixelArtSnapshot {
+  const _PixelArtSnapshot({
+    required this.canvasWidth,
+    required this.canvasHeight,
+    required this.draftCanvasWidth,
+    required this.draftCanvasHeight,
+    required this.pixels,
+    required this.keyboardCursorX,
+    required this.keyboardCursorY,
+  });
+
+  final int canvasWidth;
+  final int canvasHeight;
+  final int draftCanvasWidth;
+  final int draftCanvasHeight;
+  final List<int> pixels;
+  final int keyboardCursorX;
+  final int keyboardCursorY;
+
+  int get estimatedBytes => pixels.length * 4 + 24;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is _PixelArtSnapshot &&
+        other.canvasWidth == canvasWidth &&
+        other.canvasHeight == canvasHeight &&
+        other.draftCanvasWidth == draftCanvasWidth &&
+        other.draftCanvasHeight == draftCanvasHeight &&
+        other.keyboardCursorX == keyboardCursorX &&
+        other.keyboardCursorY == keyboardCursorY &&
+        listEquals(other.pixels, pixels);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    canvasWidth,
+    canvasHeight,
+    draftCanvasWidth,
+    draftCanvasHeight,
+    keyboardCursorX,
+    keyboardCursorY,
+    Object.hashAll(pixels),
+  );
 }
 
 class _ColorSwatchButton extends StatelessWidget {

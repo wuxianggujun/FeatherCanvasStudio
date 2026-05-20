@@ -1010,6 +1010,10 @@ mixin _HomeShellStateMixin
         isFocusMode: _isPixelArtFocusMode,
         onFocusModeChanged: (value) =>
             setState(() => _isPixelArtFocusMode = value),
+        onHistoryAction: (action) =>
+            _pushHistory(WorkspaceFeature.pixelArtEditor, action),
+        onUndoRequested: () => unawaited(_undoCurrentWorkspace()),
+        onRedoRequested: () => unawaited(_redoCurrentWorkspace()),
         historyControls: _buildCompactHistoryControls(),
       ),
       WorkspaceFeature.imageLibrary => _buildImageLibraryWorkspace(),
