@@ -2562,3 +2562,125 @@ Phase 21 第二批：从 image_library_state.dart 开始做小批次状态边界
    - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
    - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
    - `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过，生成 `build\windows\x64\runner\Debug\feather_canvas_studio.exe`。
+
+补充修正：
+- 已确认按钮摆放根因：分类、预览操作与几何工具曾残留在左侧 _buildControls。
+- 现已移除左侧残留，仅由右侧 _buildPreviewSurface 渲染这些工具。
+- general_image_editor_widgets_test.dart、image_editor_pixelation_entry_test.dart、flutter analyze、flutter build windows --debug 均已重新通过。
+
+### Phase 22：图片编辑器布局与几何弹窗稳定性修复（第三批前置修复已完成）
+
+本轮针对实际使用反馈处理两个高优先级问题：一是再次确认右侧工具条没有残留在左侧控制区；二是修复连续点击裁剪 / 输出尺寸入口时可能重复打开弹窗并导致崩溃的问题。
+
+完成项：
+
+1. `general_image_editor_widgets.dart`
+   - 确认 `general-image-editor-panel-tabs`、`general-image-editor-preview-actions`、`general-image-editor-geometry-actions` 只由右侧 `_buildPreviewSurface` 渲染。
+   - 左侧 `_buildControls` 继续只承载图片源、快捷处理、版本快照、`应用并保存` 和非几何参数面板。
+   - 新增 `_geometryDialogOpen` 单实例锁，裁剪边距和输出尺寸弹窗打开期间不允许再次触发同类几何弹窗。
+   - 几何工具条按钮在弹窗打开期间会进入不可用状态，避免快速连点重复入栈。
+2. `general_image_editor_widgets_test.dart`
+   - 新增 `geometry dialogs ignore rapid repeated toolbar taps` 回归测试。
+   - 测试直接连续触发裁剪 / 输出尺寸按钮回调，断言不会抛异常且只出现一个 `AlertDialog`。
+3. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
+
+下一步：
+
+```text
+继续 Phase 22 第三批：检查外观 / 标注 / 输出中是否还有适合上移到右侧顶部或弹窗化的高频执行按钮，同时保持左侧只做参数与状态承载。
+```
+
+### Phase 22：图片编辑器右侧工具条对齐修正（第三批前置修正已完成）
+
+本轮根据截图反馈继续修正右侧预览顶部布局：撤销、重做、生成完整预览、重置参数这组执行按钮虽然已经位于右侧预览区，但仍靠左显示，视觉上占用了画布上方主区域。
+
+完成项：
+
+1. `general_image_editor_widgets.dart`
+   - 新增 `_buildPreviewTopToolbar`，将右侧预览顶部拆成左右分区。
+   - 左侧保留 `几何 / 外观 / 标注 / 输出` 分类切换。
+   - 右侧对齐 `撤销 / 重做 / 生成完整预览 / 重置参数` 执行按钮。
+   - 几何执行工具条也改为右对齐，避免继续从预览区左侧展开。
+   - 窄宽度下保留换行布局，执行按钮仍靠右对齐。
+2. `general_image_editor_widgets_test.dart`
+   - 扩展布局测试，断言预览执行按钮位于分类入口右侧。
+   - 断言 `重置参数` 和几何工具条末尾按钮贴齐各自工具区右边界。
+3. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
+补充验证：
+- 新增动态窗口尺寸回归测试：同一个 `GeneralImageEditorContent` 先在小窗口下验证工具栏拆成两行，再将窗口宽度扩大，验证执行按钮自动回到与分类入口同一行并向右展开。
+- 该测试用于防止“小窗口正常，但切回大窗口不自动重排”的回归。
+
+再修正：
+- `GeneralImageEditorContent` 现在监听 `WidgetsBindingObserver.didChangeMetrics`，窗口尺寸变化时主动重建，避免拖拽窗口后局部布局状态没有刷新。
+- 顶部工具栏单行判断同时参考预览区约束和整窗宽度；当整窗宽度达到大窗口阈值时，即使外层局部约束暂时偏窄，也会恢复右上角单行布局。
+- `general_image_editor_widgets_test.dart` 的动态窗口尺寸测试已覆盖该路径。
+
+最终修正：
+- 移除顶部工具栏对固定宽度阈值的依赖，改为 `Wrap(alignment: WrapAlignment.spaceBetween)`。
+- 当前宽度能容纳分类入口和执行按钮时，自动排成同一行：分类在左，执行按钮在右。
+- 当前宽度不能容纳两组工具时，自动换成两行，第二行从左侧开始。
+- 动态窗口尺寸测试已调整为从 1100 逻辑宽拖到 1800 逻辑宽，验证同一个 widget 会从两行自动回到单行。
+
+### Phase 22：图片编辑器小窗口工具条响应式修正（第三批补充修正已完成）
+
+本轮修复小窗口 / 中等预览宽度下的顶部工具条排版问题。此前规则只按较小断点切换，导致分类入口和执行按钮在中等宽度下被挤压到同一行，执行按钮贴近右侧滚动条，视觉上像布局溢出。
+
+完成项：
+
+1. `general_image_editor_widgets.dart`
+   - 新增 `_previewToolbarSingleRowMinWidth`，将单行工具栏切换阈值提高到 1280。
+   - 预览区不足 1280 宽时，顶部工具栏改为两行：第一行分类入口，第二行执行按钮。
+   - 两行均左对齐，避免按钮组被硬推到右侧或贴近滚动条。
+   - 宽屏仍保持分类入口和执行按钮同一行紧凑排列。
+2. `general_image_editor_widgets_test.dart`
+   - 新增窄预览工具栏测试，断言执行按钮位于分类入口下一行并保持左对齐，且不越过预览面板右边界。
+   - 新增宽屏工具栏测试，断言执行按钮仍紧跟分类入口，避免宽屏退化成松散布局。
+3. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
+### Phase 22：图片编辑器小窗口切回宽屏右上角修正（第三批再修正已完成）
+
+本轮继续根据“从小窗口恢复到大窗口后，顶部工具条应该回到右上角”的反馈修正布局。之前的窄屏换行规则保留，但宽屏单行布局仍需保证执行按钮回到右上角，而不是停留在中间或被内容宽度限制。
+
+完成项：
+
+1. `general_image_editor_widgets.dart`
+   - 将单行切换阈值降为 `1080`，更符合顶部工具组真实宽度。
+   - 宽屏时恢复为单行布局，执行按钮通过 `Expanded + Align.centerRight` 回到右上角。
+   - 预览根节点和整个编辑器根节点都显式撑满可用宽度，避免内部工具条拿到过窄的收缩宽度。
+2. `general_image_editor_widgets_test.dart`
+   - 宽屏测试改为验证执行按钮与分类入口同一行，且在视觉上明显向右展开。
+   - 小窗口两行布局测试继续保留。
+3. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
+### Phase 22：图片编辑器顶部工具条空白修正（第三批补充修正已完成）
+
+本轮继续根据截图反馈修正右侧预览顶部工具条：上一轮为了把执行按钮推到右侧，使用了拉伸布局，导致分类入口和执行按钮之间出现大面积空白。
+
+完成项：
+
+1. `general_image_editor_widgets.dart`
+   - `_buildPreviewTopToolbar` 去掉会撑开空白的 `Expanded + Align.centerRight`。
+   - 改为两个不强制拉伸的 `Flexible` 分区：分类入口在前，执行按钮紧跟其后。
+   - 工具条仍保留在右侧预览区域顶部，但不再制造中间大空白。
+2. `general_image_editor_widgets_test.dart`
+   - 布局测试新增紧凑间距断言，确保预览执行按钮紧跟分类入口，避免回退到大空白布局。
+3. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。

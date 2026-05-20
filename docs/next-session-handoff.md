@@ -64,6 +64,13 @@
 50. Phase 22 图片编辑器布局优化第一批已完成：通用图片编辑器开始调整为“左侧参数面板 + 右侧预览顶部工具条”。`general_image_editor_widgets_test.dart`、`image_editor_pixelation_entry_test.dart`、`flutter analyze` 和 `flutter build windows --debug` 均通过。
 51. Phase 22 图片编辑器布局优化第二批已完成：裁剪边距和输出尺寸迁移到右侧预览顶部工具条，点击后通过对话框配置；新增 `general_image_editor_widgets_test.dart` 几何工具对话框回归测试。
 52. Phase 22 图片编辑器布局优化第二批修正已完成：应用并保存回到左侧控制区；几何 / 外观 / 标注 / 输出切换、撤销 / 重做、生成完整预览、重置参数和几何工具条只在右侧预览顶部显示；左侧不再显示“几何调整”卡片、裁剪边距摘要或输出尺寸摘要。`general_image_editor_widgets_test.dart`、`image_editor_pixelation_entry_test.dart`、`flutter analyze` 和 `flutter build windows --debug` 均通过。
+53. Phase 22 第二批修正复核已完成：再次确认左侧 `_buildControls` 中不再残留工具条，相关按钮只由右侧 `_buildPreviewSurface` 渲染；文档已同步为当前最终布局。
+54. Phase 22 几何弹窗稳定性前置修复已完成：新增 `_geometryDialogOpen` 单实例锁，裁剪边距和输出尺寸弹窗连续触发时只允许打开一个 `AlertDialog`，避免快速连点导致重复入栈或崩溃；新增 `geometry dialogs ignore rapid repeated toolbar taps` 回归测试。`general_image_editor_widgets_test.dart` 和 `image_editor_pixelation_entry_test.dart` 均通过。
+55. Phase 22 右侧工具条对齐修正已完成：右侧预览顶部改为左侧分类切换、右侧执行按钮的分区工具栏；撤销 / 重做 / 生成完整预览 / 重置参数靠右显示，几何执行工具条也靠右。`general_image_editor_widgets_test.dart`、`image_editor_pixelation_entry_test.dart`、`flutter analyze` 和 `flutter build windows --debug` 均通过。
+56. Phase 22 顶部工具条空白修正已完成：移除会撑开分类入口与执行按钮之间空白的 `Expanded + Align.centerRight`，改为紧凑的双 `Flexible` 分区；新增布局断言防止按钮组再次被拉出大空白。`general_image_editor_widgets_test.dart`、`image_editor_pixelation_entry_test.dart`、`flutter analyze` 和 `flutter build windows --debug` 均通过。
+57. Phase 22 小窗口工具条响应式修正已完成：预览区宽度不足 1280 时，顶部工具栏改为两行左对齐，第一行分类入口、第二行执行按钮，避免按钮组贴近右侧滚动条或产生横向挤压；宽屏仍保持同一行紧凑排列。新增窄预览和宽屏两组布局回归测试。`general_image_editor_widgets_test.dart`、`image_editor_pixelation_entry_test.dart`、`flutter analyze` 和 `flutter build windows --debug` 均通过。
+58. Phase 22 小窗口切回宽屏右上角修正已完成：单行阈值降为 1080；宽屏时执行按钮恢复 `Expanded + Align.centerRight` 右上角对齐；编辑器根节点和预览根节点显式撑满可用宽度，避免工具条被内容宽度限制。新增动态窗口尺寸回归测试，覆盖同一个 widget 从小窗口切到大窗口后自动重排。随后追加 `WidgetsBindingObserver.didChangeMetrics` 主动重建，并让单行判断同时参考预览区约束和整窗宽度，防止真实窗口拖拽后局部约束没有及时触发重排。`general_image_editor_widgets_test.dart`、`image_editor_pixelation_entry_test.dart`、`flutter analyze` 和 `flutter build windows --debug` 均通过。
+59. Phase 22 顶部工具栏最终响应式修正已完成：移除固定宽度阈值判断，改用 `Wrap(alignment: WrapAlignment.spaceBetween)`。宽度足够时分类入口在左、执行按钮在右并自动同一行；宽度不足时自动换两行且第二行左对齐。动态窗口测试覆盖 1100 逻辑宽拖到 1800 逻辑宽后同一个 widget 从两行回到单行。`general_image_editor_widgets_test.dart`、`image_editor_pixelation_entry_test.dart`、`flutter analyze` 和 `flutter build windows --debug` 均通过。
 
 ---
 
@@ -137,6 +144,12 @@ Phase 21 第一批“P0-1 状态拆分准备文档”已完成，详见 docs/p0-
 Phase 22 第一批“图片编辑器左侧参数面板 + 右侧预览顶部工具条”已完成。
 Phase 22 第二批“几何裁剪 / 尺寸入口上移到右侧顶部并改为对话框配置”已完成。
 Phase 22 第二批修正“应用并保存回到左侧，右侧顶部工具条从左侧彻底移除，左侧不再显示几何调整卡片”已完成。
+Phase 22 几何弹窗稳定性前置修复已完成：连续触发裁剪 / 输出尺寸按钮回调时只会出现一个 `AlertDialog`。
+Phase 22 右侧工具条对齐修正已完成：分类入口在右侧预览顶部左边，执行按钮靠右显示。
+Phase 22 顶部工具条空白修正已完成：分类入口与执行按钮改为紧凑排布，不再出现中间大空白。
+Phase 22 小窗口工具条响应式修正已完成：中等宽度下顶部工具栏自动拆成两行左对齐，宽屏仍保持单行紧凑。
+Phase 22 小窗口切回宽屏右上角修正已完成：大窗口恢复执行按钮右上角对齐，小窗口继续两行。
+Phase 22 顶部工具栏最终响应式修正已完成：已改为 `Wrap` 自动按实际可用宽度同排或换行，不再依赖固定断点。
 请从 Phase 22 第三批开始：检查外观 / 标注 / 输出中是否也有适合上移到右侧顶部或弹窗化的高频执行按钮；确认稳定后再回到 Phase 21 第二批状态边界收敛。
 ```
 

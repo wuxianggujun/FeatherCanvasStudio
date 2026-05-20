@@ -133,8 +133,204 @@ void main() {
         find.descendant(of: previewPanel, matching: geometryActions),
         findsNothing,
       );
+
+      final geometryActionsRect = tester.getRect(geometryActions);
+      final flipVerticalButtonRect = tester.getRect(
+        find.widgetWithIcon(OutlinedButton, Icons.flip_camera_android_outlined),
+      );
+
+      expect(
+        flipVerticalButtonRect.right,
+        closeTo(geometryActionsRect.right, 1),
+      );
     },
   );
+
+  testWidgets('general image editor stacks preview toolbar on narrow panes', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1100, 1600)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final tempDir = Directory.systemTemp.createTempSync(
+      'feather-general-editor-narrow-toolbar-',
+    );
+    addTearDown(() => tempDir.deleteSync(recursive: true));
+
+    final source = image_lib.Image(width: 80, height: 80, numChannels: 4)
+      ..clear(image_lib.ColorRgba8(240, 240, 240, 255));
+    final file = File('${tempDir.path}/source.png')
+      ..writeAsBytesSync(image_lib.encodePng(source));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 1100,
+            height: 1600,
+            child: GeneralImageEditorContent(
+              imagePath: file.path,
+              imageInfo: const ImageInspectionResult(
+                width: 80,
+                height: 80,
+                hasAlpha: false,
+              ),
+              isProcessing: false,
+              errorMessage: null,
+              onPickImage: () {},
+              onClearImage: () {},
+              onApplyEdit: (_) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await _pumpBoundedSettle(tester);
+
+    final panelTabs = find.byKey(
+      const ValueKey('general-image-editor-panel-tabs'),
+    );
+    final previewActions = find.byKey(
+      const ValueKey('general-image-editor-preview-actions'),
+    );
+    final previewPanel = find.byKey(
+      const ValueKey('general-image-editor-preview-panel'),
+    );
+
+    final tabsRect = tester.getRect(panelTabs);
+    final previewActionsRect = tester.getRect(previewActions);
+    final previewPanelRect = tester.getRect(previewPanel);
+
+    expect(previewActionsRect.top, greaterThan(tabsRect.bottom));
+    expect(previewActionsRect.left, closeTo(tabsRect.left, 1));
+    expect(previewActionsRect.right, lessThan(previewPanelRect.right));
+  });
+
+  testWidgets(
+    'general image editor keeps preview toolbar compact on wide panes',
+    (tester) async {
+      tester.view
+        ..physicalSize = const Size(2100, 1600)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final tempDir = Directory.systemTemp.createTempSync(
+        'feather-general-editor-wide-toolbar-',
+      );
+      addTearDown(() => tempDir.deleteSync(recursive: true));
+
+      final source = image_lib.Image(width: 80, height: 80, numChannels: 4)
+        ..clear(image_lib.ColorRgba8(240, 240, 240, 255));
+      final file = File('${tempDir.path}/source.png')
+        ..writeAsBytesSync(image_lib.encodePng(source));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 2100,
+              height: 1600,
+              child: GeneralImageEditorContent(
+                imagePath: file.path,
+                imageInfo: const ImageInspectionResult(
+                  width: 80,
+                  height: 80,
+                  hasAlpha: false,
+                ),
+                isProcessing: false,
+                errorMessage: null,
+                onPickImage: () {},
+                onClearImage: () {},
+                onApplyEdit: (_) async {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await _pumpBoundedSettle(tester);
+
+      final panelTabs = find.byKey(
+        const ValueKey('general-image-editor-panel-tabs'),
+      );
+      final previewActions = find.byKey(
+        const ValueKey('general-image-editor-preview-actions'),
+      );
+
+      final tabsRect = tester.getRect(panelTabs);
+      final previewActionsRect = tester.getRect(previewActions);
+
+      expect(previewActionsRect.left, greaterThan(tabsRect.right));
+      expect(previewActionsRect.left, greaterThan(tabsRect.right + 120));
+      expect(previewActionsRect.top, closeTo(tabsRect.top, 1));
+    },
+  );
+
+  testWidgets('general image editor relayouts toolbar after window resize', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1100, 1600)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final tempDir = Directory.systemTemp.createTempSync(
+      'feather-general-editor-resize-toolbar-',
+    );
+    addTearDown(() => tempDir.deleteSync(recursive: true));
+
+    final source = image_lib.Image(width: 80, height: 80, numChannels: 4)
+      ..clear(image_lib.ColorRgba8(240, 240, 240, 255));
+    final file = File('${tempDir.path}/source.png')
+      ..writeAsBytesSync(image_lib.encodePng(source));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox.expand(
+            child: GeneralImageEditorContent(
+              imagePath: file.path,
+              imageInfo: const ImageInspectionResult(
+                width: 80,
+                height: 80,
+                hasAlpha: false,
+              ),
+              isProcessing: false,
+              errorMessage: null,
+              onPickImage: () {},
+              onClearImage: () {},
+              onApplyEdit: (_) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await _pumpBoundedSettle(tester);
+
+    final panelTabs = find.byKey(
+      const ValueKey('general-image-editor-panel-tabs'),
+    );
+    final previewActions = find.byKey(
+      const ValueKey('general-image-editor-preview-actions'),
+    );
+
+    var tabsRect = tester.getRect(panelTabs);
+    var previewActionsRect = tester.getRect(previewActions);
+    expect(previewActionsRect.top, greaterThan(tabsRect.bottom));
+
+    tester.view.physicalSize = const Size(1800, 1600);
+    await tester.pump();
+    await _pumpBoundedSettle(tester);
+
+    tabsRect = tester.getRect(panelTabs);
+    previewActionsRect = tester.getRect(previewActions);
+    expect(previewActionsRect.top, closeTo(tabsRect.top, 1));
+    expect(previewActionsRect.left, greaterThan(tabsRect.right + 120));
+  });
 
   testWidgets('can select and delete an annotation from the visual preview', (
     tester,
@@ -353,6 +549,77 @@ void main() {
     expect(appliedOptions?.crop.bottom, 0);
     expect(appliedOptions?.resize.width, 200);
     expect(appliedOptions?.resize.height, 100);
+  });
+
+  testWidgets('geometry dialogs ignore rapid repeated toolbar taps', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1400, 1800)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final tempDir = Directory.systemTemp.createTempSync(
+      'feather-general-editor-dialog-lock-',
+    );
+    addTearDown(() => tempDir.deleteSync(recursive: true));
+
+    final source = image_lib.Image(width: 200, height: 100, numChannels: 4)
+      ..clear(image_lib.ColorRgba8(240, 240, 240, 255));
+    final file = File('${tempDir.path}/source.png')
+      ..writeAsBytesSync(image_lib.encodePng(source));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 1400,
+            height: 1800,
+            child: GeneralImageEditorContent(
+              imagePath: file.path,
+              imageInfo: const ImageInspectionResult(
+                width: 200,
+                height: 100,
+                hasAlpha: false,
+              ),
+              isProcessing: false,
+              errorMessage: null,
+              onPickImage: () {},
+              onClearImage: () {},
+              onApplyEdit: (_) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await _pumpBoundedSettle(tester);
+
+    final cropButton = find.widgetWithIcon(OutlinedButton, Icons.crop_outlined);
+    final cropButtonWidget = tester.widget<OutlinedButton>(cropButton);
+    cropButtonWidget.onPressed!();
+    cropButtonWidget.onPressed!();
+    cropButtonWidget.onPressed!();
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(AlertDialog), findsOneWidget);
+
+    Navigator.of(tester.element(find.byType(AlertDialog))).pop(false);
+    await _pumpBoundedSettle(tester);
+
+    final resizeButton = find.widgetWithIcon(
+      OutlinedButton,
+      Icons.photo_size_select_large_outlined,
+    );
+    final resizeButtonWidget = tester.widget<OutlinedButton>(resizeButton);
+    resizeButtonWidget.onPressed!();
+    resizeButtonWidget.onPressed!();
+    resizeButtonWidget.onPressed!();
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(AlertDialog), findsOneWidget);
   });
 
   testWidgets('can apply and undo a common editing preset', (tester) async {

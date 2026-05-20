@@ -43,7 +43,8 @@ class GeneralImageEditorContent extends StatefulWidget {
       _GeneralImageEditorContentState();
 }
 
-class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
+class _GeneralImageEditorContentState extends State<GeneralImageEditorContent>
+    with WidgetsBindingObserver {
   static const int _maxEditDimension = 8192;
   static const List<int> _annotationColorOptions = [
     0xFFFF3B30,
@@ -106,18 +107,28 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   Future<GeneralImageEditResult>? _previewFuture;
   String? _previewSourcePath;
   _GeneralImageEditorPanel _activePanel = _GeneralImageEditorPanel.geometry;
+  bool _geometryDialogOpen = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _annotationTextController = TextEditingController(text: 'Label');
     _syncResizeWithImageInfo();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _annotationTextController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -141,13 +152,16 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveWorkspaceSplit(
-      storageKey: 'general_image_editor',
-      controlsWidth: 432,
-      minControlsWidth: 320,
-      maxControlsWidth: 560,
-      controls: _buildControls(context),
-      preview: _buildPreview(context),
+    return SizedBox(
+      width: double.infinity,
+      child: ResponsiveWorkspaceSplit(
+        storageKey: 'general_image_editor',
+        controlsWidth: 432,
+        minControlsWidth: 320,
+        maxControlsWidth: 560,
+        controls: _buildControls(context),
+        preview: _buildPreview(context),
+      ),
     );
   }
 
@@ -193,24 +207,6 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                 ],
               ),
             ),
-            const SizedBox(height: fieldGap),
-            KeyedSubtree(
-              key: const ValueKey('general-image-editor-panel-tabs'),
-              child: _buildControlPanelTabs(),
-            ),
-            const SizedBox(height: fieldGap),
-            KeyedSubtree(
-              key: const ValueKey('general-image-editor-preview-actions'),
-              child: _buildPreviewActionBar(hasImage),
-            ),
-            if (hasImage &&
-                _activePanel == _GeneralImageEditorPanel.geometry) ...[
-              const SizedBox(height: fieldGap),
-              KeyedSubtree(
-                key: const ValueKey('general-image-editor-geometry-actions'),
-                child: _buildGeometryActionBar(),
-              ),
-            ],
             const SizedBox(height: fieldGap),
             _buildApplyAndSaveAction(hasImage),
             if (_activePanel != _GeneralImageEditorPanel.geometry)
@@ -375,10 +371,14 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
 
   Widget _buildGeometryActionBar() {
     final l10n = appL10nOf(context);
-    final canEdit = widget.imagePath != null && !widget.isProcessing;
+    final canEdit =
+        widget.imagePath != null &&
+        !widget.isProcessing &&
+        !_geometryDialogOpen;
     final geometrySummary = '${_cropSummary(l10n)} · ${_resizeSummary(l10n)}';
 
     return Wrap(
+      alignment: WrapAlignment.end,
       spacing: 8,
       runSpacing: 8,
       children: [
@@ -1039,10 +1039,55 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
     required bool hasImage,
     required Widget preview,
   }) {
-    return preview;
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildPreviewTopToolbar(hasImage),
+          if (hasImage &&
+              _activePanel == _GeneralImageEditorPanel.geometry) ...[
+            const SizedBox(height: fieldGap),
+            Align(
+              alignment: Alignment.centerRight,
+              child: KeyedSubtree(
+                key: const ValueKey('general-image-editor-geometry-actions'),
+                child: _buildGeometryActionBar(),
+              ),
+            ),
+          ],
+          const SizedBox(height: fieldGap),
+          preview,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewTopToolbar(bool hasImage) {
+    final panelTabs = KeyedSubtree(
+      key: const ValueKey('general-image-editor-panel-tabs'),
+      child: _buildControlPanelTabs(),
+    );
+    final previewActions = KeyedSubtree(
+      key: const ValueKey('general-image-editor-preview-actions'),
+      child: _buildPreviewActionBar(hasImage),
+    );
+
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      runAlignment: WrapAlignment.start,
+      crossAxisAlignment: WrapCrossAlignment.start,
+      spacing: fieldGap,
+      runSpacing: fieldGap,
+      children: [panelTabs, previewActions],
+    );
   }
 
   Future<void> _showCropDialog() async {
+    if (_geometryDialogOpen) {
+      return;
+    }
+
     final l10n = appL10nOf(context);
     final info = widget.imageInfo;
     if (info == null) {
@@ -1056,127 +1101,137 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
     final maxHorizontal = (info.width - 1).clamp(1, 99999).toInt();
     final maxVertical = (info.height - 1).clamp(1, 99999).toInt();
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            void applyRatio(int ratioWidth, int ratioHeight) {
-              final crop = _centeredCropMarginsForRatio(
-                ratioWidth,
-                ratioHeight,
-              );
-              if (crop == null) {
-                return;
+    setState(() => _geometryDialogOpen = true);
+    final bool? confirmed;
+    try {
+      confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              void applyRatio(int ratioWidth, int ratioHeight) {
+                final crop = _centeredCropMarginsForRatio(
+                  ratioWidth,
+                  ratioHeight,
+                );
+                if (crop == null) {
+                  return;
+                }
+                setDialogState(() {
+                  left = crop.left;
+                  top = crop.top;
+                  right = crop.right;
+                  bottom = crop.bottom;
+                });
               }
-              setDialogState(() {
-                left = crop.left;
-                top = crop.top;
-                right = crop.right;
-                bottom = crop.bottom;
-              });
-            }
 
-            return AlertDialog(
-              title: Text(l10n.generalImageEditorCropTitle),
-              content: SizedBox(
-                width: 520,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ResponsivePair(
-                        first: IntegerStepperField(
-                          label: l10n.generalImageEditorLeftSide,
-                          value: left,
-                          minValue: 0,
-                          maxValue: maxHorizontal,
-                          suffixText: 'px',
-                          onChanged: (value) =>
-                              setDialogState(() => left = value),
-                        ),
-                        second: IntegerStepperField(
-                          label: l10n.generalImageEditorTopSide,
-                          value: top,
-                          minValue: 0,
-                          maxValue: maxVertical,
-                          suffixText: 'px',
-                          onChanged: (value) =>
-                              setDialogState(() => top = value),
-                        ),
-                      ),
-                      const SizedBox(height: fieldGap),
-                      ResponsivePair(
-                        first: IntegerStepperField(
-                          label: l10n.generalImageEditorRightSide,
-                          value: right,
-                          minValue: 0,
-                          maxValue: maxHorizontal,
-                          suffixText: 'px',
-                          onChanged: (value) =>
-                              setDialogState(() => right = value),
-                        ),
-                        second: IntegerStepperField(
-                          label: l10n.generalImageEditorBottomSide,
-                          value: bottom,
-                          minValue: 0,
-                          maxValue: maxVertical,
-                          suffixText: 'px',
-                          onChanged: (value) =>
-                              setDialogState(() => bottom = value),
-                        ),
-                      ),
-                      const SizedBox(height: fieldGap),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: () => applyRatio(1, 1),
-                            icon: const Icon(Icons.aspect_ratio_outlined),
-                            label: const Text('1:1'),
+              return AlertDialog(
+                title: Text(l10n.generalImageEditorCropTitle),
+                content: SizedBox(
+                  width: 520,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ResponsivePair(
+                          first: IntegerStepperField(
+                            label: l10n.generalImageEditorLeftSide,
+                            value: left,
+                            minValue: 0,
+                            maxValue: maxHorizontal,
+                            suffixText: 'px',
+                            onChanged: (value) =>
+                                setDialogState(() => left = value),
                           ),
-                          OutlinedButton.icon(
-                            onPressed: () => applyRatio(4, 3),
-                            icon: const Icon(Icons.aspect_ratio_outlined),
-                            label: const Text('4:3'),
+                          second: IntegerStepperField(
+                            label: l10n.generalImageEditorTopSide,
+                            value: top,
+                            minValue: 0,
+                            maxValue: maxVertical,
+                            suffixText: 'px',
+                            onChanged: (value) =>
+                                setDialogState(() => top = value),
                           ),
-                          OutlinedButton.icon(
-                            onPressed: () => applyRatio(16, 9),
-                            icon: const Icon(Icons.aspect_ratio_outlined),
-                            label: const Text('16:9'),
+                        ),
+                        const SizedBox(height: fieldGap),
+                        ResponsivePair(
+                          first: IntegerStepperField(
+                            label: l10n.generalImageEditorRightSide,
+                            value: right,
+                            minValue: 0,
+                            maxValue: maxHorizontal,
+                            suffixText: 'px',
+                            onChanged: (value) =>
+                                setDialogState(() => right = value),
                           ),
-                          OutlinedButton.icon(
-                            onPressed: () => setDialogState(() {
-                              left = 0;
-                              top = 0;
-                              right = 0;
-                              bottom = 0;
-                            }),
-                            icon: const Icon(Icons.crop_free_outlined),
-                            label: Text(l10n.generalImageEditorClearCrop),
+                          second: IntegerStepperField(
+                            label: l10n.generalImageEditorBottomSide,
+                            value: bottom,
+                            minValue: 0,
+                            maxValue: maxVertical,
+                            suffixText: 'px',
+                            onChanged: (value) =>
+                                setDialogState(() => bottom = value),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(height: fieldGap),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => applyRatio(1, 1),
+                              icon: const Icon(Icons.aspect_ratio_outlined),
+                              label: const Text('1:1'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => applyRatio(4, 3),
+                              icon: const Icon(Icons.aspect_ratio_outlined),
+                              label: const Text('4:3'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => applyRatio(16, 9),
+                              icon: const Icon(Icons.aspect_ratio_outlined),
+                              label: const Text('16:9'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => setDialogState(() {
+                                left = 0;
+                                top = 0;
+                                right = 0;
+                                bottom = 0;
+                              }),
+                              icon: const Icon(Icons.crop_free_outlined),
+                              label: Text(l10n.generalImageEditorClearCrop),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: Text(l10n.cancelAction),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: Text(l10n.saveAction),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: Text(l10n.cancelAction),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: Text(l10n.saveAction),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _geometryDialogOpen = false);
+      } else {
+        _geometryDialogOpen = false;
+      }
+    }
 
     if (confirmed != true || !mounted) {
       return;
@@ -1190,6 +1245,10 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Future<void> _showResizeDialog() async {
+    if (_geometryDialogOpen) {
+      return;
+    }
+
     final l10n = appL10nOf(context);
     final info = widget.imageInfo;
 
@@ -1198,99 +1257,109 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
     var width = _resizeWidth;
     var height = _resizeHeight;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            void setWidth(int value) {
-              setDialogState(() {
-                width = value;
-                if (lockAspectRatio && info != null && info.width > 0) {
-                  height = (value * info.height / info.width)
-                      .round()
-                      .clamp(1, _maxEditDimension)
-                      .toInt();
-                }
-              });
-            }
+    setState(() => _geometryDialogOpen = true);
+    final bool? confirmed;
+    try {
+      confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              void setWidth(int value) {
+                setDialogState(() {
+                  width = value;
+                  if (lockAspectRatio && info != null && info.width > 0) {
+                    height = (value * info.height / info.width)
+                        .round()
+                        .clamp(1, _maxEditDimension)
+                        .toInt();
+                  }
+                });
+              }
 
-            void setHeight(int value) {
-              setDialogState(() {
-                height = value;
-                if (lockAspectRatio && info != null && info.height > 0) {
-                  width = (value * info.width / info.height)
-                      .round()
-                      .clamp(1, _maxEditDimension)
-                      .toInt();
-                }
-              });
-            }
+              void setHeight(int value) {
+                setDialogState(() {
+                  height = value;
+                  if (lockAspectRatio && info != null && info.height > 0) {
+                    width = (value * info.width / info.height)
+                        .round()
+                        .clamp(1, _maxEditDimension)
+                        .toInt();
+                  }
+                });
+              }
 
-            return AlertDialog(
-              title: Text(l10n.generalImageEditorResizeTitle),
-              content: SizedBox(
-                width: 520,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: resizeEnabled,
-                        onChanged: (value) =>
-                            setDialogState(() => resizeEnabled = value),
-                        title: Text(l10n.generalImageEditorResizeOutput),
-                      ),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: lockAspectRatio,
-                        onChanged: resizeEnabled
-                            ? (value) => setDialogState(
-                                () => lockAspectRatio = value ?? true,
-                              )
-                            : null,
-                        title: Text(l10n.generalImageEditorLockAspectRatio),
-                      ),
-                      ResponsivePair(
-                        first: IntegerStepperField(
-                          label: l10n.generalImageEditorWidth,
-                          value: width,
-                          minValue: 1,
-                          maxValue: _maxEditDimension,
-                          suffixText: 'px',
-                          enabled: resizeEnabled,
-                          onChanged: setWidth,
+              return AlertDialog(
+                title: Text(l10n.generalImageEditorResizeTitle),
+                content: SizedBox(
+                  width: 520,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: resizeEnabled,
+                          onChanged: (value) =>
+                              setDialogState(() => resizeEnabled = value),
+                          title: Text(l10n.generalImageEditorResizeOutput),
                         ),
-                        second: IntegerStepperField(
-                          label: l10n.generalImageEditorHeight,
-                          value: height,
-                          minValue: 1,
-                          maxValue: _maxEditDimension,
-                          suffixText: 'px',
-                          enabled: resizeEnabled,
-                          onChanged: setHeight,
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: lockAspectRatio,
+                          onChanged: resizeEnabled
+                              ? (value) => setDialogState(
+                                  () => lockAspectRatio = value ?? true,
+                                )
+                              : null,
+                          title: Text(l10n.generalImageEditorLockAspectRatio),
                         ),
-                      ),
-                    ],
+                        ResponsivePair(
+                          first: IntegerStepperField(
+                            label: l10n.generalImageEditorWidth,
+                            value: width,
+                            minValue: 1,
+                            maxValue: _maxEditDimension,
+                            suffixText: 'px',
+                            enabled: resizeEnabled,
+                            onChanged: setWidth,
+                          ),
+                          second: IntegerStepperField(
+                            label: l10n.generalImageEditorHeight,
+                            value: height,
+                            minValue: 1,
+                            maxValue: _maxEditDimension,
+                            suffixText: 'px',
+                            enabled: resizeEnabled,
+                            onChanged: setHeight,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: Text(l10n.cancelAction),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: Text(l10n.saveAction),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: Text(l10n.cancelAction),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: Text(l10n.saveAction),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _geometryDialogOpen = false);
+      } else {
+        _geometryDialogOpen = false;
+      }
+    }
 
     if (confirmed != true || !mounted) {
       return;
