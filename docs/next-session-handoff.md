@@ -372,3 +372,30 @@ Phase 22 GIF 合成后台化已完成：GIF 合成中的读图、解码、缩放
 
 1. 继续 Phase 21 第二批，把作品库存在性缓存 `_existingImageLibraryPaths`、刷新 token 和刷新路径集合收敛到独立私有状态对象。
 2. 保持小步提交，每次只迁移一个状态簇，并用作品库分页 / 删除 / 菜单 / view data 测试守住行为。
+
+## 2026-05-21 Phase 21 第二批状态边界收敛
+
+本轮继续收敛 `image_library_state.dart`，重点处理作品库条目文件存在性缓存，不改变 UI 行为。
+
+完成项：
+
+- 新增私有 `_ImageLibraryExistenceState`，集中承载：
+  - 已确认存在的图片路径集合。
+  - 当前需要刷新存在性的路径集合。
+  - 异步刷新 token。
+- `_disposeImageLibraryState` 改为通过状态对象递增刷新 token，让已发出的异步刷新自然失效。
+- `_updateImageLibraryExistenceCacheAfterAssignment` 改为只读写 `_ImageLibraryExistenceState`，避免缓存路径、刷新路径和 token 分散在 mixin 字段里。
+- `_isImageLibraryItemAvailable` 改为从统一状态对象读取缓存，继续保持“缓存未完成时先显示”的原有行为。
+
+本轮验证：
+
+- `D:\Programs\flutter\bin\dart.bat format lib\src\home\image_library_state.dart` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_pagination_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_menu_test.dart test\image_library_deletion_test.dart test\image_library_view_data_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+下一步建议：
+
+1. 继续 Phase 21 第二批，小步收敛作品库文件服务 / merge / 操作结果状态，避免 `image_library_state.dart` 再次膨胀。
+2. 做一次 Windows debug 编译和单实例启动，给用户手测作品库、图片编辑器、动画工程三条主线。
+3. 如果手测稳定，再提交推送本轮状态收敛。

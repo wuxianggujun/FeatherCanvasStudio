@@ -162,6 +162,40 @@ class _ImageLibraryViewState {
   }
 }
 
+class _ImageLibraryExistenceState {
+  const _ImageLibraryExistenceState({
+    this.existingPaths,
+    this.refreshPaths = const <String>{},
+    this.refreshToken = 0,
+  });
+
+  final Set<String>? existingPaths;
+  final Set<String> refreshPaths;
+  final int refreshToken;
+
+  _ImageLibraryExistenceState copyWith({
+    Object? existingPaths = _unchanged,
+    Set<String>? refreshPaths,
+    int? refreshToken,
+  }) {
+    return _ImageLibraryExistenceState(
+      existingPaths: identical(existingPaths, _unchanged)
+          ? this.existingPaths
+          : existingPaths as Set<String>?,
+      refreshPaths: refreshPaths == null
+          ? this.refreshPaths
+          : Set<String>.unmodifiable(refreshPaths),
+      refreshToken: refreshToken ?? this.refreshToken,
+    );
+  }
+
+  _ImageLibraryExistenceState invalidateRefreshes() {
+    return copyWith(refreshToken: refreshToken + 1);
+  }
+}
+
+const Object _unchanged = Object();
+
 mixin _ImageLibraryStateMixin
     on
         State<FeatherCanvasHomePage>,
@@ -218,9 +252,8 @@ mixin _ImageLibraryStateMixin
   final ImageLibraryFileService _fileService = const ImageLibraryFileService();
   final ImageLibraryService _imageLibraryService = const ImageLibraryService();
 
-  Set<String>? _existingImageLibraryPaths;
-  Set<String> _imageLibraryExistenceRefreshPaths = const <String>{};
-  int _imageLibraryExistenceRefreshToken = 0;
+  _ImageLibraryExistenceState _imageLibraryExistenceState =
+      const _ImageLibraryExistenceState();
 
   @override
   List<ImageLibraryItem> get _imageLibrary => _imageLibraryNotifier.items;
@@ -252,7 +285,8 @@ mixin _ImageLibraryStateMixin
       _imageLibraryViewState.showStandaloneSpriteFrames;
 
   void _disposeImageLibraryState() {
-    _imageLibraryExistenceRefreshToken += 1;
+    _imageLibraryExistenceState = _imageLibraryExistenceState
+        .invalidateRefreshes();
     _imageLibrarySearchController.dispose();
   }
 
@@ -267,24 +301,31 @@ mixin _ImageLibraryStateMixin
     required Set<String> previousPaths,
     required Set<String> nextPaths,
   }) {
-    final cachedExistingPaths = _existingImageLibraryPaths;
+    final cachedExistingPaths = _imageLibraryExistenceState.existingPaths;
     if (cachedExistingPaths != null) {
-      _existingImageLibraryPaths = {
-        for (final path in cachedExistingPaths)
-          if (nextPaths.contains(path)) path,
-        for (final path in nextPaths)
-          if (!previousPaths.contains(path)) path,
-      };
+      _imageLibraryExistenceState = _imageLibraryExistenceState.copyWith(
+        existingPaths: {
+          for (final path in cachedExistingPaths)
+            if (nextPaths.contains(path)) path,
+          for (final path in nextPaths)
+            if (!previousPaths.contains(path)) path,
+        },
+      );
     } else if (nextPaths.isEmpty) {
-      _existingImageLibraryPaths = const <String>{};
+      _imageLibraryExistenceState = _imageLibraryExistenceState.copyWith(
+        existingPaths: const <String>{},
+      );
     }
 
-    if (_stringSetEquals(nextPaths, _imageLibraryExistenceRefreshPaths)) {
+    if (_stringSetEquals(nextPaths, _imageLibraryExistenceState.refreshPaths)) {
       return;
     }
 
-    _imageLibraryExistenceRefreshPaths = Set<String>.unmodifiable(nextPaths);
-    final refreshToken = ++_imageLibraryExistenceRefreshToken;
+    final refreshToken = _imageLibraryExistenceState.refreshToken + 1;
+    _imageLibraryExistenceState = _imageLibraryExistenceState.copyWith(
+      refreshPaths: nextPaths,
+      refreshToken: refreshToken,
+    );
     final pathsToCheck = cachedExistingPaths == null
         ? nextPaths
         : {
@@ -297,11 +338,12 @@ mixin _ImageLibraryStateMixin
 
     unawaited(
       _collectExistingImageLibraryPaths(pathsToCheck).then((existingPaths) {
-        if (!mounted || refreshToken != _imageLibraryExistenceRefreshToken) {
+        if (!mounted ||
+            refreshToken != _imageLibraryExistenceState.refreshToken) {
           return;
         }
         final currentPaths = _imageLibraryPathSet(_imageLibraryNotifier.items);
-        final currentCachedPaths = _existingImageLibraryPaths;
+        final currentCachedPaths = _imageLibraryExistenceState.existingPaths;
         final nextExistingPaths = {
           if (cachedExistingPaths != null && currentCachedPaths != null)
             for (final path in currentCachedPaths)
@@ -309,14 +351,14 @@ mixin _ImageLibraryStateMixin
           for (final path in existingPaths)
             if (currentPaths.contains(path)) path,
         };
-        final cachedPaths = _existingImageLibraryPaths;
+        final cachedPaths = _imageLibraryExistenceState.existingPaths;
         if (cachedPaths != null &&
             _stringSetEquals(cachedPaths, nextExistingPaths)) {
           return;
         }
         setState(() {
-          _existingImageLibraryPaths = Set<String>.unmodifiable(
-            nextExistingPaths,
+          _imageLibraryExistenceState = _imageLibraryExistenceState.copyWith(
+            existingPaths: nextExistingPaths,
           );
         });
       }),
@@ -339,7 +381,7 @@ mixin _ImageLibraryStateMixin
     if (item.path.trim().isEmpty) {
       return false;
     }
-    final existingPaths = _existingImageLibraryPaths;
+    final existingPaths = _imageLibraryExistenceState.existingPaths;
     return existingPaths == null || existingPaths.contains(item.path);
   }
 
