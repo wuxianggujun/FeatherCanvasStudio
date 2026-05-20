@@ -115,6 +115,53 @@ int _apiConfigHash(ApiConfig config) {
   );
 }
 
+class _ImageLibraryViewState {
+  const _ImageLibraryViewState({
+    this.kindFilter = ImageLibraryKindFilter.all,
+    this.sortOrder = ImageLibrarySortOrder.newest,
+    this.searchQuery = '',
+    this.projectFilter = '',
+    this.tagFilter = '',
+    this.selectedItemIds = const <String>{},
+    this.showStandaloneSpriteFrames = false,
+  });
+
+  final ImageLibraryKindFilter kindFilter;
+  final ImageLibrarySortOrder sortOrder;
+  final String searchQuery;
+  final String projectFilter;
+  final String tagFilter;
+  final Set<String> selectedItemIds;
+  final bool showStandaloneSpriteFrames;
+
+  _ImageLibraryViewState copyWith({
+    ImageLibraryKindFilter? kindFilter,
+    ImageLibrarySortOrder? sortOrder,
+    String? searchQuery,
+    String? projectFilter,
+    String? tagFilter,
+    Set<String>? selectedItemIds,
+    bool? showStandaloneSpriteFrames,
+  }) {
+    return _ImageLibraryViewState(
+      kindFilter: kindFilter ?? this.kindFilter,
+      sortOrder: sortOrder ?? this.sortOrder,
+      searchQuery: searchQuery ?? this.searchQuery,
+      projectFilter: projectFilter ?? this.projectFilter,
+      tagFilter: tagFilter ?? this.tagFilter,
+      selectedItemIds: selectedItemIds == null
+          ? this.selectedItemIds
+          : Set<String>.unmodifiable(selectedItemIds),
+      showStandaloneSpriteFrames:
+          showStandaloneSpriteFrames ?? this.showStandaloneSpriteFrames,
+    );
+  }
+
+  _ImageLibraryViewState clearSelection() {
+    return copyWith(selectedItemIds: const <String>{});
+  }
+}
+
 mixin _ImageLibraryStateMixin
     on
         State<FeatherCanvasHomePage>,
@@ -189,13 +236,20 @@ mixin _ImageLibraryStateMixin
     );
   }
 
-  ImageLibraryKindFilter _imageLibraryKindFilter = ImageLibraryKindFilter.all;
-  ImageLibrarySortOrder _imageLibrarySortOrder = ImageLibrarySortOrder.newest;
-  String _imageLibrarySearchQuery = '';
-  String _imageLibraryProjectFilter = '';
-  String _imageLibraryTagFilter = '';
-  Set<String> _selectedImageLibraryItemIds = <String>{};
-  bool _showStandaloneSpriteFrames = false;
+  _ImageLibraryViewState _imageLibraryViewState =
+      const _ImageLibraryViewState();
+
+  ImageLibraryKindFilter get _imageLibraryKindFilter =>
+      _imageLibraryViewState.kindFilter;
+  ImageLibrarySortOrder get _imageLibrarySortOrder =>
+      _imageLibraryViewState.sortOrder;
+  String get _imageLibrarySearchQuery => _imageLibraryViewState.searchQuery;
+  String get _imageLibraryProjectFilter => _imageLibraryViewState.projectFilter;
+  String get _imageLibraryTagFilter => _imageLibraryViewState.tagFilter;
+  Set<String> get _selectedImageLibraryItemIds =>
+      _imageLibraryViewState.selectedItemIds;
+  bool get _showStandaloneSpriteFrames =>
+      _imageLibraryViewState.showStandaloneSpriteFrames;
 
   void _disposeImageLibraryState() {
     _imageLibraryExistenceRefreshToken += 1;
@@ -994,33 +1048,41 @@ mixin _ImageLibraryStateMixin
 
   void _setImageLibraryKindFilter(ImageLibraryKindFilter filter) {
     setState(() {
-      _imageLibraryKindFilter = filter;
-      _selectedImageLibraryItemIds = <String>{};
+      _imageLibraryViewState = _imageLibraryViewState
+          .copyWith(kindFilter: filter)
+          .clearSelection();
     });
   }
 
   void _setImageLibrarySortOrder(ImageLibrarySortOrder sortOrder) {
-    setState(() => _imageLibrarySortOrder = sortOrder);
+    setState(() {
+      _imageLibraryViewState = _imageLibraryViewState.copyWith(
+        sortOrder: sortOrder,
+      );
+    });
   }
 
   void _setImageLibrarySearchQuery(String value) {
     setState(() {
-      _imageLibrarySearchQuery = value;
-      _selectedImageLibraryItemIds = <String>{};
+      _imageLibraryViewState = _imageLibraryViewState
+          .copyWith(searchQuery: value)
+          .clearSelection();
     });
   }
 
   void _setImageLibraryProjectFilter(String value) {
     setState(() {
-      _imageLibraryProjectFilter = value;
-      _selectedImageLibraryItemIds = <String>{};
+      _imageLibraryViewState = _imageLibraryViewState
+          .copyWith(projectFilter: value)
+          .clearSelection();
     });
   }
 
   void _setImageLibraryTagFilter(String value) {
     setState(() {
-      _imageLibraryTagFilter = value;
-      _selectedImageLibraryItemIds = <String>{};
+      _imageLibraryViewState = _imageLibraryViewState
+          .copyWith(tagFilter: value)
+          .clearSelection();
     });
   }
 
@@ -1037,7 +1099,9 @@ mixin _ImageLibraryStateMixin
       } else {
         nextSelection.remove(item.id);
       }
-      _selectedImageLibraryItemIds = nextSelection;
+      _imageLibraryViewState = _imageLibraryViewState.copyWith(
+        selectedItemIds: nextSelection,
+      );
     });
   }
 
@@ -1047,15 +1111,19 @@ mixin _ImageLibraryStateMixin
     }
 
     setState(() {
-      _selectedImageLibraryItemIds = {
-        ..._selectedImageLibraryItemIds,
-        for (final item in items) item.id,
-      };
+      _imageLibraryViewState = _imageLibraryViewState.copyWith(
+        selectedItemIds: {
+          ..._selectedImageLibraryItemIds,
+          for (final item in items) item.id,
+        },
+      );
     });
   }
 
   void _clearImageLibrarySelection() {
-    setState(() => _selectedImageLibraryItemIds = <String>{});
+    setState(() {
+      _imageLibraryViewState = _imageLibraryViewState.clearSelection();
+    });
   }
 
   Future<void> _confirmDeleteImageLibraryItem(String id) async {
@@ -1140,7 +1208,9 @@ mixin _ImageLibraryStateMixin
         );
     setState(() {
       _imageLibrary = impact.remainingItems;
-      _selectedImageLibraryItemIds = cleanup.selectedItemIds;
+      _imageLibraryViewState = _imageLibraryViewState.copyWith(
+        selectedItemIds: cleanup.selectedItemIds,
+      );
       _editorImagePath = cleanup.editorImagePath;
       _editorPatchImagePath = cleanup.editorPatchImagePath;
       _imageTemplateImagePath = cleanup.imageTemplateImagePath;
@@ -1190,7 +1260,9 @@ mixin _ImageLibraryStateMixin
             trashPaths = redoImpact.trashPaths;
             setState(() {
               _imageLibrary = redoImpact.remainingItems;
-              _selectedImageLibraryItemIds = redoCleanup.selectedItemIds;
+              _imageLibraryViewState = _imageLibraryViewState.copyWith(
+                selectedItemIds: redoCleanup.selectedItemIds,
+              );
               _editorImagePath = redoCleanup.editorImagePath;
               _editorPatchImagePath = redoCleanup.editorPatchImagePath;
               _imageTemplateImagePath = redoCleanup.imageTemplateImagePath;
@@ -1215,7 +1287,9 @@ mixin _ImageLibraryStateMixin
             if (!mounted) return;
             setState(() {
               _imageLibrary = restoredLibrary;
-              _selectedImageLibraryItemIds = beforeSelectedIds;
+              _imageLibraryViewState = _imageLibraryViewState.copyWith(
+                selectedItemIds: beforeSelectedIds,
+              );
               _editorImagePath = beforeEditorImagePath;
               _editorPatchImagePath = beforeEditorPatchImagePath;
               _imageTemplateImagePath = beforeImageTemplateImagePath;
@@ -1523,8 +1597,11 @@ mixin _ImageLibraryStateMixin
       onDelete: _confirmDeleteImageLibraryItem,
       onOpenSliceExplorer: _openSliceExplorer,
       showStandaloneFrames: _showStandaloneSpriteFrames,
-      onToggleStandaloneFrames: (value) =>
-          setState(() => _showStandaloneSpriteFrames = value),
+      onToggleStandaloneFrames: (value) => setState(() {
+        _imageLibraryViewState = _imageLibraryViewState.copyWith(
+          showStandaloneSpriteFrames: value,
+        );
+      }),
     );
   }
 }

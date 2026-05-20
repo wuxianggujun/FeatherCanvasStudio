@@ -342,3 +342,33 @@ Phase 22 GIF 合成后台化已完成：GIF 合成中的读图、解码、缩放
 1. 跑 `flutter analyze` 和 Windows debug 编译。
 2. 清理旧进程，只启动一个 `feather_canvas_studio` 实例给用户手测。
 3. 若手测稳定，进入 Phase 21 第二批：从 `image_library_state.dart` 做状态边界收敛。
+## 2026-05-20 Phase 21 第二批状态边界收敛
+
+本轮开始从 `image_library_state.dart` 做低风险状态边界收敛，不改变 UI 行为。
+
+完成项：
+
+- 新增私有 `_ImageLibraryViewState` 值对象，集中承载作品库视图状态：
+  - 类型筛选。
+  - 排序方式。
+  - 搜索关键字。
+  - 工程筛选。
+  - 标签筛选。
+  - 当前选中作品 ID 集合。
+  - 是否显示独立 Sprite Sheet 切片帧。
+- 原 mixin 对外仍保留 `_imageLibraryKindFilter`、`_imageLibrarySortOrder`、`_selectedImageLibraryItemIds` 等 getter，降低一次性改动范围。
+- 筛选 / 搜索 / 工程 / 标签变化时清空选择的规则集中到 `_ImageLibraryViewState.clearSelection()`，减少散落赋值。
+- 删除、撤销删除、重做删除和显示独立帧开关都改为更新 `_imageLibraryViewState`，不再直接写散字段。
+
+验证：
+
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_pagination_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_menu_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_deletion_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_view_data_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+下一步建议：
+
+1. 继续 Phase 21 第二批，把作品库存在性缓存 `_existingImageLibraryPaths`、刷新 token 和刷新路径集合收敛到独立私有状态对象。
+2. 保持小步提交，每次只迁移一个状态簇，并用作品库分页 / 删除 / 菜单 / view data 测试守住行为。
