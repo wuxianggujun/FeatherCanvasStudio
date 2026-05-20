@@ -5,6 +5,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image_lib;
 
 void main() {
+  test('can inspect dimensions without scanning alpha channel', () async {
+    final source = image_lib.Image(width: 3, height: 2, numChannels: 4)
+      ..clear(image_lib.ColorRgba8(255, 0, 0, 255));
+    source.setPixelRgba(1, 1, 255, 0, 0, 64);
+    final bytes = Uint8List.fromList(image_lib.encodePng(source));
+
+    final full = await GeneralImageEditingService.inspectInBackground(bytes);
+    final lightweight = await GeneralImageEditingService.inspectInBackground(
+      bytes,
+      detectAlpha: false,
+    );
+
+    expect(full.width, 3);
+    expect(full.height, 2);
+    expect(full.hasAlpha, isTrue);
+    expect(lightweight.width, 3);
+    expect(lightweight.height, 2);
+    expect(lightweight.hasAlpha, isFalse);
+  });
+
   test('crops, rotates and flips an image', () {
     final source = image_lib.Image(width: 3, height: 2, numChannels: 4);
     _setPixel(source, 0, 0, 255, 0, 0);

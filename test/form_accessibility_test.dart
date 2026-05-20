@@ -160,6 +160,91 @@ void main() {
     expect(find.bySemanticsLabel('输出压缩率 80%'), findsWidgets);
   });
 
+  testWidgets(
+    'generation control panel switches to reference image mode and clears it',
+    (tester) async {
+      final promptController = TextEditingController(text: 'A small robot');
+      final negativePromptController = TextEditingController();
+      final userController = TextEditingController();
+      addTearDown(promptController.dispose);
+      addTearDown(negativePromptController.dispose);
+      addTearDown(userController.dispose);
+      tester.view
+        ..physicalSize = const Size(900, 1400)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      String? templateImagePath = 'C:/tmp/reference.png';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                return SingleChildScrollView(
+                  child: SizedBox(
+                    width: 760,
+                    child: ControlPanel(
+                      apiConfigs: const [
+                        ApiConfig(
+                          id: 'default',
+                          name: '榛樿閰嶇疆',
+                          baseUrl: 'https://api.openai.com/v1',
+                          apiKey: '',
+                          model: 'gpt-image-2',
+                          providerKind: ApiProviderKind.official,
+                        ),
+                      ],
+                      selectedApiConfigId: 'default',
+                      providerKind: ApiProviderKind.official,
+                      model: 'gpt-image-2',
+                      imageSizeCapabilityOverride:
+                          ImageSizeCapabilityOverride.auto,
+                      promptController: promptController,
+                      negativePromptController: negativePromptController,
+                      size: '1024x1024',
+                      imageCount: 2,
+                      templateImagePath: templateImagePath,
+                      advancedSettings: const ImageAdvancedSettings(),
+                      userController: userController,
+                      isGenerating: false,
+                      onApiConfigChanged: (_) {},
+                      onOpenApiSettings: () {},
+                      onSizeChanged: (_) {},
+                      onImageCountChanged: (_) {},
+                      onAdvancedSettingsChanged: (_) {},
+                      onPickTemplateImage: () {},
+                      onClearTemplateImage: () {
+                        setState(() => templateImagePath = null);
+                      },
+                      onGenerate: () {},
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('reference.png'), findsOneWidget);
+      expect(find.text('图生图'), findsOneWidget);
+      expect(find.byTooltip('清除模板图片'), findsOneWidget);
+
+      await tester.tap(find.text('高级输出参数'));
+      await tester.pumpAndSettle();
+      expect(find.text('参考图保真度'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('清除模板图片'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('参考图（图生图）'), findsOneWidget);
+      expect(find.text('参考图保真度'), findsNothing);
+      expect(find.text('生成图片'), findsOneWidget);
+    },
+  );
+
   testWidgets('sprite sheet panel exposes grid stepper semantics', (
     tester,
   ) async {

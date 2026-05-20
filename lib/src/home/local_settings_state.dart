@@ -1020,10 +1020,11 @@ mixin _LocalSettingsStateMixin
 
     setState(() => _isExportingLibrary = true);
     try {
-      final result = await const ImageLibraryArchiveService().exportArchive(
-        items: _imageLibrary,
-        outputPath: location.path,
-      );
+      final result = await const ImageLibraryArchiveService()
+          .exportArchiveInBackground(
+            items: _imageLibrary,
+            outputPath: location.path,
+          );
       if (!mounted) {
         return;
       }

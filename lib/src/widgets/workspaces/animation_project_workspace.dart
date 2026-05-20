@@ -1352,7 +1352,7 @@ class _AssetDiagnosticsSectionState extends State<_AssetDiagnosticsSection> {
   }
 
   Future<AnimationProjectAssetDiagnostics> _inspect(AnimationProject project) {
-    return const AnimationProjectAssetInspector().inspect(project);
+    return const AnimationProjectAssetInspector().inspectInBackground(project);
   }
 
   void _refresh() {

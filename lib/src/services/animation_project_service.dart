@@ -149,6 +149,16 @@ class AnimationProjectAssetDiagnostics {
 class AnimationProjectAssetInspector {
   const AnimationProjectAssetInspector();
 
+  Future<AnimationProjectAssetDiagnostics> inspectInBackground(
+    AnimationProject project,
+  ) {
+    return compute(
+      _inspectProjectAssetsInIsolate,
+      project.toJson(),
+      debugLabel: 'animation-project-inspect',
+    );
+  }
+
   Future<AnimationProjectAssetDiagnostics> inspect(
     AnimationProject project,
   ) async {
@@ -227,6 +237,14 @@ class AnimationProjectAssetInspector {
       invalidFrameReferenceCount: invalidFrameReferenceCount,
     );
   }
+}
+
+Future<AnimationProjectAssetDiagnostics> _inspectProjectAssetsInIsolate(
+  Map<String, dynamic> projectJson,
+) {
+  return const AnimationProjectAssetInspector().inspect(
+    AnimationProject.fromJson(Map<String, dynamic>.from(projectJson)),
+  );
 }
 
 class AnimationProjectEditor {
@@ -1184,13 +1202,27 @@ class _ImportedFrameNormalizeResult {
 class _FrameBytesNormalizeRequest {
   const _FrameBytesNormalizeRequest({
     required this.bytes,
-    required this.targetWidth,
-    required this.targetHeight,
+    this.targetWidth,
+    this.targetHeight,
   });
 
   final Uint8List bytes;
-  final int targetWidth;
-  final int targetHeight;
+  final int? targetWidth;
+  final int? targetHeight;
+}
+
+class _PixelateFrameRequest {
+  const _PixelateFrameRequest({
+    required this.path,
+    required this.blockSize,
+    this.targetWidth,
+    this.targetHeight,
+  });
+
+  final String path;
+  final int blockSize;
+  final int? targetWidth;
+  final int? targetHeight;
 }
 
 Future<AnimationProjectImportResult?> _tryImportImagesAsTrackInBackground({
@@ -1365,6 +1397,16 @@ Future<_ImportedFrameNormalizeResult> _normalizeFrameBytesInBackground(
   return compute(_normalizeFrameBytesInIsolate, request);
 }
 
+Future<_ImportedFrameNormalizeResult> _pixelateFrameInBackground(
+  _PixelateFrameRequest request,
+) {
+  return compute(
+    _pixelateFrameInIsolate,
+    request,
+    debugLabel: 'animation-frame-pixelate',
+  );
+}
+
 Future<_ImportedFrameNormalizeResult> _normalizeImportedFrameInIsolate(
   _ImportedFrameNormalizeRequest request,
 ) async {
@@ -1395,21 +1437,45 @@ _ImportedFrameNormalizeResult _normalizeFrameBytesInIsolate(
   if (decoded == null) {
     throw const ImageGenerationException('动画帧图片无法解码。');
   }
+  final targetWidth = request.targetWidth ?? decoded.width;
+  final targetHeight = request.targetHeight ?? decoded.height;
   final normalized =
-      decoded.width == request.targetWidth &&
-          decoded.height == request.targetHeight
+      decoded.width == targetWidth && decoded.height == targetHeight
       ? decoded.convert(numChannels: 4)
       : image_lib
-            .copyResize(
-              decoded,
-              width: request.targetWidth,
-              height: request.targetHeight,
-            )
+            .copyResize(decoded, width: targetWidth, height: targetHeight)
             .convert(numChannels: 4);
   return _ImportedFrameNormalizeResult(
     bytes: Uint8List.fromList(image_lib.encodePng(normalized)),
-    width: request.targetWidth,
-    height: request.targetHeight,
+    width: targetWidth,
+    height: targetHeight,
+  );
+}
+
+Future<_ImportedFrameNormalizeResult> _pixelateFrameInIsolate(
+  _PixelateFrameRequest request,
+) async {
+  final bytes = await File(request.path).readAsBytes();
+  final decoded = image_lib.decodeImage(bytes);
+  if (decoded == null) {
+    throw ImageGenerationException('鍔ㄧ敾甯ф棤娉曡В鐮侊細${request.path}');
+  }
+  final targetWidth = request.targetWidth ?? decoded.width;
+  final targetHeight = request.targetHeight ?? decoded.height;
+  final normalized =
+      decoded.width == targetWidth && decoded.height == targetHeight
+      ? decoded.convert(numChannels: 4)
+      : image_lib
+            .copyResize(decoded, width: targetWidth, height: targetHeight)
+            .convert(numChannels: 4);
+  final pixelated = PixelationService.pixelateDecodedImage(
+    normalized,
+    blockSize: request.blockSize,
+  );
+  return _ImportedFrameNormalizeResult(
+    bytes: Uint8List.fromList(image_lib.encodePng(pixelated)),
+    width: targetWidth,
+    height: targetHeight,
   );
 }
 
@@ -1536,22 +1602,20 @@ class AnimationProjectFrameEditor {
     if (!await file.exists()) {
       throw ImageGenerationException('动画帧文件不存在：${asset.path}');
     }
-    final bytes = await file.readAsBytes();
-    final decoded = image_lib.decodeImage(bytes);
-    if (decoded == null) {
-      throw ImageGenerationException('动画帧无法解码：${asset.path}');
-    }
-    final normalized = _normalizeFrameImage(project, decoded);
-    final pixelated = PixelationService.pixelateDecodedImage(
-      normalized,
-      blockSize: blockSize,
+    final pixelated = await _pixelateFrameInBackground(
+      _PixelateFrameRequest(
+        path: asset.path,
+        blockSize: blockSize,
+        targetWidth: project.canvasWidth > 0 ? project.canvasWidth : null,
+        targetHeight: project.canvasHeight > 0 ? project.canvasHeight : null,
+      ),
     );
     return replaceFrameWithBytes(
       store: store,
       project: project,
       trackId: trackId,
       frameIndex: frameIndex,
-      imageBytes: Uint8List.fromList(image_lib.encodePng(pixelated)),
+      imageBytes: pixelated.bytes,
       source: FrameAssetSource.editedFrame,
     );
   }
@@ -1573,15 +1637,11 @@ class AnimationProjectFrameEditor {
       return null;
     }
 
-    final decoded = image_lib.decodeImage(imageBytes);
-    if (decoded == null) {
-      throw const ImageGenerationException('动画帧图片无法解码。');
-    }
     final normalized = await _normalizeFrameBytesInBackground(
       _FrameBytesNormalizeRequest(
         bytes: imageBytes,
-        targetWidth: _targetWidth(project, fallback: decoded.width),
-        targetHeight: _targetHeight(project, fallback: decoded.height),
+        targetWidth: project.canvasWidth > 0 ? project.canvasWidth : null,
+        targetHeight: project.canvasHeight > 0 ? project.canvasHeight : null,
       ),
     );
     final timestamp = DateTime.now().microsecondsSinceEpoch;
@@ -1624,15 +1684,11 @@ class AnimationProjectFrameEditor {
       return null;
     }
 
-    final decoded = image_lib.decodeImage(imageBytes);
-    if (decoded == null) {
-      throw const ImageGenerationException('动画帧图片无法解码。');
-    }
     final normalized = await _normalizeFrameBytesInBackground(
       _FrameBytesNormalizeRequest(
         bytes: imageBytes,
-        targetWidth: _targetWidth(project, fallback: decoded.width),
-        targetHeight: _targetHeight(project, fallback: decoded.height),
+        targetWidth: project.canvasWidth > 0 ? project.canvasWidth : null,
+        targetHeight: project.canvasHeight > 0 ? project.canvasHeight : null,
       ),
     );
     final timestamp = DateTime.now().microsecondsSinceEpoch;
@@ -1656,20 +1712,6 @@ class AnimationProjectFrameEditor {
       asset: asset,
       delayMs: delayMs,
     );
-  }
-
-  image_lib.Image _normalizeFrameImage(
-    AnimationProject project,
-    image_lib.Image decoded,
-  ) {
-    final width = _targetWidth(project, fallback: decoded.width);
-    final height = _targetHeight(project, fallback: decoded.height);
-    if (decoded.width == width && decoded.height == height) {
-      return decoded.convert(numChannels: 4);
-    }
-    return image_lib
-        .copyResize(decoded, width: width, height: height)
-        .convert(numChannels: 4);
   }
 
   int _targetWidth(AnimationProject project, {int fallback = 1}) {

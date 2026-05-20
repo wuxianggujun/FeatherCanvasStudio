@@ -285,7 +285,10 @@ String _format(String pattern, Map<String, String> values) {
 class GeneralImageEditingService {
   const GeneralImageEditingService._();
 
-  static ImageInspectionResult inspect(Uint8List imageBytes) {
+  static ImageInspectionResult inspect(
+    Uint8List imageBytes, {
+    bool detectAlpha = true,
+  }) {
     final decoded = image_lib.decodeImage(imageBytes);
     if (decoded == null) {
       throw const ImageGenerationException('图片无法解码，不能读取尺寸。');
@@ -295,12 +298,14 @@ class GeneralImageEditingService {
     }
 
     var hasAlpha = false;
-    final image = decoded.convert(numChannels: 4);
-    for (var y = 0; y < image.height && !hasAlpha; y++) {
-      for (var x = 0; x < image.width; x++) {
-        if (image.getPixel(x, y).a.toInt() < 255) {
-          hasAlpha = true;
-          break;
+    if (detectAlpha) {
+      final image = decoded.convert(numChannels: 4);
+      for (var y = 0; y < image.height && !hasAlpha; y++) {
+        for (var x = 0; x < image.width; x++) {
+          if (image.getPixel(x, y).a.toInt() < 255) {
+            hasAlpha = true;
+            break;
+          }
         }
       }
     }
@@ -400,11 +405,12 @@ class GeneralImageEditingService {
   }
 
   static Future<ImageInspectionResult> inspectInBackground(
-    Uint8List imageBytes,
-  ) {
+    Uint8List imageBytes, {
+    bool detectAlpha = true,
+  }) {
     return compute(
       _inspectInIsolate,
-      imageBytes,
+      _GeneralImageInspectTask(imageBytes, detectAlpha: detectAlpha),
       debugLabel: 'general-image-inspect',
     );
   }
@@ -1061,8 +1067,11 @@ GeneralImageEditResult _editInIsolate(_GeneralImageEditTask task) {
   );
 }
 
-ImageInspectionResult _inspectInIsolate(Uint8List imageBytes) {
-  return GeneralImageEditingService.inspect(imageBytes);
+ImageInspectionResult _inspectInIsolate(_GeneralImageInspectTask task) {
+  return GeneralImageEditingService.inspect(
+    task.imageBytes,
+    detectAlpha: task.detectAlpha,
+  );
 }
 
 class _GeneralImageEditTask {
@@ -1071,6 +1080,13 @@ class _GeneralImageEditTask {
   final Uint8List imageBytes;
   final GeneralImageEditOptions options;
   final GeneralImageEditSummaryLabels labels;
+}
+
+class _GeneralImageInspectTask {
+  const _GeneralImageInspectTask(this.imageBytes, {required this.detectAlpha});
+
+  final Uint8List imageBytes;
+  final bool detectAlpha;
 }
 
 class _ResolvedResize {

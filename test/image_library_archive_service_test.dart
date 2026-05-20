@@ -72,7 +72,10 @@ void main() {
           '${tempDir.path}${Platform.pathSeparator}library-export.zip';
 
       final exportResult = await const ImageLibraryArchiveService()
-          .exportArchive(items: sourceItems, outputPath: archivePath);
+          .exportArchiveInBackground(
+            items: sourceItems,
+            outputPath: archivePath,
+          );
       final importStore = AppLocalStore(
         baseDirectoryOverride: Directory(
           '${tempDir.path}${Platform.pathSeparator}import-target',

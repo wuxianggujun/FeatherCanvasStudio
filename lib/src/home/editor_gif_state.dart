@@ -1392,7 +1392,10 @@ mixin _EditorGifStateMixin
 
     try {
       final bytes = await _fileService.readFileBytes(imagePath);
-      final info = await GeneralImageEditingService.inspectInBackground(bytes);
+      final info = await GeneralImageEditingService.inspectInBackground(
+        bytes,
+        detectAlpha: false,
+      );
       if (!mounted) {
         return;
       }

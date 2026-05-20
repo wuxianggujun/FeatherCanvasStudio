@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/animation_project.dart';
 import '../models/image_asset_kind.dart';
@@ -50,6 +50,24 @@ class ImageLibraryArchiveService {
   static const String manifestPath = 'feather_canvas_library.json';
 
   Future<ImageLibraryArchiveExportResult> exportArchive({
+    required List<ImageLibraryItem> items,
+    required String outputPath,
+  }) {
+    return _exportArchive(items: items, outputPath: outputPath);
+  }
+
+  Future<ImageLibraryArchiveExportResult> exportArchiveInBackground({
+    required List<ImageLibraryItem> items,
+    required String outputPath,
+  }) {
+    return compute(
+      _exportArchiveInIsolate,
+      _ImageLibraryArchiveExportTask(items: items, outputPath: outputPath),
+      debugLabel: 'image-library-archive-export',
+    );
+  }
+
+  Future<ImageLibraryArchiveExportResult> _exportArchive({
     required List<ImageLibraryItem> items,
     required String outputPath,
   }) async {
@@ -120,6 +138,31 @@ class ImageLibraryArchiveService {
     required AppLocalStore store,
     required String archivePath,
   }) async {
+    final outputDirectory = await store.ensureGeneratedImagesDirectory();
+    return importArchiveInBackground(
+      outputDirectoryPath: outputDirectory.path,
+      archivePath: archivePath,
+    );
+  }
+
+  Future<ImageLibraryArchiveImportResult> importArchiveInBackground({
+    required String outputDirectoryPath,
+    required String archivePath,
+  }) {
+    return compute(
+      _importArchiveInIsolate,
+      _ImageLibraryArchiveImportTask(
+        archivePath: archivePath,
+        outputDirectoryPath: outputDirectoryPath,
+      ),
+      debugLabel: 'image-library-archive-import',
+    );
+  }
+
+  Future<ImageLibraryArchiveImportResult> _importArchiveToDirectory({
+    required Directory outputDirectory,
+    required String archivePath,
+  }) async {
     final archiveFile = File(archivePath);
     if (!await archiveFile.exists()) {
       throw const ImageLibraryArchiveException('导入文件不存在。');
@@ -144,7 +187,9 @@ class ImageLibraryArchiveService {
       throw const ImageLibraryArchiveException('作品库元数据格式不正确。');
     }
 
-    final outputDirectory = await store.ensureGeneratedImagesDirectory();
+    if (!await outputDirectory.exists()) {
+      await outputDirectory.create(recursive: true);
+    }
     final importId = DateTime.now().microsecondsSinceEpoch.toString();
     final groupIdMap = <String, String>{};
     final importedItems = <ImageLibraryItem>[];
@@ -467,4 +512,42 @@ class _ProjectAssetArchiveEntries {
 
   final List<Map<String, dynamic>> entries;
   final int skippedMissingCount;
+}
+
+Future<ImageLibraryArchiveExportResult> _exportArchiveInIsolate(
+  _ImageLibraryArchiveExportTask task,
+) {
+  return const ImageLibraryArchiveService()._exportArchive(
+    items: task.items,
+    outputPath: task.outputPath,
+  );
+}
+
+Future<ImageLibraryArchiveImportResult> _importArchiveInIsolate(
+  _ImageLibraryArchiveImportTask task,
+) {
+  return const ImageLibraryArchiveService()._importArchiveToDirectory(
+    outputDirectory: Directory(task.outputDirectoryPath),
+    archivePath: task.archivePath,
+  );
+}
+
+class _ImageLibraryArchiveExportTask {
+  const _ImageLibraryArchiveExportTask({
+    required this.items,
+    required this.outputPath,
+  });
+
+  final List<ImageLibraryItem> items;
+  final String outputPath;
+}
+
+class _ImageLibraryArchiveImportTask {
+  const _ImageLibraryArchiveImportTask({
+    required this.archivePath,
+    required this.outputDirectoryPath,
+  });
+
+  final String archivePath;
+  final String outputDirectoryPath;
 }

@@ -1253,6 +1253,7 @@ mixin _ImageLibraryStateMixin
         final bytes = await _fileService.readFileBytes(item.path);
         final info = await GeneralImageEditingService.inspectInBackground(
           bytes,
+          detectAlpha: false,
         );
         if (!mounted) {
           return;

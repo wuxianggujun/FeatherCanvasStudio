@@ -2901,3 +2901,107 @@ Phase 21 第二批：从 image_library_state.dart 开始做小批次状态边界
 后续建议：
 
 - 继续用定向测试覆盖图片编辑器滤镜预览、作品库批量导入缩略图生成、动画工程导出校验等可能残留的同步大图路径。
+
+### Phase 22：图生图 UI 回归补齐（2026-05-20）
+
+本轮补齐普通图片生成面板的图生图入口回归，防止后续改生成表单时再次隐藏或误改参考图状态。
+
+完成项：
+
+1. `form_accessibility_test.dart`
+   - 新增 `generation control panel switches to reference image mode and clears it`。
+   - 覆盖选择参考图后主按钮切换为“图生图”。
+   - 覆盖展开高级输出参数后显示“参考图保真度”。
+   - 覆盖点击清除参考图后恢复“生成图片”，并移除参考图保真度字段。
+
+已验证：
+
+- `D:\Programs\flutter\bin\flutter.bat test test\form_accessibility_test.dart --timeout 60s --reporter expanded` 通过。
+
+后续建议：
+
+- 继续按实际调用链排查性能残留：动画工程导出前诊断、作品库归档导入 / 导出、通用图片编辑器滤镜预览。
+
+### Phase 22：作品库归档后台化（2026-05-20）
+
+本轮继续性能收口，处理作品库归档导入 / 导出的大文件 ZIP 处理风险。此前归档服务会在调用线程构建 `Archive`、读取资源文件、压缩 ZIP、解压 ZIP 并写入导入文件，大作品库或包含动画工程资源时容易让设置页短时间无响应。
+
+完成项：
+
+1. `image_library_archive_service.dart`
+   - 新增 `exportArchiveInBackground`，通过 `compute` 后台构建并写入 ZIP。
+   - 新增 `importArchiveInBackground`，通过 `compute` 后台解压、校验 manifest、写入导入资源。
+   - `importArchive` 保持原有调用形态，但会先解析生成目录，再把重 IO / 解压工作交给后台入口。
+2. `local_settings_state.dart`
+   - 本地设置页“导出作品库归档”改为调用后台导出入口。
+3. `image_library_archive_service_test.dart`
+   - 归档导出 / 导入测试覆盖后台导出入口和默认后台导入链路。
+
+已验证：
+
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_archive_service_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\form_accessibility_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+### Phase 22：动画工程诊断后台化（2026-05-20）
+
+本轮继续处理动画工程工作台的残留主线程路径。资产诊断面板会随工程状态刷新，原先直接调用 `AnimationProjectAssetInspector.inspect`，在工程资源多、文件路径多时会在 UI 线程内遍历时间轴引用并检查文件存在性。
+
+完成项：
+
+1. `animation_project_service.dart`
+   - 新增 `AnimationProjectAssetInspector.inspectInBackground`。
+   - 后台入口通过 `compute` 重建 `AnimationProject` 并执行资产缺失、无用资产、失效引用统计。
+   - 保留同步 `inspect` 给服务层测试和明确同步场景。
+2. `animation_project_workspace.dart`
+   - 资产诊断面板 `_inspect` 改为调用后台入口。
+
+已验证：
+
+- `D:\Programs\flutter\bin\flutter.bat test test\animation_project_service_test.dart test\animation_project_workspace_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+### Phase 22：动画帧编辑后台化补充（2026-05-20）
+
+本轮继续收口动画工程的单帧编辑性能路径。此前图片序列导入、工程诊断和导出渲染已经后台化，但单帧替换、插入和像素化当前帧仍可能在调用线程提前解码大图，遇到高分辨率帧时仍有短时卡顿风险。
+
+完成项：
+
+1. `animation_project_service.dart`
+   - `replaceFrameWithBytes` 和 `insertFrameWithBytes` 不再先在调用线程解码图片，只把目标画布尺寸和原始字节交给后台 isolate 归一化。
+   - `_FrameBytesNormalizeRequest` 支持可选目标尺寸；当工程画布尺寸为空时，由后台 isolate 使用图片原始尺寸作为 fallback。
+   - 新增 `_pixelateFrameInBackground`，把当前帧读取、解码、缩放、像素化和 PNG 编码移到后台 isolate。
+   - 删除不再使用的同步 `_normalizeFrameImage`，避免后续误回退到 UI 线程处理。
+2. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\animation_project_service_test.dart test\animation_project_workspace_test.dart --timeout 60s --reporter expanded` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_library_archive_service_test.dart --timeout 60s --reporter expanded` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\form_accessibility_test.dart --timeout 60s --reporter expanded` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+下一步：
+
+- 继续检查动画工程导出前的剩余同步校验路径，以及通用图片编辑滤镜预览是否还有 UI 线程大图计算。
+### Phase 22：图片编辑加载轻量检查（2026-05-20）
+
+本轮继续收口通用图片编辑器的大图加载路径。图片编辑真正应用滤镜、裁剪、标注和导出已经使用后台 `editInBackground`，但打开图片时的尺寸检查仍默认扫描整张图的 alpha 通道；对大图而言，加载阶段只需要宽高，完整透明度检测可以留给编辑输出后再执行。
+
+完成项：
+
+1. `general_image_editing_service.dart`
+   - `inspect` / `inspectInBackground` 新增 `detectAlpha` 参数，默认保持完整检测兼容旧调用。
+   - 当 `detectAlpha: false` 时，只解码图片并返回宽高，不再逐像素扫描透明通道。
+2. `editor_gif_state.dart` / `image_library_state.dart`
+   - 从本地或作品库打开图片进入通用图片编辑器时，改用轻量检查模式。
+   - 应用编辑后的输出仍保留完整 `inspectInBackground`，用于准确记录输出透明度状态。
+3. `general_image_editing_service_test.dart`
+   - 新增轻量检查回归，确认关闭 alpha 扫描时仍返回正确宽高，并且不会报告透明通道。
+
+验证：
+
+- `D:\Programs\flutter\bin\flutter.bat test test\general_image_editing_service_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_menu_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+下一步：
+
+- 继续跑 Windows debug 编译并单实例启动；之后可进入提交前的整体回归或继续查更低优先级的大图路径。
