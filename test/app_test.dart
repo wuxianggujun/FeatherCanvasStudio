@@ -1,4 +1,7 @@
+import 'dart:ui' show Tristate;
+
 import 'package:feather_canvas_studio/main.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,7 +33,7 @@ void main() {
     expect(find.text('动画工程'), findsWidgets);
     expect(find.text('图片编辑器'), findsOneWidget);
     expect(find.text('像素画编辑'), findsOneWidget);
-    expect(find.text('GIF 合成'), findsOneWidget);
+    expect(find.text('GIF 合成'), findsNothing);
     expect(find.text('作品库'), findsOneWidget);
     expect(find.text('接口配置'), findsWidgets);
     expect(find.text('文本生图'), findsWidgets);
@@ -81,7 +84,7 @@ void main() {
     await _pumpBoundedSettle(tester);
 
     expect(find.text('动画工程'), findsWidgets);
-    expect(find.text('工程控制'), findsOneWidget);
+    expect(find.text('创建动画工程'), findsOneWidget);
     expect(find.text('序列帧生成配置'), findsOneWidget);
     expect(find.text('模板图片'), findsOneWidget);
     expect(find.text('提示词内容'), findsOneWidget);
@@ -104,10 +107,10 @@ void main() {
     await tester.tap(find.text('生成 Sprite Sheet'));
     await _pumpBoundedSettle(tester);
 
-    await tester.ensureVisible(find.text('生成失败'));
-    expect(find.text('生成失败'), findsOneWidget);
+    await tester.ensureVisible(find.text('请先在接口配置页填写 API Key。'));
     expect(find.text('请先在接口配置页填写 API Key。'), findsOneWidget);
-    expect(find.text('重试生成'), findsOneWidget);
+    expect(find.text('生成失败'), findsNothing);
+    expect(find.text('重试生成'), findsNothing);
 
     await tester.tap(find.text('图片编辑器'));
     await _pumpBoundedSettle(tester);
@@ -141,15 +144,6 @@ void main() {
     expect(find.text('橡皮'), findsOneWidget);
     expect(find.text('保存到作品库'), findsOneWidget);
 
-    await tester.tap(find.text('GIF 合成'));
-    await _pumpBoundedSettle(tester);
-
-    expect(find.text('GIF 合成'), findsWidgets);
-    expect(find.text('GIF 配置'), findsOneWidget);
-    expect(find.text('选择图片'), findsOneWidget);
-    expect(find.text('播放模式'), findsOneWidget);
-    expect(find.text('生成 GIF'), findsOneWidget);
-
     await tester.tap(find.text('作品库').first);
     await _pumpBoundedSettle(tester);
 
@@ -157,7 +151,34 @@ void main() {
     expect(find.text('暂无作品。生成、导出、编辑或合成后的图片会保存到这里。'), findsOneWidget);
     expect(find.text('删除作品'), findsNothing);
 
-    await tester.tap(find.text('接口配置').first);
+    final undoSemantics = tester.getSemantics(_semanticsWithLabel('撤销').first);
+    expect(undoSemantics.value, '暂无可撤销操作');
+    expect(undoSemantics.flagsCollection.isButton, isTrue);
+    expect(undoSemantics.flagsCollection.isEnabled, Tristate.isFalse);
+
+    final redoSemantics = tester.getSemantics(_semanticsWithLabel('重做').first);
+    expect(redoSemantics.value, '暂无可重做操作');
+    expect(redoSemantics.flagsCollection.isButton, isTrue);
+    expect(redoSemantics.flagsCollection.isEnabled, Tristate.isFalse);
+
+    final historyMenuSemantics = tester.getSemantics(
+      _semanticsWithLabel('历史记录').first,
+    );
+    expect(historyMenuSemantics.value, '暂无历史');
+    expect(historyMenuSemantics.flagsCollection.isButton, isTrue);
+    expect(historyMenuSemantics.flagsCollection.isEnabled, Tristate.isFalse);
+
+    final settingsMenuSemantics = tester.getSemantics(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == '设置菜单',
+      ),
+    );
+    expect(settingsMenuSemantics.flagsCollection.isButton, isTrue);
+    expect(settingsMenuSemantics.flagsCollection.isEnabled, Tristate.isTrue);
+
+    await tester.tap(find.byTooltip('设置菜单'));
+    await _pumpBoundedSettle(tester);
+    await tester.tap(find.text('接口配置').last);
     await _pumpBoundedSettle(tester);
 
     expect(find.text('接口名称'), findsOneWidget);
@@ -171,11 +192,21 @@ void main() {
     expect(find.text('保存配置'), findsOneWidget);
     expect(find.text('测试接口'), findsOneWidget);
 
-    await tester.tap(find.text('设置'));
+    await tester.tap(find.byTooltip('设置菜单'));
+    await _pumpBoundedSettle(tester);
+    await tester.tap(find.text('设置').last);
     await _pumpBoundedSettle(tester);
 
     expect(find.text('本地设置'), findsOneWidget);
     expect(find.text('本地状态'), findsOneWidget);
+    expect(find.text('快捷键'), findsOneWidget);
+    expect(find.text('撤销'), findsWidgets);
+    expect(find.text('重做'), findsWidgets);
+    expect(find.text('重做（备选）'), findsOneWidget);
+    expect(find.text('Ctrl'), findsWidgets);
+    expect(find.text('Shift'), findsOneWidget);
+    expect(find.text('Z'), findsWidgets);
+    expect(find.text('Y'), findsOneWidget);
     expect(find.text('默认生成设置'), findsOneWidget);
     expect(find.text('默认正向提示词'), findsOneWidget);
     expect(find.text('默认负向提示词'), findsOneWidget);
@@ -184,5 +215,21 @@ void main() {
     expect(find.text('打开接口配置'), findsOneWidget);
     expect(find.text('恢复默认表单'), findsOneWidget);
     expect(find.text('恢复默认表单？'), findsNothing);
+
+    final exportLibrarySemantics = tester.getSemantics(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == '导出作品库',
+      ),
+    );
+    expect(exportLibrarySemantics.value, '作品库为空，暂无可导出的内容');
+    expect(exportLibrarySemantics.flagsCollection.isButton, isTrue);
+    expect(exportLibrarySemantics.flagsCollection.isEnabled, Tristate.isFalse);
+    expect(find.text('清理未引用文件'), findsOneWidget);
   });
+}
+
+Finder _semanticsWithLabel(String label) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Semantics && widget.properties.label == label,
+  );
 }

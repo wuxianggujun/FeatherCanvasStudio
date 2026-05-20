@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/app_l10n.dart';
 import '../models/generated_image.dart';
 import '../models/sprite_sheet_grid_spec.dart';
 import '../services/image_api_client.dart';
@@ -339,18 +340,20 @@ class FrameAnimationPreviewPanelState
   }
 
   Widget _buildContent(ThemeData theme) {
+    final l10n = appL10nOf(context);
+
     if (widget.generatedImages.isEmpty || _previewFuture == null) {
       if (widget.isGenerating) {
-        return const PreviewStateSurface.loading(
-          key: ValueKey('frame-preview-loading'),
-          message: '正在生成 Sprite Sheet',
+        return PreviewStateSurface.loading(
+          key: const ValueKey('frame-preview-loading'),
+          message: l10n.framePreviewGeneratingSheet,
         );
       }
 
       if (widget.errorMessage != null) {
         return PreviewStateSurface.error(
           key: const ValueKey('frame-preview-error'),
-          title: '生成失败',
+          title: l10n.framePreviewGenerationFailedTitle,
           message: widget.errorMessage!,
           onRetry: widget.onRetry,
         );
@@ -369,16 +372,18 @@ class FrameAnimationPreviewPanelState
       future: _previewFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const PreviewStateSurface.loading(
-            key: ValueKey('frame-preview-building'),
-            message: '正在生成切片预览',
+          return PreviewStateSurface.loading(
+            key: const ValueKey('frame-preview-building'),
+            message: l10n.framePreviewBuildingSlices,
           );
         }
 
         if (snapshot.hasError || !snapshot.hasData) {
           return PreviewStateSurface.error(
-            title: '预览失败',
-            message: '切片预览失败：${snapshot.error ?? '没有可用的预览数据'}',
+            title: l10n.framePreviewPreviewFailedTitle,
+            message: l10n.framePreviewPreviewFailedMessage(
+              snapshot.error ?? l10n.framePreviewNoPreviewData,
+            ),
             onRetry: widget.onRetry,
           );
         }
@@ -401,12 +406,16 @@ class FrameAnimationPreviewPanelState
                         ? Icons.play_circle_outline
                         : Icons.ads_click_outlined,
                   ),
-                  label: Text(widget.onFrameSelected == null ? '切片播放' : '目标选择'),
+                  label: Text(
+                    widget.onFrameSelected == null
+                        ? l10n.framePreviewPlaybackModeLabel
+                        : l10n.framePreviewTargetSelectionModeLabel,
+                  ),
                 ),
-                const ButtonSegment<_FramePreviewMode>(
+                ButtonSegment<_FramePreviewMode>(
                   value: _FramePreviewMode.grid,
-                  icon: Icon(Icons.grid_view_outlined),
-                  label: Text('网格检查'),
+                  icon: const Icon(Icons.grid_view_outlined),
+                  label: Text(l10n.framePreviewGridModeLabel),
                 ),
               ],
               selected: {_mode},

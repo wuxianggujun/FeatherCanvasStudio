@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as image_lib;
 
 import '../models/animation_project.dart';
@@ -10,6 +10,7 @@ import '../models/exceptions.dart';
 import '../models/sprite_sheet_grid_spec.dart';
 import 'app_local_store.dart';
 import 'gif_composer_service.dart';
+import 'pixelation_service.dart';
 import 'sprite_sheet_service.dart';
 
 class AnimationProjectStore {
@@ -83,7 +84,7 @@ class AnimationProjectImportResult {
 
   final AnimationProject project;
   final File projectFile;
-  final Uint8List previewSheetBytes;
+  final Uint8List? previewSheetBytes;
 }
 
 class AnimationProjectEditResult {
@@ -498,6 +499,48 @@ class AnimationProjectEditor {
     return _replaceTrackFrames(project: project, track: track, frames: frames);
   }
 
+  AnimationProjectEditResult? insertFrameAsset({
+    required AnimationProject project,
+    required String trackId,
+    required int insertIndex,
+    required FrameAsset asset,
+    int? delayMs,
+  }) {
+    final track = project.trackById(trackId);
+    if (track == null || track.locked) {
+      return null;
+    }
+    final frames = [...track.orderedFrames];
+    if (insertIndex < 0 || insertIndex > frames.length) {
+      return null;
+    }
+
+    final normalizedDelayMs = delayMs ?? track.defaultDelayMs;
+    frames.insert(
+      insertIndex,
+      FrameRef(assetId: asset.id, delayMs: normalizedDelayMs),
+    );
+    final replacement = _trackWithSingleClip(track, frames);
+    final tracks = [
+      for (final current in project.tracks)
+        current.id == track.id ? replacement : current,
+    ];
+    final assets = [
+      for (final existing in project.assets)
+        if (existing.id != asset.id) existing,
+      asset,
+    ];
+    return AnimationProjectEditResult(
+      project: project
+          .copyWith(
+            tracks: List<AnimationTrack>.unmodifiable(tracks),
+            assets: List<FrameAsset>.unmodifiable(assets),
+          )
+          .touch(),
+      selectedTrackId: trackId,
+    );
+  }
+
   AnimationProjectEditResult? deleteFrame({
     required AnimationProject project,
     required String trackId,
@@ -549,6 +592,48 @@ class AnimationProjectEditor {
     }
     frames[frameIndex] = frames[frameIndex].copyWith(transform: transform);
     return _replaceTrackFrames(project: project, track: track, frames: frames);
+  }
+
+  AnimationProjectEditResult? replaceFrameAsset({
+    required AnimationProject project,
+    required String trackId,
+    required int frameIndex,
+    required FrameAsset asset,
+  }) {
+    final track = project.trackById(trackId);
+    if (track == null || track.locked) {
+      return null;
+    }
+    final frames = [...track.orderedFrames];
+    if (frameIndex < 0 || frameIndex >= frames.length) {
+      return null;
+    }
+
+    final previousAssetId = frames[frameIndex].assetId;
+    frames[frameIndex] = frames[frameIndex].copyWith(assetId: asset.id);
+    final replacement = _trackWithSingleClip(track, frames);
+    final tracks = [
+      for (final current in project.tracks)
+        current.id == track.id ? replacement : current,
+    ];
+    final referencedAssetIds = _referencedAssetIds(tracks);
+    final assets = [
+      for (final existing in project.assets)
+        if (existing.id != asset.id &&
+            (existing.id != previousAssetId ||
+                referencedAssetIds.contains(existing.id)))
+          existing,
+      asset,
+    ];
+    return AnimationProjectEditResult(
+      project: project
+          .copyWith(
+            tracks: List<AnimationTrack>.unmodifiable(tracks),
+            assets: List<FrameAsset>.unmodifiable(assets),
+          )
+          .touch(),
+      selectedTrackId: trackId,
+    );
   }
 
   AnimationProjectEditResult? removeUnusedAssets({
@@ -677,6 +762,14 @@ class AnimationProjectEditor {
       clips: [baseClip.copyWith(frames: List<FrameRef>.unmodifiable(frames))],
     );
   }
+
+  Set<String> _referencedAssetIds(List<AnimationTrack> tracks) {
+    return {
+      for (final track in tracks)
+        for (final frame in track.orderedFrames)
+          if (frame.assetId.isNotEmpty) frame.assetId,
+    };
+  }
 }
 
 class AnimationProjectImporter {
@@ -694,8 +787,8 @@ class AnimationProjectImporter {
     String? sourceLibraryItemId,
   }) async {
     final spec = gridSpec ?? SpriteSheetGridSpec(rows: rows, columns: columns);
-    final previewData = SpriteSheetPreviewComposer.buildFromSheetBytes(
-      sheetBytes,
+    final previewData = await _buildSpriteSheetPreviewInBackground(
+      sheetBytes: sheetBytes,
       rows: rows,
       columns: columns,
       gridSpec: spec,
@@ -874,14 +967,10 @@ class AnimationProjectImporter {
       store,
       project,
     );
-    final sheet = await const AnimationProjectRenderer().renderTrackSpriteSheet(
-      project: project,
-      trackId: project.tracks.first.id,
-    );
     return AnimationProjectImportResult(
       project: project,
       projectFile: projectFile,
-      previewSheetBytes: sheet.bytes,
+      previewSheetBytes: null,
     );
   }
 
@@ -1049,6 +1138,266 @@ class AnimationProjectImporter {
   }
 }
 
+class AnimationProjectFrameEditor {
+  const AnimationProjectFrameEditor();
+
+  Future<AnimationProjectEditResult?> insertBlankFrame({
+    required AppLocalStore store,
+    required AnimationProject project,
+    required String trackId,
+    required int insertIndex,
+    int? delayMs,
+  }) {
+    final width = _targetWidth(project);
+    final height = _targetHeight(project);
+    final image = image_lib.Image(width: width, height: height, numChannels: 4);
+    image_lib.fill(image, color: image_lib.ColorRgba8(0, 0, 0, 0));
+    return insertFrameWithBytes(
+      store: store,
+      project: project,
+      trackId: trackId,
+      insertIndex: insertIndex,
+      imageBytes: Uint8List.fromList(image_lib.encodePng(image)),
+      source: FrameAssetSource.editedFrame,
+      delayMs: delayMs,
+    );
+  }
+
+  Future<AnimationProjectEditResult?> insertFrameWithImage({
+    required AppLocalStore store,
+    required AnimationProject project,
+    required String trackId,
+    required int insertIndex,
+    required String imagePath,
+    int? delayMs,
+  }) async {
+    final file = File(imagePath);
+    if (!await file.exists()) {
+      throw ImageGenerationException('插入图片不存在：$imagePath');
+    }
+
+    final Uint8List bytes;
+    try {
+      bytes = await file.readAsBytes();
+    } on FileSystemException catch (error) {
+      throw ImageGenerationException('无法读取插入图片：$imagePath（${error.message}）');
+    }
+    return insertFrameWithBytes(
+      store: store,
+      project: project,
+      trackId: trackId,
+      insertIndex: insertIndex,
+      imageBytes: bytes,
+      source: FrameAssetSource.importedFile,
+      delayMs: delayMs,
+    );
+  }
+
+  Future<AnimationProjectEditResult?> replaceFrameWithImage({
+    required AppLocalStore store,
+    required AnimationProject project,
+    required String trackId,
+    required int frameIndex,
+    required String imagePath,
+  }) async {
+    final file = File(imagePath);
+    if (!await file.exists()) {
+      throw ImageGenerationException('替换图片不存在：$imagePath');
+    }
+
+    final Uint8List bytes;
+    try {
+      bytes = await file.readAsBytes();
+    } on FileSystemException catch (error) {
+      throw ImageGenerationException('无法读取替换图片：$imagePath（${error.message}）');
+    }
+    return replaceFrameWithBytes(
+      store: store,
+      project: project,
+      trackId: trackId,
+      frameIndex: frameIndex,
+      imageBytes: bytes,
+      source: FrameAssetSource.importedFile,
+    );
+  }
+
+  Future<AnimationProjectEditResult?> clearFrame({
+    required AppLocalStore store,
+    required AnimationProject project,
+    required String trackId,
+    required int frameIndex,
+  }) {
+    final width = _targetWidth(project);
+    final height = _targetHeight(project);
+    final image = image_lib.Image(width: width, height: height, numChannels: 4);
+    image_lib.fill(image, color: image_lib.ColorRgba8(0, 0, 0, 0));
+    return replaceFrameWithBytes(
+      store: store,
+      project: project,
+      trackId: trackId,
+      frameIndex: frameIndex,
+      imageBytes: Uint8List.fromList(image_lib.encodePng(image)),
+      source: FrameAssetSource.editedFrame,
+    );
+  }
+
+  Future<AnimationProjectEditResult?> pixelateFrame({
+    required AppLocalStore store,
+    required AnimationProject project,
+    required String trackId,
+    required int frameIndex,
+    required int blockSize,
+  }) async {
+    final track = project.trackById(trackId);
+    final frames = track?.orderedFrames ?? const <FrameRef>[];
+    if (track == null || frameIndex < 0 || frameIndex >= frames.length) {
+      return null;
+    }
+    final asset = project.assetById(frames[frameIndex].assetId);
+    if (asset == null || asset.path.isEmpty) {
+      throw const ImageGenerationException('动画帧资源不存在，无法像素化。');
+    }
+    final file = File(asset.path);
+    if (!await file.exists()) {
+      throw ImageGenerationException('动画帧文件不存在：${asset.path}');
+    }
+    final bytes = await file.readAsBytes();
+    final decoded = image_lib.decodeImage(bytes);
+    if (decoded == null) {
+      throw ImageGenerationException('动画帧无法解码：${asset.path}');
+    }
+    final normalized = _normalizeFrameImage(project, decoded);
+    final pixelated = PixelationService.pixelateDecodedImage(
+      normalized,
+      blockSize: blockSize,
+    );
+    return replaceFrameWithBytes(
+      store: store,
+      project: project,
+      trackId: trackId,
+      frameIndex: frameIndex,
+      imageBytes: Uint8List.fromList(image_lib.encodePng(pixelated)),
+      source: FrameAssetSource.editedFrame,
+    );
+  }
+
+  Future<AnimationProjectEditResult?> replaceFrameWithBytes({
+    required AppLocalStore store,
+    required AnimationProject project,
+    required String trackId,
+    required int frameIndex,
+    required Uint8List imageBytes,
+    required FrameAssetSource source,
+  }) async {
+    final track = project.trackById(trackId);
+    final frames = track?.orderedFrames ?? const <FrameRef>[];
+    if (track == null ||
+        track.locked ||
+        frameIndex < 0 ||
+        frameIndex >= frames.length) {
+      return null;
+    }
+
+    final decoded = image_lib.decodeImage(imageBytes);
+    if (decoded == null) {
+      throw const ImageGenerationException('动画帧图片无法解码。');
+    }
+    final normalized = _normalizeFrameImage(project, decoded);
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final output = await store.saveGeneratedImageBytes(
+      groupId: '${project.id}_frame_edit_$timestamp',
+      index: frameIndex,
+      bytes: Uint8List.fromList(image_lib.encodePng(normalized)),
+    );
+    final asset = FrameAsset(
+      id: '${project.id}_asset_edit_${timestamp}_$frameIndex',
+      path: output.path,
+      width: normalized.width,
+      height: normalized.height,
+      source: source,
+      sourceFrameIndex: frameIndex,
+    );
+    return const AnimationProjectEditor().replaceFrameAsset(
+      project: project,
+      trackId: trackId,
+      frameIndex: frameIndex,
+      asset: asset,
+    );
+  }
+
+  Future<AnimationProjectEditResult?> insertFrameWithBytes({
+    required AppLocalStore store,
+    required AnimationProject project,
+    required String trackId,
+    required int insertIndex,
+    required Uint8List imageBytes,
+    required FrameAssetSource source,
+    int? delayMs,
+  }) async {
+    final track = project.trackById(trackId);
+    final frames = track?.orderedFrames ?? const <FrameRef>[];
+    if (track == null ||
+        track.locked ||
+        insertIndex < 0 ||
+        insertIndex > frames.length) {
+      return null;
+    }
+
+    final decoded = image_lib.decodeImage(imageBytes);
+    if (decoded == null) {
+      throw const ImageGenerationException('动画帧图片无法解码。');
+    }
+    final normalized = _normalizeFrameImage(project, decoded);
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final output = await store.saveGeneratedImageBytes(
+      groupId: '${project.id}_frame_insert_$timestamp',
+      index: insertIndex,
+      bytes: Uint8List.fromList(image_lib.encodePng(normalized)),
+    );
+    final asset = FrameAsset(
+      id: '${project.id}_asset_insert_${timestamp}_$insertIndex',
+      path: output.path,
+      width: normalized.width,
+      height: normalized.height,
+      source: source,
+      sourceFrameIndex: insertIndex,
+    );
+    return const AnimationProjectEditor().insertFrameAsset(
+      project: project,
+      trackId: trackId,
+      insertIndex: insertIndex,
+      asset: asset,
+      delayMs: delayMs,
+    );
+  }
+
+  image_lib.Image _normalizeFrameImage(
+    AnimationProject project,
+    image_lib.Image decoded,
+  ) {
+    final width = _targetWidth(project, fallback: decoded.width);
+    final height = _targetHeight(project, fallback: decoded.height);
+    if (decoded.width == width && decoded.height == height) {
+      return decoded.convert(numChannels: 4);
+    }
+    return image_lib
+        .copyResize(decoded, width: width, height: height)
+        .convert(numChannels: 4);
+  }
+
+  int _targetWidth(AnimationProject project, {int fallback = 1}) {
+    return project.canvasWidth > 0
+        ? project.canvasWidth
+        : math.max(1, fallback);
+  }
+
+  int _targetHeight(AnimationProject project, {int fallback = 1}) {
+    return project.canvasHeight > 0
+        ? project.canvasHeight
+        : math.max(1, fallback);
+  }
+}
+
 class RenderedAnimationFrame {
   const RenderedAnimationFrame({
     required this.bytes,
@@ -1081,6 +1430,66 @@ class AnimationSpriteSheetRender {
 
 class AnimationProjectRenderer {
   const AnimationProjectRenderer();
+
+  Future<List<RenderedAnimationFrame>> renderTrackFramesInBackground({
+    required AnimationProject project,
+    required String trackId,
+  }) {
+    return compute(
+      _renderTrackFramesInIsolate,
+      _AnimationTrackRenderTask(
+        projectJson: project.toJson(),
+        trackId: trackId,
+      ),
+      debugLabel: 'animation-track-render',
+    );
+  }
+
+  Future<AnimationSpriteSheetRender> renderTrackSpriteSheetInBackground({
+    required AnimationProject project,
+    required String trackId,
+    int? columns,
+  }) {
+    return compute(
+      _renderTrackSpriteSheetInIsolate,
+      _AnimationTrackSpriteSheetRenderTask(
+        projectJson: project.toJson(),
+        trackId: trackId,
+        columns: columns,
+      ),
+      debugLabel: 'animation-track-sheet-render',
+    );
+  }
+
+  Future<AnimationSpriteSheetRender> renderProjectSpriteSheetInBackground({
+    required AnimationProject project,
+    int? columns,
+  }) {
+    return compute(
+      _renderProjectSpriteSheetInIsolate,
+      _AnimationProjectSpriteSheetRenderTask(
+        projectJson: project.toJson(),
+        columns: columns,
+      ),
+      debugLabel: 'animation-project-sheet-render',
+    );
+  }
+
+  Future<List<RenderedAnimationFrame>> renderProjectFramesInBackground({
+    required AnimationProject project,
+    bool? includeHiddenTracks,
+    bool applyProjectPlayback = true,
+  }) {
+    return compute(
+      _renderProjectFramesInIsolate,
+      _AnimationProjectFramesRenderTask(
+        projectJson: project.toJson(),
+        includeHiddenTracks: includeHiddenTracks,
+        applyProjectPlayback: applyProjectPlayback,
+      ),
+      debugLabel: 'animation-project-render',
+    );
+  }
 
   Future<List<RenderedAnimationFrame>> renderTrackFrames({
     required AnimationProject project,
@@ -1393,6 +1802,143 @@ class _RenderedTrackFrames {
   }
 }
 
+Future<SpriteSheetPreviewData> _buildSpriteSheetPreviewInBackground({
+  required Uint8List sheetBytes,
+  required int rows,
+  required int columns,
+  required SpriteSheetGridSpec gridSpec,
+}) {
+  return compute(
+    _buildSpriteSheetPreviewInIsolate,
+    _SpriteSheetPreviewBuildTask(
+      sheetBytes: sheetBytes,
+      rows: rows,
+      columns: columns,
+      gridSpec: gridSpec,
+    ),
+    debugLabel: 'animation-sprite-sheet-import',
+  );
+}
+
+SpriteSheetPreviewData _buildSpriteSheetPreviewInIsolate(
+  _SpriteSheetPreviewBuildTask task,
+) {
+  return SpriteSheetPreviewComposer.buildFromSheetBytes(
+    task.sheetBytes,
+    rows: task.rows,
+    columns: task.columns,
+    gridSpec: task.gridSpec,
+  );
+}
+
+class _SpriteSheetPreviewBuildTask {
+  const _SpriteSheetPreviewBuildTask({
+    required this.sheetBytes,
+    required this.rows,
+    required this.columns,
+    required this.gridSpec,
+  });
+
+  final Uint8List sheetBytes;
+  final int rows;
+  final int columns;
+  final SpriteSheetGridSpec gridSpec;
+}
+
+Future<List<RenderedAnimationFrame>> _renderTrackFramesInIsolate(
+  _AnimationTrackRenderTask task,
+) {
+  final project = AnimationProject.fromJson(
+    Map<String, dynamic>.from(task.projectJson),
+  );
+  return const AnimationProjectRenderer().renderTrackFrames(
+    project: project,
+    trackId: task.trackId,
+  );
+}
+
+Future<AnimationSpriteSheetRender> _renderTrackSpriteSheetInIsolate(
+  _AnimationTrackSpriteSheetRenderTask task,
+) {
+  final project = AnimationProject.fromJson(
+    Map<String, dynamic>.from(task.projectJson),
+  );
+  return const AnimationProjectRenderer().renderTrackSpriteSheet(
+    project: project,
+    trackId: task.trackId,
+    columns: task.columns,
+  );
+}
+
+Future<AnimationSpriteSheetRender> _renderProjectSpriteSheetInIsolate(
+  _AnimationProjectSpriteSheetRenderTask task,
+) {
+  final project = AnimationProject.fromJson(
+    Map<String, dynamic>.from(task.projectJson),
+  );
+  return const AnimationProjectRenderer().renderProjectSpriteSheet(
+    project: project,
+    columns: task.columns,
+  );
+}
+
+Future<List<RenderedAnimationFrame>> _renderProjectFramesInIsolate(
+  _AnimationProjectFramesRenderTask task,
+) {
+  final project = AnimationProject.fromJson(
+    Map<String, dynamic>.from(task.projectJson),
+  );
+  return const AnimationProjectRenderer().renderProjectFrames(
+    project: project,
+    includeHiddenTracks: task.includeHiddenTracks,
+    applyProjectPlayback: task.applyProjectPlayback,
+  );
+}
+
+class _AnimationTrackRenderTask {
+  const _AnimationTrackRenderTask({
+    required this.projectJson,
+    required this.trackId,
+  });
+
+  final Map<String, dynamic> projectJson;
+  final String trackId;
+}
+
+class _AnimationTrackSpriteSheetRenderTask {
+  const _AnimationTrackSpriteSheetRenderTask({
+    required this.projectJson,
+    required this.trackId,
+    required this.columns,
+  });
+
+  final Map<String, dynamic> projectJson;
+  final String trackId;
+  final int? columns;
+}
+
+class _AnimationProjectSpriteSheetRenderTask {
+  const _AnimationProjectSpriteSheetRenderTask({
+    required this.projectJson,
+    required this.columns,
+  });
+
+  final Map<String, dynamic> projectJson;
+  final int? columns;
+}
+
+class _AnimationProjectFramesRenderTask {
+  const _AnimationProjectFramesRenderTask({
+    required this.projectJson,
+    required this.includeHiddenTracks,
+    required this.applyProjectPlayback,
+  });
+
+  final Map<String, dynamic> projectJson;
+  final bool? includeHiddenTracks;
+  final bool applyProjectPlayback;
+}
+
 class AnimationProjectExportService {
   const AnimationProjectExportService();
 
@@ -1401,7 +1947,7 @@ class AnimationProjectExportService {
     required AnimationProject project,
   }) async {
     final render = await const AnimationProjectRenderer()
-        .renderProjectSpriteSheet(project: project);
+        .renderProjectSpriteSheetInBackground(project: project);
     return SpriteSheetFileService.exportPng(
       store: store,
       pngBytes: render.bytes,
@@ -1417,7 +1963,7 @@ class AnimationProjectExportService {
     required String trackId,
   }) async {
     final render = await const AnimationProjectRenderer()
-        .renderTrackSpriteSheet(project: project, trackId: trackId);
+        .renderTrackSpriteSheetInBackground(project: project, trackId: trackId);
     return SpriteSheetFileService.exportPng(
       store: store,
       pngBytes: render.bytes,
@@ -1432,10 +1978,8 @@ class AnimationProjectExportService {
     required AnimationProject project,
     required String trackId,
   }) async {
-    final frames = await const AnimationProjectRenderer().renderTrackFrames(
-      project: project,
-      trackId: trackId,
-    );
+    final frames = await const AnimationProjectRenderer()
+        .renderTrackFramesInBackground(project: project, trackId: trackId);
     if (frames.length < 2) {
       throw const ImageGenerationException('至少需要 2 帧才能导出 GIF。');
     }
@@ -1460,9 +2004,8 @@ class AnimationProjectExportService {
     required AppLocalStore store,
     required AnimationProject project,
   }) async {
-    final frames = await const AnimationProjectRenderer().renderProjectFrames(
-      project: project,
-    );
+    final frames = await const AnimationProjectRenderer()
+        .renderProjectFramesInBackground(project: project);
     if (frames.length < 2) {
       throw const ImageGenerationException('至少需要 2 帧才能导出 GIF。');
     }
@@ -1488,10 +2031,8 @@ class AnimationProjectExportService {
     required AnimationProject project,
     required String trackId,
   }) async {
-    final frames = await const AnimationProjectRenderer().renderTrackFrames(
-      project: project,
-      trackId: trackId,
-    );
+    final frames = await const AnimationProjectRenderer()
+        .renderTrackFramesInBackground(project: project, trackId: trackId);
     final files = <File>[];
     final groupId = '${project.id}_png_sequence';
     for (var index = 0; index < frames.length; index++) {
@@ -1510,9 +2051,8 @@ class AnimationProjectExportService {
     required AppLocalStore store,
     required AnimationProject project,
   }) async {
-    final frames = await const AnimationProjectRenderer().renderProjectFrames(
-      project: project,
-    );
+    final frames = await const AnimationProjectRenderer()
+        .renderProjectFramesInBackground(project: project);
     final files = <File>[];
     final groupId = '${project.id}_project_png_sequence';
     for (var index = 0; index < frames.length; index++) {

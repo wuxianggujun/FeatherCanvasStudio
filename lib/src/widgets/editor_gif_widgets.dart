@@ -1,18 +1,13 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_l10n.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/sprite_sheet_frame_fit.dart';
 import '../models/sprite_sheet_grid_spec.dart';
-import '../services/gif_composer_service.dart';
 import '../theme/layout_constants.dart';
-import '../utils/display_labels.dart';
 import '../widgets/common_form_widgets.dart';
 import '../widgets/layout_navigation_widgets.dart';
-import '../widgets/preview_widgets.dart';
-
-part 'gif_composer_widgets.dart';
 
 class SpriteSheetEditorPanel extends StatelessWidget {
   const SpriteSheetEditorPanel({
@@ -72,38 +67,41 @@ class SpriteSheetEditorPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final frameTotal = rows * columns;
     final safeFrameIndex = targetFrameIndex.clamp(0, frameTotal - 1);
     final canReplace =
         imagePath != null && patchImagePath != null && !isReplacingFrame;
 
     return AppPanel(
-      title: '编辑配置',
+      title: l10n.spriteSheetEditorConfigTitle,
       trailing: FrameCountBadge(count: frameTotal),
       child: Column(
         children: [
           TemplateImagePicker(
             imagePath: imagePath,
-            title: 'Sprite Sheet 图片',
-            pickLabel: imagePath == null ? '选择' : '更换',
-            clearTooltip: '清除图片',
+            title: l10n.spriteSheetEditorSheetImageTitle,
+            pickLabel: imagePath == null
+                ? l10n.selectAction
+                : l10n.replaceAction,
+            clearTooltip: l10n.spriteSheetEditorClearSheetImageTooltip,
             onPick: onPickImage,
             onClear: imagePath == null ? null : onClearImage,
           ),
           const SizedBox(height: fieldGap),
           ResponsivePair(
             first: OptionDropdown<int>(
-              label: '行数',
+              label: l10n.spriteSheetEditorRowsLabel,
               value: rows,
               options: _gridSizes,
-              labelBuilder: (value) => '$value 行',
+              labelBuilder: l10n.spriteSheetEditorRowsValue,
               onChanged: onRowsChanged,
             ),
             second: OptionDropdown<int>(
-              label: '列数',
+              label: l10n.spriteSheetEditorColumnsLabel,
               value: columns,
               options: _gridSizes,
-              labelBuilder: (value) => '$value 列',
+              labelBuilder: l10n.spriteSheetEditorColumnsValue,
               onChanged: onColumnsChanged,
             ),
           ),
@@ -115,9 +113,11 @@ class SpriteSheetEditorPanel extends StatelessWidget {
           const SizedBox(height: fieldGap),
           TemplateImagePicker(
             imagePath: patchImagePath,
-            title: '单帧图片',
-            pickLabel: patchImagePath == null ? '选择' : '更换',
-            clearTooltip: '清除单帧图片',
+            title: l10n.spriteSheetEditorPatchImageTitle,
+            pickLabel: patchImagePath == null
+                ? l10n.selectAction
+                : l10n.replaceAction,
+            clearTooltip: l10n.spriteSheetEditorClearPatchImageTooltip,
             previewHeight: 148,
             onPick: onPickPatchImage,
             onClear: patchImagePath == null ? null : onClearPatchImage,
@@ -146,14 +146,21 @@ class SpriteSheetEditorPanel extends StatelessWidget {
               frameTotal: frameTotal,
               columns: columns,
               enabled: !isReplacingFrame,
-              label: '替换目标',
+              label: l10n.spriteSheetEditorReplacementTargetLabel,
               onChanged: onTargetFrameChanged,
             ),
             second: OptionDropdown<SpriteSheetFrameFit>(
-              label: '适配方式',
+              label: l10n.spriteSheetEditorFrameFitLabel,
               value: frameFit,
               options: SpriteSheetFrameFit.values,
-              labelBuilder: spriteSheetFrameFitLabel,
+              labelBuilder: (value) => switch (value) {
+                SpriteSheetFrameFit.contain =>
+                  l10n.spriteSheetEditorFrameFitContain,
+                SpriteSheetFrameFit.cover =>
+                  l10n.spriteSheetEditorFrameFitCover,
+                SpriteSheetFrameFit.stretch =>
+                  l10n.spriteSheetEditorFrameFitStretch,
+              },
               onChanged: onFrameFitChanged,
             ),
           ),
@@ -165,22 +172,22 @@ class SpriteSheetEditorPanel extends StatelessWidget {
                   ? null
                   : onCopyPreviousFrame,
               icon: const Icon(Icons.content_copy_outlined),
-              label: const Text('复制上一帧'),
+              label: Text(l10n.spriteSheetEditorCopyPreviousFrame),
             ),
             second: OutlinedButton.icon(
               onPressed: imagePath == null || isReplacingFrame
                   ? null
                   : onClearTargetFrame,
               icon: const Icon(Icons.backspace_outlined),
-              label: const Text('清空当前格'),
+              label: Text(l10n.spriteSheetEditorClearCurrentCell),
             ),
           ),
           const SizedBox(height: fieldGap),
           PrimaryActionButton(
             onPressed: canReplace ? onReplaceFrame : null,
             icon: Icons.published_with_changes_outlined,
-            label: '插入 / 替换到当前格',
-            busyLabel: '替换中',
+            label: l10n.spriteSheetEditorInsertReplaceCurrentCell,
+            busyLabel: l10n.spriteSheetEditorReplacing,
             isBusy: isReplacingFrame,
           ),
         ],
@@ -251,11 +258,15 @@ class _TargetFrameSelectorState extends State<_TargetFrameSelector> {
 
   int get _displayValue => _safeFrameIndex + 1;
 
-  String get _helperText {
+  String _helperText(AppLocalizations l10n) {
     final safeColumns = widget.columns.clamp(1, 9999).toInt();
     final row = _safeFrameIndex ~/ safeColumns + 1;
     final column = _safeFrameIndex % safeColumns + 1;
-    return '第 $row 行 · 第 $column 列 · 共 $_safeFrameTotal 帧';
+    return l10n.spriteSheetEditorTargetFrameHelper(
+      row,
+      column,
+      _safeFrameTotal,
+    );
   }
 
   void _normalizeWhenUnfocused() {
@@ -297,11 +308,13 @@ class _TargetFrameSelectorState extends State<_TargetFrameSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         IconButton(
-          tooltip: '上一帧',
+          tooltip: l10n.framePreviewPreviousFrameTooltip,
           onPressed: widget.enabled && _safeFrameIndex > 0
               ? () => _step(-1)
               : null,
@@ -316,7 +329,7 @@ class _TargetFrameSelectorState extends State<_TargetFrameSelector> {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               labelText: widget.label,
-              helperText: _helperText,
+              helperText: _helperText(l10n),
               suffixText: '/ $_safeFrameTotal',
             ),
             onChanged: _emitInput,
@@ -324,7 +337,7 @@ class _TargetFrameSelectorState extends State<_TargetFrameSelector> {
           ),
         ),
         IconButton(
-          tooltip: '下一帧',
+          tooltip: l10n.framePreviewNextFrameTooltip,
           onPressed: widget.enabled && _safeFrameIndex < _safeFrameTotal - 1
               ? () => _step(1)
               : null,
@@ -378,16 +391,18 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final canPixelate = widget.canPixelateFrame || widget.canPixelateSheet;
     final enabled =
         widget.canAdjustFraming || widget.canMakeTransparent || canPixelate;
     final subtitleParts = <String>[
-      if (widget.hasPatchImage) '单帧取景',
-      if (widget.hasPatchImage) '透明背景',
-      if (widget.hasSheetImage) '像素化',
+      if (widget.hasPatchImage) l10n.spriteSheetEditorToolFraming,
+      if (widget.hasPatchImage) l10n.spriteSheetEditorToolTransparent,
+      if (widget.hasSheetImage) l10n.spriteSheetEditorToolPixelate,
     ];
+    final toleranceLabel = l10n.backgroundTransparencyTolerance(_tolerance);
 
     return Container(
       width: double.infinity,
@@ -410,10 +425,13 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
             size: 18,
             color: enabled ? colorScheme.primary : colorScheme.onSurfaceVariant,
           ),
-          title: Text('编辑工具', style: theme.textTheme.titleSmall),
+          title: Text(
+            l10n.spriteSheetEditorToolsTitle,
+            style: theme.textTheme.titleSmall,
+          ),
           subtitle: Text(
             subtitleParts.isEmpty
-                ? '选择 Sprite Sheet 或单帧图片后可用'
+                ? l10n.spriteSheetEditorToolsDisabledHint
                 : subtitleParts.join(' · '),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -427,7 +445,7 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
                     ? widget.onAdjustFraming
                     : null,
                 icon: const Icon(Icons.crop_outlined),
-                label: const Text('调整取景'),
+                label: Text(l10n.patchImageFramingTitle),
               ),
             ),
             const SizedBox(height: 8),
@@ -439,7 +457,7 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
                     min: _minTolerance.toDouble(),
                     max: _maxTolerance.toDouble(),
                     divisions: _maxTolerance - _minTolerance,
-                    label: '容差 $_tolerance',
+                    label: toleranceLabel,
                     onChanged: widget.canMakeTransparent
                         ? (value) => setState(() => _tolerance = value.round())
                         : null,
@@ -448,7 +466,7 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
                 SizedBox(
                   width: 74,
                   child: Text(
-                    '容差 $_tolerance',
+                    toleranceLabel,
                     textAlign: TextAlign.end,
                     style: theme.textTheme.bodySmall,
                   ),
@@ -469,17 +487,21 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.auto_fix_high_outlined),
-                label: Text(widget.isBusy ? '处理中' : '生成透明背景单帧'),
+                label: Text(
+                  widget.isBusy
+                      ? l10n.spriteSheetEditorProcessing
+                      : l10n.spriteSheetEditorGenerateTransparentPatch,
+                ),
               ),
             ),
             const Divider(height: 22),
             IntegerStepperField(
-              label: '像素块',
+              label: l10n.spriteSheetEditorPixelBlockLabel,
               value: _pixelationBlockSize,
               minValue: _minPixelationBlockSize,
               maxValue: _maxPixelationBlockSize,
               suffixText: 'px',
-              helperText: '数值越大，颗粒越粗',
+              helperText: l10n.spriteSheetEditorPixelBlockHelper,
               enabled: canPixelate && !widget.isBusy,
               onChanged: (value) => setState(() {
                 _pixelationBlockSize = value
@@ -494,14 +516,14 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
                     ? () => widget.onPixelateCurrentFrame(_pixelationBlockSize)
                     : null,
                 icon: const Icon(Icons.grid_on_outlined),
-                label: const Text('像素化当前帧'),
+                label: Text(l10n.spriteSheetEditorPixelateCurrentFrame),
               ),
               second: OutlinedButton.icon(
                 onPressed: widget.canPixelateSheet && !widget.isBusy
                     ? () => widget.onPixelateWholeSheet(_pixelationBlockSize)
                     : null,
                 icon: const Icon(Icons.grid_4x4_outlined),
-                label: const Text('像素化整张'),
+                label: Text(l10n.spriteSheetEditorPixelateWholeSheet),
               ),
             ),
           ],

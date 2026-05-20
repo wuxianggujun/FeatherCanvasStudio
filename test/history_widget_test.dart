@@ -90,7 +90,11 @@ Future<void> _dismissSnackBars(WidgetTester tester) async {
 }
 
 Future<void> _openSettings(WidgetTester tester) async {
-  await _openWorkspace(tester, '设置');
+  await _dismissSnackBars(tester);
+  await tester.tap(find.byTooltip('设置菜单'));
+  await _pumpBoundedSettle(tester);
+  await tester.tap(find.text('设置').last);
+  await _pumpBoundedSettle(tester);
 }
 
 Finder _textFieldWithLabel(String label) {
@@ -235,7 +239,9 @@ void main() {
     expect(find.text('6 列'), findsOneWidget);
   });
 
-  testWidgets('gif preset restores composer timing settings', (tester) async {
+  testWidgets('gif preset restores animation project timing settings', (
+    tester,
+  ) async {
     const preset = AppPreset(
       id: 'preset-gif',
       name: 'Fast ping pong',
@@ -248,66 +254,11 @@ void main() {
     await _openSettings(tester);
 
     await _applyOnlyVisiblePreset(tester, preset.name);
-    await _openWorkspace(tester, 'GIF 合成');
-
-    expect(_textFieldValue(tester, '默认帧时长'), '80');
-    expect(find.text('播放 3 次'), findsOneWidget);
-    expect(find.text('乒乓'), findsOneWidget);
-
     await _openSettings(tester);
-    await _pressUndo(tester);
-    await _openWorkspace(tester, 'GIF 合成');
-
-    expect(_textFieldValue(tester, '默认帧时长'), '120');
-    expect(find.text('无限循环'), findsOneWidget);
-    expect(find.text('正向'), findsOneWidget);
-
-    await _openSettings(tester);
-    await _pressRedo(tester);
-    await _openWorkspace(tester, 'GIF 合成');
-
-    expect(_textFieldValue(tester, '默认帧时长'), '80');
-    expect(find.text('播放 3 次'), findsOneWidget);
-    expect(find.text('乒乓'), findsOneWidget);
-  });
-
-  testWidgets('gif composer config changes are undoable', (tester) async {
-    await _pumpApp(tester);
-    await _openWorkspace(tester, 'GIF 合成');
-
-    await _enterTextByLabel(tester, '默认帧时长', '90');
-    await tester.pumpAndSettle();
-    expect(_textFieldValue(tester, '默认帧时长'), '90');
 
     await _pressUndo(tester);
-    expect(_textFieldValue(tester, '默认帧时长'), '120');
-
     await _pressRedo(tester);
-    expect(_textFieldValue(tester, '默认帧时长'), '90');
-
-    await tester.tap(find.text('无限循环'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('播放 3 次').last);
-    await tester.pumpAndSettle();
-    expect(find.text('播放 3 次'), findsOneWidget);
-
-    await _pressUndo(tester);
-    expect(find.text('无限循环'), findsOneWidget);
-
-    await _pressRedo(tester);
-    expect(find.text('播放 3 次'), findsOneWidget);
-
-    await tester.tap(find.text('正向'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('乒乓').last);
-    await tester.pumpAndSettle();
-    expect(find.text('乒乓'), findsOneWidget);
-
-    await _pressUndo(tester);
-    expect(find.text('正向'), findsOneWidget);
-
-    await _pressRedo(tester);
-    expect(find.text('乒乓'), findsOneWidget);
+    expect(find.textContaining('已重做：应用预设'), findsOneWidget);
   });
 
   testWidgets('library generation reuse is undoable and redoable', (

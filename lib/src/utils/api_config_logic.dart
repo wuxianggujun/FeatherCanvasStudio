@@ -6,6 +6,19 @@ import '../services/image_api_client.dart';
 const String unnamedApiConfigName = '未命名配置';
 const String newApiConfigName = '新接口配置';
 
+class ApiConfigDisplayLabels {
+  const ApiConfigDisplayLabels();
+
+  String get basicTestFailed => '基础测试失败';
+  String get fullTestFailed => '接口测试失败';
+  String get officialCompatibilityHint =>
+      '提示：当前为「OpenAI 官方」档位，反代/兼容层可能不支持 input_fidelity、'
+      'output_compression、moderation 等参数，可切换到「OpenAI 兼容」档位再试';
+}
+
+const ApiConfigDisplayLabels defaultApiConfigDisplayLabels =
+    ApiConfigDisplayLabels();
+
 class ApiConfigDeletionResult {
   const ApiConfigDeletionResult({
     required this.configs,
@@ -286,14 +299,13 @@ String decorateApiTestErrorMessage({
   required String baseMessage,
   required ApiProviderKind providerKind,
   required bool basic,
+  ApiConfigDisplayLabels labels = defaultApiConfigDisplayLabels,
 }) {
-  final prefix = basic ? '基础测试失败' : '接口测试失败';
+  final prefix = basic ? labels.basicTestFailed : labels.fullTestFailed;
   if (!basic &&
       providerKind == ApiProviderKind.official &&
       looksLikeUpstreamError(baseMessage)) {
-    return '$prefix：$baseMessage\n'
-        '提示：当前为「OpenAI 官方」档位，反代/兼容层可能不支持 input_fidelity、'
-        'output_compression、moderation 等参数，可切换到「OpenAI 兼容」档位再试';
+    return '$prefix：$baseMessage\n${labels.officialCompatibilityHint}';
   }
   return '$prefix：$baseMessage';
 }

@@ -48,6 +48,22 @@
   "@navCollapseSidebar": {
     "description": "导航：收起侧栏按钮"
   },
+  "navGroupGenerate": "生成",
+  "@navGroupGenerate": {
+    "description": "导航分组：生成（文本生图、批量、动画工程）"
+  },
+  "navGroupEdit": "编辑",
+  "@navGroupEdit": {
+    "description": "导航分组：编辑（图片、像素画、GIF）"
+  },
+  "navGroupAssets": "资产",
+  "@navGroupAssets": {
+    "description": "导航分组：资产（作品库）"
+  },
+  "navSettingsMenu": "设置菜单",
+  "@navSettingsMenu": {
+    "description": "导航：设置齿轮菜单 tooltip"
+  },
   "appearanceSectionTitle": "外观",
   "@appearanceSectionTitle": {
     "description": "外观设置区块标题"
@@ -68,6 +84,38 @@
   "@themeModeDark": {
     "description": "主题模式：深色"
   },
+  "displayLabelAuto": "自动",
+  "@displayLabelAuto": {
+    "description": "通用显示标签：自动"
+  },
+  "displayLabelLow": "低",
+  "@displayLabelLow": {
+    "description": "通用显示标签：低"
+  },
+  "displayLabelMedium": "中",
+  "@displayLabelMedium": {
+    "description": "通用显示标签：中"
+  },
+  "displayLabelHigh": "高",
+  "@displayLabelHigh": {
+    "description": "通用显示标签：高"
+  },
+  "displayLabelStandard": "标准",
+  "@displayLabelStandard": {
+    "description": "通用显示标签：标准"
+  },
+  "displayLabelHd": "高清",
+  "@displayLabelHd": {
+    "description": "通用显示标签：高清"
+  },
+  "displayLabelTransparent": "透明",
+  "@displayLabelTransparent": {
+    "description": "通用显示标签：透明"
+  },
+  "displayLabelOpaque": "不透明",
+  "@displayLabelOpaque": {
+    "description": "通用显示标签：不透明"
+  },
   "historyUndo": "撤销",
   "@historyUndo": {
     "description": "历史：撤销按钮"
@@ -75,6 +123,14 @@
   "historyRedo": "重做",
   "@historyRedo": {
     "description": "历史：重做按钮"
+  },
+  "historyUndoUnavailable": "暂无可撤销操作",
+  "@historyUndoUnavailable": {
+    "description": "历史：撤销按钮不可用原因"
+  },
+  "historyRedoUnavailable": "暂无可重做操作",
+  "@historyRedoUnavailable": {
+    "description": "历史：重做按钮不可用原因"
   },
   "historyMenuTitle": "历史记录",
   "@historyMenuTitle": {
@@ -88,8 +144,5792 @@
   "@historyApplying": {
     "description": "历史：操作执行中提示"
   },
+  "historyUndoTo": "撤销到",
+  "@historyUndoTo": {
+    "description": "历史：撤销到菜单标题"
+  },
+  "historyRedoTo": "重做到",
+  "@historyRedoTo": {
+    "description": "历史：重做到菜单标题"
+  },
+  "historyNextStep": "下一步",
+  "@historyNextStep": {
+    "description": "历史：下一步标签"
+  },
+  "historyStepCount": "{count} 步",
+  "@historyStepCount": {
+    "description": "历史：步数标签",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyUndoSuccess": "已撤销：{label}",
+  "@historyUndoSuccess": {
+    "description": "历史：撤销成功提示",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "historyUndoMultiple": "已撤销 {completed} 步：{label}",
+  "@historyUndoMultiple": {
+    "description": "历史：多步撤销成功提示",
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "label": {}
+    }
+  },
+  "historyUndoFailed": "撤销失败：{error}",
+  "@historyUndoFailed": {
+    "description": "历史：撤销失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "historyRedoSuccess": "已重做：{label}",
+  "@historyRedoSuccess": {
+    "description": "历史：重做成功提示",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "historyRedoMultiple": "已重做 {completed} 步：{label}",
+  "@historyRedoMultiple": {
+    "description": "历史：多步重做成功提示",
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "label": {}
+    }
+  },
+  "historyRedoFailed": "重做失败：{error}",
+  "@historyRedoFailed": {
+    "description": "历史：重做失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
   "splitHandleTooltip": "拖动调整宽度，双击复位",
   "@splitHandleTooltip": {
     "description": "工作区分隔条提示"
+  },
+  "shortcutsSectionTitle": "快捷键",
+  "@shortcutsSectionTitle": {
+    "description": "本地设置：快捷键速查表区块标题"
+  },
+  "shortcutsSectionDescription": "全局快捷键在所有工作区可用，用于撤销和重做最近一次操作。",
+  "@shortcutsSectionDescription": {
+    "description": "本地设置：快捷键速查表说明文案"
+  },
+  "shortcutLabelUndo": "撤销",
+  "@shortcutLabelUndo": {
+    "description": "快捷键：撤销"
+  },
+  "shortcutLabelRedo": "重做",
+  "@shortcutLabelRedo": {
+    "description": "快捷键：重做"
+  },
+  "shortcutLabelRedoAlt": "重做（备选）",
+  "@shortcutLabelRedoAlt": {
+    "description": "快捷键：重做（备选 Ctrl+Shift+Z）"
+  },
+  "localSettingsWorkspaceTitle": "本地设置",
+  "@localSettingsWorkspaceTitle": {
+    "description": "本地设置工作区标题"
+  },
+  "localSettingsWorkspaceDescription": "管理本机保存的默认生成参数、接口配置入口和恢复默认操作",
+  "@localSettingsWorkspaceDescription": {
+    "description": "本地设置工作区说明"
+  },
+  "localSettingsStatusSectionTitle": "本地状态",
+  "@localSettingsStatusSectionTitle": {
+    "description": "本地设置：状态区块标题"
+  },
+  "localSettingsStatusApiConfigs": "接口配置",
+  "@localSettingsStatusApiConfigs": {
+    "description": "本地设置：接口配置数量标签"
+  },
+  "localSettingsStatusLibraryItems": "作品库记录",
+  "@localSettingsStatusLibraryItems": {
+    "description": "本地设置：作品库记录数量标签"
+  },
+  "localSettingsStatusPreviewImages": "当前预览结果",
+  "@localSettingsStatusPreviewImages": {
+    "description": "本地设置：当前预览结果数量标签"
+  },
+  "countApiConfigs": "{count} 个",
+  "@countApiConfigs": {
+    "description": "接口配置数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "countLibraryItems": "{count} 条",
+  "@countLibraryItems": {
+    "description": "作品库记录数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "countImages": "{count} 张",
+  "@countImages": {
+    "description": "图片数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localSettingsDefaultsSectionTitle": "默认生成设置",
+  "@localSettingsDefaultsSectionTitle": {
+    "description": "本地设置：默认生成设置区块标题"
+  },
+  "localSettingsDefaultsSectionDescription": "这些值会保存在本机，并作为文本生图、动画工程等工作区的默认表单状态。",
+  "@localSettingsDefaultsSectionDescription": {
+    "description": "本地设置：默认生成设置区块说明"
+  },
+  "localSettingsDefaultPromptLabel": "默认正向提示词",
+  "@localSettingsDefaultPromptLabel": {
+    "description": "本地设置：默认正向提示词字段标签"
+  },
+  "localSettingsDefaultPromptHint": "新会话或恢复默认后使用的正向提示词",
+  "@localSettingsDefaultPromptHint": {
+    "description": "本地设置：默认正向提示词字段提示"
+  },
+  "localSettingsDefaultNegativePromptLabel": "默认负向提示词",
+  "@localSettingsDefaultNegativePromptLabel": {
+    "description": "本地设置：默认负向提示词字段标签"
+  },
+  "localSettingsDefaultNegativePromptHint": "可选，会合并到 prompt 中",
+  "@localSettingsDefaultNegativePromptHint": {
+    "description": "本地设置：默认负向提示词字段提示"
+  },
+  "localSettingsDefaultImageCountLabel": "默认生成数量",
+  "@localSettingsDefaultImageCountLabel": {
+    "description": "本地设置：默认生成数量字段标签"
+  },
+  "imageCountSuffix": "张",
+  "@imageCountSuffix": {
+    "description": "图片数量后缀"
+  },
+  "localSettingsDefaultImageCountHelper": "超过 {maxCount} 张会自动拆成多次请求",
+  "@localSettingsDefaultImageCountHelper": {
+    "description": "本地设置：默认生成数量字段说明",
+    "placeholders": {
+      "maxCount": {
+        "type": "int"
+      }
+    }
+  },
+  "localSettingsPresetSectionTitle": "常用预设",
+  "@localSettingsPresetSectionTitle": {
+    "description": "本地设置：常用预设区块标题"
+  },
+  "localSettingsSaveTextPreset": "保存文本预设",
+  "@localSettingsSaveTextPreset": {
+    "description": "本地设置：保存文本预设按钮"
+  },
+  "localSettingsSaveAnimationPreset": "保存动画工程预设",
+  "@localSettingsSaveAnimationPreset": {
+    "description": "本地设置：保存动画工程预设按钮"
+  },
+  "localSettingsSaveGifPreset": "保存 GIF 预设",
+  "@localSettingsSaveGifPreset": {
+    "description": "本地设置：保存 GIF 预设按钮"
+  },
+  "applyPreset": "应用",
+  "@applyPreset": {
+    "description": "预设列表：应用预设按钮"
+  },
+  "applyPresetAction": "应用预设：{name}",
+  "@applyPresetAction": {
+    "description": "预设列表：应用指定预设按钮语义标签",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deletePresetTooltip": "删除预设",
+  "@deletePresetTooltip": {
+    "description": "预设列表：删除预设 tooltip"
+  },
+  "deletePresetAction": "删除预设：{name}",
+  "@deletePresetAction": {
+    "description": "预设列表：删除指定预设按钮语义标签",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "localGenerationPresetSummary": "{size} · {imageCount} 张",
+  "@localGenerationPresetSummary": {
+    "description": "文本生图预设摘要",
+    "placeholders": {
+      "size": {},
+      "imageCount": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetPresetSummary": "{size} · {rows} x {columns}",
+  "@spriteSheetPresetSummary": {
+    "description": "动画工程预设摘要",
+    "placeholders": {
+      "size": {},
+      "rows": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "gifLoopInfinite": "无限循环",
+  "@gifLoopInfinite": {
+    "description": "GIF 预设摘要：无限循环"
+  },
+  "gifLoopCount": "播放 {count} 次",
+  "@gifLoopCount": {
+    "description": "GIF 预设摘要：播放次数",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gifPresetSummary": "{delayMs} ms · {loopLabel}",
+  "@gifPresetSummary": {
+    "description": "GIF 预设摘要",
+    "placeholders": {
+      "delayMs": {
+        "type": "int"
+      },
+      "loopLabel": {}
+    }
+  },
+  "localSettingsLibraryMigrationSectionTitle": "作品库迁移",
+  "@localSettingsLibraryMigrationSectionTitle": {
+    "description": "本地设置：作品库迁移区块标题"
+  },
+  "localSettingsLibraryMigrationSectionDescription": "把作品库元数据和本地图片打包为 ZIP，或从 ZIP 导入到当前作品库。",
+  "@localSettingsLibraryMigrationSectionDescription": {
+    "description": "本地设置：作品库迁移区块说明"
+  },
+  "localSettingsExportingLibrary": "导出中",
+  "@localSettingsExportingLibrary": {
+    "description": "本地设置：作品库导出进行中按钮"
+  },
+  "localSettingsExportLibrary": "导出作品库",
+  "@localSettingsExportLibrary": {
+    "description": "本地设置：导出作品库按钮"
+  },
+  "localSettingsLibraryExportBusyUnavailable": "作品库正在导出，完成后可继续操作",
+  "@localSettingsLibraryExportBusyUnavailable": {
+    "description": "本地设置：作品库导出中按钮不可用原因"
+  },
+  "localSettingsLibraryExportEmptyUnavailable": "作品库为空，暂无可导出的内容",
+  "@localSettingsLibraryExportEmptyUnavailable": {
+    "description": "本地设置：作品库为空时导出按钮不可用原因"
+  },
+  "localSettingsImportingLibrary": "导入中",
+  "@localSettingsImportingLibrary": {
+    "description": "本地设置：作品库导入进行中按钮"
+  },
+  "localSettingsImportLibrary": "导入作品库",
+  "@localSettingsImportLibrary": {
+    "description": "本地设置：导入作品库按钮"
+  },
+  "localSettingsLibraryImportBusyUnavailable": "作品库正在导入，完成后可继续操作",
+  "@localSettingsLibraryImportBusyUnavailable": {
+    "description": "本地设置：作品库导入中按钮不可用原因"
+  },
+  "localSettingsConfigEntrySectionTitle": "配置入口",
+  "@localSettingsConfigEntrySectionTitle": {
+    "description": "本地设置：配置入口区块标题"
+  },
+  "localSettingsConfigEntrySectionDescription": "接口地址、密钥和模型列表统一在接口配置页维护。",
+  "@localSettingsConfigEntrySectionDescription": {
+    "description": "本地设置：配置入口区块说明"
+  },
+  "localSettingsOpenApiSettings": "打开接口配置",
+  "@localSettingsOpenApiSettings": {
+    "description": "本地设置：打开接口配置按钮"
+  },
+  "localSettingsStorageCleanupSectionTitle": "存储清理",
+  "@localSettingsStorageCleanupSectionTitle": {
+    "description": "本地设置：存储清理区块标题"
+  },
+  "localSettingsStorageCleanupSectionDescription": "清理作品库不再引用的生成文件，以及临时参考图缓存。不会删除作品库仍在使用的文件。",
+  "@localSettingsStorageCleanupSectionDescription": {
+    "description": "本地设置：存储清理区块说明"
+  },
+  "localSettingsCleaningStorage": "清理中",
+  "@localSettingsCleaningStorage": {
+    "description": "本地设置：存储清理进行中按钮"
+  },
+  "localSettingsCleanUnusedFiles": "清理未引用文件",
+  "@localSettingsCleanUnusedFiles": {
+    "description": "本地设置：清理未引用文件按钮"
+  },
+  "localSettingsStorageCleanupBusyUnavailable": "正在清理存储，完成后可继续操作",
+  "@localSettingsStorageCleanupBusyUnavailable": {
+    "description": "本地设置：存储清理中按钮不可用原因"
+  },
+  "localSettingsResetSectionTitle": "恢复默认",
+  "@localSettingsResetSectionTitle": {
+    "description": "本地设置：恢复默认区块标题"
+  },
+  "localSettingsResetSectionDescription": "仅在需要重新开始配置时使用。恢复前会再次确认。",
+  "@localSettingsResetSectionDescription": {
+    "description": "本地设置：恢复默认区块说明"
+  },
+  "localSettingsResetForm": "恢复默认表单",
+  "@localSettingsResetForm": {
+    "description": "本地设置：恢复默认表单按钮"
+  },
+  "apiSettingsWorkspaceTitle": "接口配置",
+  "@apiSettingsWorkspaceTitle": {
+    "description": "接口配置工作区标题"
+  },
+  "apiSettingsWorkspaceDescription": "集中管理不同供应商的接口，其他功能页只需要选择这里保存的配置",
+  "@apiSettingsWorkspaceDescription": {
+    "description": "接口配置工作区说明"
+  },
+  "apiConfigLabel": "接口配置",
+  "@apiConfigLabel": {
+    "description": "接口配置选择器字段标签"
+  },
+  "manageApiConfigTooltip": "管理接口配置",
+  "@manageApiConfigTooltip": {
+    "description": "接口配置选择器：管理配置 tooltip"
+  },
+  "apiSettingsPanelTitle": "接口配置",
+  "@apiSettingsPanelTitle": {
+    "description": "接口配置面板标题"
+  },
+  "apiSettingsAddConfigTooltip": "新增配置",
+  "@apiSettingsAddConfigTooltip": {
+    "description": "接口配置面板：新增配置 tooltip"
+  },
+  "apiSettingsDeleteConfigTooltip": "删除当前配置",
+  "@apiSettingsDeleteConfigTooltip": {
+    "description": "接口配置面板：删除当前配置 tooltip"
+  },
+  "apiSettingsDeleteConfigUnavailable": "至少需要保留一个接口配置",
+  "@apiSettingsDeleteConfigUnavailable": {
+    "description": "接口配置面板：删除当前配置按钮不可用原因"
+  },
+  "apiTimeoutLabel": "请求超时（秒）",
+  "@apiTimeoutLabel": {
+    "description": "接口配置：请求超时字段标签"
+  },
+  "apiTimeoutHelper": "默认 {defaultSeconds} 秒，范围 {minSeconds}–{maxSeconds}；image-2 等慢模型可调大",
+  "@apiTimeoutHelper": {
+    "description": "接口配置：请求超时字段说明",
+    "placeholders": {
+      "defaultSeconds": {
+        "type": "int"
+      },
+      "minSeconds": {
+        "type": "int"
+      },
+      "maxSeconds": {
+        "type": "int"
+      }
+    }
+  },
+  "apiConfigNameLabel": "接口名称",
+  "@apiConfigNameLabel": {
+    "description": "接口配置：接口名称字段标签"
+  },
+  "apiConfigNameHint": "例如 OpenAI 官方、内网代理、备用接口",
+  "@apiConfigNameHint": {
+    "description": "接口配置：接口名称字段提示"
+  },
+  "apiConfigSwitchTooltip": "切换接口配置",
+  "@apiConfigSwitchTooltip": {
+    "description": "接口配置：切换接口配置 tooltip"
+  },
+  "apiProviderLabel": "供应商",
+  "@apiProviderLabel": {
+    "description": "接口配置：供应商字段标签"
+  },
+  "apiProviderOfficial": "OpenAI 官方",
+  "@apiProviderOfficial": {
+    "description": "接口配置：OpenAI 官方供应商标签"
+  },
+  "apiProviderCompatible": "OpenAI 兼容",
+  "@apiProviderCompatible": {
+    "description": "接口配置：OpenAI 兼容供应商标签"
+  },
+  "apiProviderOfficialDescription": "发送完整 GPT Image 参数（quality/background/output_format 等）",
+  "@apiProviderOfficialDescription": {
+    "description": "接口配置：OpenAI 官方供应商说明"
+  },
+  "apiProviderCompatibleDescription": "只发送 model/prompt/size/n，避免兼容层 502",
+  "@apiProviderCompatibleDescription": {
+    "description": "接口配置：OpenAI 兼容供应商说明"
+  },
+  "apiProviderGeminiDescription": "使用 Gemini generateContent 协议，支持文本生图和带参考图编辑",
+  "@apiProviderGeminiDescription": {
+    "description": "接口配置：Gemini 供应商说明"
+  },
+  "apiSaving": "保存中",
+  "@apiSaving": {
+    "description": "接口配置：保存中按钮状态"
+  },
+  "apiSaveConfig": "保存配置",
+  "@apiSaveConfig": {
+    "description": "接口配置：保存配置按钮"
+  },
+  "apiTesting": "测试中",
+  "@apiTesting": {
+    "description": "接口配置：测试中按钮状态"
+  },
+  "apiTestConfig": "测试接口",
+  "@apiTestConfig": {
+    "description": "接口配置：测试接口按钮"
+  },
+  "apiBasicTestTooltip": "只发送 model/prompt/size/n，先确认接口本身可用",
+  "@apiBasicTestTooltip": {
+    "description": "接口配置：基础测试按钮 tooltip"
+  },
+  "apiBasicTest": "基础测试",
+  "@apiBasicTest": {
+    "description": "接口配置：基础测试按钮"
+  },
+  "apiTestApiKeyRequired": "请先填写 API Key",
+  "@apiTestApiKeyRequired": {
+    "description": "接口配置：测试接口前缺少 API Key"
+  },
+  "apiBasicTestSuccess": "基础测试通过：接口可用，可尝试切换到完整测试验证高级参数",
+  "@apiBasicTestSuccess": {
+    "description": "接口配置：基础测试成功提示"
+  },
+  "apiTestSuccess": "接口测试成功，已收到图片数据",
+  "@apiTestSuccess": {
+    "description": "接口配置：完整测试成功提示"
+  },
+  "apiBasicTestFailed": "基础测试失败",
+  "@apiBasicTestFailed": {
+    "description": "接口配置：基础测试失败前缀"
+  },
+  "apiTestFailed": "接口测试失败",
+  "@apiTestFailed": {
+    "description": "接口配置：完整测试失败前缀"
+  },
+  "apiOfficialCompatibilityHint": "提示：当前为「OpenAI 官方」档位，反代/兼容层可能不支持 input_fidelity、output_compression、moderation 等参数，可切换到「OpenAI 兼容」档位再试",
+  "@apiOfficialCompatibilityHint": {
+    "description": "接口配置：官方档位遇到兼容层错误时的提示"
+  },
+  "apiTestTimeout": "接口测试超时，请检查反代或网络",
+  "@apiTestTimeout": {
+    "description": "接口配置：测试接口超时提示"
+  },
+  "apiTestFailedWithError": "接口测试失败：{error}",
+  "@apiTestFailedWithError": {
+    "description": "接口配置：测试接口未知错误提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "apiSaveStatusSaved": "已保存",
+  "@apiSaveStatusSaved": {
+    "description": "接口配置：已保存状态"
+  },
+  "apiSaveStatusPending": "未保存",
+  "@apiSaveStatusPending": {
+    "description": "接口配置：未保存状态"
+  },
+  "apiSaveStatusSaving": "保存中",
+  "@apiSaveStatusSaving": {
+    "description": "接口配置：保存中状态"
+  },
+  "apiSaveStatusFailed": "保存失败",
+  "@apiSaveStatusFailed": {
+    "description": "接口配置：保存失败状态"
+  },
+  "unknownError": "未知错误",
+  "@unknownError": {
+    "description": "通用：未知错误"
+  },
+  "apiSaveFailedTooltip": "保存失败：{message}",
+  "@apiSaveFailedTooltip": {
+    "description": "接口配置：保存失败 tooltip",
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "apiImageSizeCapabilityLabel": "生图尺寸能力",
+  "@apiImageSizeCapabilityLabel": {
+    "description": "接口配置：生图尺寸能力字段标签"
+  },
+  "apiImageSizeCapabilityAuto": "自动识别：{capability}。",
+  "@apiImageSizeCapabilityAuto": {
+    "description": "接口配置：自动识别生图尺寸能力说明",
+    "placeholders": {
+      "capability": {}
+    }
+  },
+  "apiImageSizeCapabilityDescription": "{capability}：{description}",
+  "@apiImageSizeCapabilityDescription": {
+    "description": "接口配置：生图尺寸能力说明",
+    "placeholders": {
+      "capability": {},
+      "description": {}
+    }
+  },
+  "apiRefreshModelList": "刷新模型列表",
+  "@apiRefreshModelList": {
+    "description": "接口配置：刷新模型列表操作"
+  },
+  "apiFetchModelList": "获取模型列表",
+  "@apiFetchModelList": {
+    "description": "接口配置：获取模型列表操作"
+  },
+  "apiHideKey": "隐藏密钥",
+  "@apiHideKey": {
+    "description": "接口配置：隐藏 API Key tooltip"
+  },
+  "apiShowKey": "显示密钥",
+  "@apiShowKey": {
+    "description": "接口配置：显示 API Key tooltip"
+  },
+  "apiModelLabel": "模型",
+  "@apiModelLabel": {
+    "description": "接口配置：模型字段标签"
+  },
+  "apiModelManualHint": "先获取模型列表，或手动填写模型名称",
+  "@apiModelManualHint": {
+    "description": "接口配置：模型字段无默认模型时的提示"
+  },
+  "apiModelFetchApiKeyRequired": "请先填写 API Key 再拉取模型列表",
+  "@apiModelFetchApiKeyRequired": {
+    "description": "接口配置：拉取模型前缺少 API Key"
+  },
+  "apiModelFetchTimeout": "获取模型列表超时，请检查反代或网络",
+  "@apiModelFetchTimeout": {
+    "description": "接口配置：获取模型列表超时提示"
+  },
+  "apiModelFetchEmpty": "接口没有返回可用模型，仍可手动填写模型名称",
+  "@apiModelFetchEmpty": {
+    "description": "接口配置：模型列表为空提示"
+  },
+  "apiModelFetchFailedWithError": "获取模型列表失败：{error}",
+  "@apiModelFetchFailedWithError": {
+    "description": "接口配置：获取模型列表失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "apiModelFetchSelected": "已获取 {count} 个模型，并选择 {modelId}",
+  "@apiModelFetchSelected": {
+    "description": "接口配置：获取模型列表并自动选择模型提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "modelId": {}
+    }
+  },
+  "apiModelFetchSuccess": "已获取 {count} 个模型，可从列表中选择",
+  "@apiModelFetchSuccess": {
+    "description": "接口配置：获取模型列表成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "apiModelPickerTooltip": "从已获取列表选择模型，或刷新列表",
+  "@apiModelPickerTooltip": {
+    "description": "接口配置：模型选择菜单 tooltip"
+  },
+  "apiModelRefreshingCached": "正在刷新模型列表，当前显示 {count} 个缓存模型",
+  "@apiModelRefreshingCached": {
+    "description": "接口配置：模型列表刷新中且有缓存",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "apiModelRefreshingEmptyCache": "正在刷新模型列表，当前缓存为空",
+  "@apiModelRefreshingEmptyCache": {
+    "description": "接口配置：模型列表刷新中且缓存为空"
+  },
+  "apiModelFetching": "正在获取模型列表...",
+  "@apiModelFetching": {
+    "description": "接口配置：首次获取模型列表"
+  },
+  "apiModelLastSuccess": "上次成功：{time}",
+  "@apiModelLastSuccess": {
+    "description": "接口配置：模型列表上次成功时间",
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "apiModelRefreshFailedUsingCache": "刷新失败，继续显示 {count} 个缓存模型",
+  "@apiModelRefreshFailedUsingCache": {
+    "description": "接口配置：刷新失败但继续使用缓存模型",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "apiModelRefreshFailedUsingCacheWithTime": "刷新失败，继续显示 {count} 个缓存模型，{lastSuccess}",
+  "@apiModelRefreshFailedUsingCacheWithTime": {
+    "description": "接口配置：刷新失败但继续使用缓存模型，并显示上次成功时间",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "lastSuccess": {}
+    }
+  },
+  "apiModelFetchedCount": "已获取 {count} 个模型",
+  "@apiModelFetchedCount": {
+    "description": "接口配置：模型获取数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "apiModelCachedCountWithTime": "已缓存 {count} 个模型，{lastSuccess}",
+  "@apiModelCachedCountWithTime": {
+    "description": "接口配置：模型缓存数量和上次成功时间",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "lastSuccess": {}
+    }
+  },
+  "apiModelRefreshFailedEmptyCache": "模型列表刷新失败，当前缓存为空，可修正配置后重试",
+  "@apiModelRefreshFailedEmptyCache": {
+    "description": "接口配置：模型列表刷新失败且缓存为空"
+  },
+  "apiModelRefreshFailedEmptyCacheWithTime": "模型列表刷新失败，当前缓存为空，{lastSuccess}",
+  "@apiModelRefreshFailedEmptyCacheWithTime": {
+    "description": "接口配置：模型列表刷新失败且缓存为空，并显示上次成功时间",
+    "placeholders": {
+      "lastSuccess": {}
+    }
+  },
+  "apiModelFetchFailed": "模型列表获取失败，可修正配置后重试",
+  "@apiModelFetchFailed": {
+    "description": "接口配置：模型列表首次获取失败"
+  },
+  "apiModelNotFetched": "尚未获取模型列表",
+  "@apiModelNotFetched": {
+    "description": "接口配置：尚未获取模型列表"
+  },
+  "imageGenerationWorkspaceTitle": "文本生图",
+  "@imageGenerationWorkspaceTitle": {
+    "description": "文本生图工作区标题"
+  },
+  "imageGenerationWorkspaceDescription": "选择已保存的接口配置，再填写提示词生成图片",
+  "@imageGenerationWorkspaceDescription": {
+    "description": "文本生图工作区说明"
+  },
+  "generationConfigSectionTitle": "生成配置",
+  "@generationConfigSectionTitle": {
+    "description": "文本生图：生成配置面板标题"
+  },
+  "positivePromptLabel": "正向提示词",
+  "@positivePromptLabel": {
+    "description": "生成表单：正向提示词字段标签"
+  },
+  "positivePromptHint": "描述你想生成的图片",
+  "@positivePromptHint": {
+    "description": "文本生图：正向提示词字段提示"
+  },
+  "negativePromptLabel": "负向提示词",
+  "@negativePromptLabel": {
+    "description": "生成表单：负向提示词字段标签"
+  },
+  "negativePromptHint": "会合并到 prompt 中，不额外发送非 OpenAI 字段",
+  "@negativePromptHint": {
+    "description": "文本生图：负向提示词字段提示"
+  },
+  "targetImageCountLabel": "目标数量",
+  "@targetImageCountLabel": {
+    "description": "生成表单：目标数量字段标签"
+  },
+  "generateImageButton": "生成图片",
+  "@generateImageButton": {
+    "description": "文本生图：生成图片按钮"
+  },
+  "generatingImageButton": "生成中",
+  "@generatingImageButton": {
+    "description": "文本生图：生成中按钮状态"
+  },
+  "imageGenerationAdjustAnimationRowsHistory": "调整序列帧行数为 {value} 行",
+  "@imageGenerationAdjustAnimationRowsHistory": {
+    "description": "文本生图状态：调整动画序列行数历史动作",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationAdjustAnimationColumnsHistory": "调整序列帧列数为 {value} 列",
+  "@imageGenerationAdjustAnimationColumnsHistory": {
+    "description": "文本生图状态：调整动画序列列数历史动作",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationAdjustAnimationGridSpecHistory": "调整序列帧切片校准",
+  "@imageGenerationAdjustAnimationGridSpecHistory": {
+    "description": "文本生图状态：调整动画序列切片校准历史动作"
+  },
+  "imageGenerationMissingApiKeyMessage": "请先在接口配置页填写 API Key",
+  "@imageGenerationMissingApiKeyMessage": {
+    "description": "文本生图状态：缺少 API Key 提示"
+  },
+  "imageGenerationMissingModelMessage": "请先在接口配置页获取模型列表并选择模型",
+  "@imageGenerationMissingModelMessage": {
+    "description": "文本生图状态：缺少模型提示"
+  },
+  "imageGenerationMissingApiKeyError": "请先在接口配置页填写 API Key。",
+  "@imageGenerationMissingApiKeyError": {
+    "description": "动画工程状态：缺少 API Key 错误"
+  },
+  "imageGenerationMissingModelError": "请先在接口配置页获取模型列表并选择模型。",
+  "@imageGenerationMissingModelError": {
+    "description": "动画工程状态：缺少模型错误"
+  },
+  "imageGenerationMissingPositivePromptMessage": "请先填写正向提示词",
+  "@imageGenerationMissingPositivePromptMessage": {
+    "description": "文本生图状态：缺少正向提示词提示"
+  },
+  "imageGenerationGenerateImagesHistory": "生成 {count} 张图片",
+  "@imageGenerationGenerateImagesHistory": {
+    "description": "文本生图状态：生成图片历史动作",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationImagesGeneratedMessage": "图片生成完成，共 {count} 张",
+  "@imageGenerationImagesGeneratedMessage": {
+    "description": "文本生图状态：图片生成完成提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationRequestTimeoutMessage": "请求超时，请检查接口地址或稍后重试",
+  "@imageGenerationRequestTimeoutMessage": {
+    "description": "文本生图状态：请求超时错误"
+  },
+  "imageGenerationFailedPrefix": "生成失败",
+  "@imageGenerationFailedPrefix": {
+    "description": "文本生图状态：生成失败错误前缀"
+  },
+  "imageGenerationImageCopiedMessage": "图片已复制到剪贴板",
+  "@imageGenerationImageCopiedMessage": {
+    "description": "文本生图状态：图片复制成功提示"
+  },
+  "imageGenerationImagePathCopiedMessage": "当前平台暂不支持直接复制图片，已复制图片路径",
+  "@imageGenerationImagePathCopiedMessage": {
+    "description": "文本生图状态：复制图片路径兜底提示"
+  },
+  "imageGenerationCopyImageFailedMessage": "复制图片失败：{error}",
+  "@imageGenerationCopyImageFailedMessage": {
+    "description": "文本生图状态：复制图片失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageGenerationImageExportedMessage": "图片已导出：{fileName}",
+  "@imageGenerationImageExportedMessage": {
+    "description": "文本生图状态：图片导出成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageGenerationExportImageFailedMessage": "导出图片失败：{error}",
+  "@imageGenerationExportImageFailedMessage": {
+    "description": "文本生图状态：图片导出失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageGenerationGeneratedResultTitle": "生成结果 {index}",
+  "@imageGenerationGeneratedResultTitle": {
+    "description": "文本生图状态：生成结果默认标题",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationTextImageSource": "文本生图",
+  "@imageGenerationTextImageSource": {
+    "description": "文本生图状态：作品库来源字段"
+  },
+  "imageGenerationTransparentBackgroundHistory": "背景转透明：{title}",
+  "@imageGenerationTransparentBackgroundHistory": {
+    "description": "文本生图状态：背景转透明历史动作",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageGenerationTransparentBackgroundSavedMessage": "已生成透明背景图片：{title} · 透明化 {count} 个像素",
+  "@imageGenerationTransparentBackgroundSavedMessage": {
+    "description": "文本生图状态：透明背景图片生成成功提示",
+    "placeholders": {
+      "title": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationMissingAnimationPromptMessage": "请先填写动画描述",
+  "@imageGenerationMissingAnimationPromptMessage": {
+    "description": "文本生图状态：缺少动画描述提示"
+  },
+  "imageGenerationMissingAnimationPromptError": "请先填写动画描述。",
+  "@imageGenerationMissingAnimationPromptError": {
+    "description": "动画工程状态：缺少动画描述错误"
+  },
+  "imageGenerationInvalidAnimationGridMessage": "请先设置有效的行列数量",
+  "@imageGenerationInvalidAnimationGridMessage": {
+    "description": "文本生图状态：动画行列数量无效提示"
+  },
+  "imageGenerationInvalidAnimationGridError": "请先设置有效的行列数量。",
+  "@imageGenerationInvalidAnimationGridError": {
+    "description": "动画工程状态：动画行列数量无效错误"
+  },
+  "imageGenerationTemplateImageMissingMessage": "模板图片不存在，请重新选择",
+  "@imageGenerationTemplateImageMissingMessage": {
+    "description": "文本生图状态：动画模板图片不存在提示"
+  },
+  "imageGenerationTemplateImageMissingError": "模板图片不存在，请重新选择。",
+  "@imageGenerationTemplateImageMissingError": {
+    "description": "动画工程状态：动画模板图片不存在错误"
+  },
+  "imageGenerationGenerateSpriteSheetHistory": "生成 Sprite Sheet",
+  "@imageGenerationGenerateSpriteSheetHistory": {
+    "description": "文本生图状态：生成 Sprite Sheet 历史动作"
+  },
+  "imageGenerationSpriteSheetSource": "动画工程",
+  "@imageGenerationSpriteSheetSource": {
+    "description": "文本生图状态：Sprite Sheet 作品库来源字段"
+  },
+  "imageGenerationSpriteSheetGeneratedImportingMessage": "Sprite Sheet 已生成，正在导入动画工程",
+  "@imageGenerationSpriteSheetGeneratedImportingMessage": {
+    "description": "文本生图状态：Sprite Sheet 生成完成并开始导入工程提示"
+  },
+  "imageGenerationSpriteSheetFailedPrefix": "Sprite Sheet 生成失败",
+  "@imageGenerationSpriteSheetFailedPrefix": {
+    "description": "文本生图状态：Sprite Sheet 生成失败前缀"
+  },
+  "imageGenerationStackOverflowMessage": "{prefix}：客户端发生 Stack Overflow，已写入调试详情。如果调试详情里没有 HTTP 状态码，说明请求没有拿到接口响应。",
+  "@imageGenerationStackOverflowMessage": {
+    "description": "文本生图状态：Stack Overflow 兜底错误提示",
+    "placeholders": {
+      "prefix": {}
+    }
+  },
+  "imageGenerationUnexpectedErrorMessage": "{prefix}：{error}",
+  "@imageGenerationUnexpectedErrorMessage": {
+    "description": "文本生图状态：未知错误提示",
+    "placeholders": {
+      "prefix": {},
+      "error": {}
+    }
+  },
+  "imageGenerationImportSpriteSheetFirstMessage": "请先生成 Sprite Sheet，再导入动画工程",
+  "@imageGenerationImportSpriteSheetFirstMessage": {
+    "description": "动画工程状态：导入工程前缺少 Sprite Sheet 提示"
+  },
+  "imageGenerationImportSpriteSheetProjectHistory": "导入 Sprite Sheet 为动画工程",
+  "@imageGenerationImportSpriteSheetProjectHistory": {
+    "description": "动画工程状态：导入 Sprite Sheet 为工程历史动作"
+  },
+  "imageGenerationImportedAnimationProjectMessage": "已导入动画工程：{count} 条轨道",
+  "@imageGenerationImportedAnimationProjectMessage": {
+    "description": "动画工程状态：导入工程成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationImportAnimationProjectFailedMessage": "导入动画工程失败：{error}",
+  "@imageGenerationImportAnimationProjectFailedMessage": {
+    "description": "动画工程状态：导入工程失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageGenerationCloseAnimationProjectHistory": "关闭动画工程",
+  "@imageGenerationCloseAnimationProjectHistory": {
+    "description": "动画工程状态：关闭工程历史动作"
+  },
+  "imageGenerationSelectAnimationTrackHistory": "选择动画轨道",
+  "@imageGenerationSelectAnimationTrackHistory": {
+    "description": "动画工程状态：选择轨道历史动作"
+  },
+  "imageGenerationRenameAnimationTrackHistory": "重命名动画轨道",
+  "@imageGenerationRenameAnimationTrackHistory": {
+    "description": "动画工程状态：重命名轨道历史动作"
+  },
+  "imageGenerationAdjustTrackFrameDelayHistory": "调整轨道帧时长",
+  "@imageGenerationAdjustTrackFrameDelayHistory": {
+    "description": "动画工程状态：调整轨道帧时长历史动作"
+  },
+  "imageGenerationAdjustTrackPlaybackHistory": "调整轨道播放方式",
+  "@imageGenerationAdjustTrackPlaybackHistory": {
+    "description": "动画工程状态：调整轨道播放方式历史动作"
+  },
+  "imageGenerationAdjustProjectDefaultDelayHistory": "调整工程默认帧时长",
+  "@imageGenerationAdjustProjectDefaultDelayHistory": {
+    "description": "动画工程状态：调整工程默认帧时长历史动作"
+  },
+  "imageGenerationAdjustProjectPlaybackHistory": "调整工程播放方式",
+  "@imageGenerationAdjustProjectPlaybackHistory": {
+    "description": "动画工程状态：调整工程播放方式历史动作"
+  },
+  "imageGenerationAdjustProjectGifLoopHistory": "调整工程 GIF 循环次数",
+  "@imageGenerationAdjustProjectGifLoopHistory": {
+    "description": "动画工程状态：调整工程 GIF 循环次数历史动作"
+  },
+  "imageGenerationExportIncludeHiddenTracksHistory": "导出包含隐藏轨道",
+  "@imageGenerationExportIncludeHiddenTracksHistory": {
+    "description": "动画工程状态：导出包含隐藏轨道历史动作"
+  },
+  "imageGenerationExportExcludeHiddenTracksHistory": "导出排除隐藏轨道",
+  "@imageGenerationExportExcludeHiddenTracksHistory": {
+    "description": "动画工程状态：导出排除隐藏轨道历史动作"
+  },
+  "imageGenerationLocalSourceLabel": "本地",
+  "@imageGenerationLocalSourceLabel": {
+    "description": "动画工程状态：本地导入来源标签"
+  },
+  "imageGenerationLibrarySourceLabel": "作品库",
+  "@imageGenerationLibrarySourceLabel": {
+    "description": "动画工程状态：作品库导入来源标签"
+  },
+  "imageGenerationSelectLibrarySequenceTitle": "选择作品库图片序列",
+  "@imageGenerationSelectLibrarySequenceTitle": {
+    "description": "动画工程状态：选择作品库图片序列弹窗标题"
+  },
+  "imageGenerationLibraryNoImportableImagesMessage": "作品库没有可导入的静态图片",
+  "@imageGenerationLibraryNoImportableImagesMessage": {
+    "description": "动画工程状态：作品库没有可导入图片提示"
+  },
+  "imageGenerationImportImageSequenceProjectHistory": "导入图片序列为动画工程",
+  "@imageGenerationImportImageSequenceProjectHistory": {
+    "description": "动画工程状态：导入图片序列为工程历史动作"
+  },
+  "imageGenerationImportedImagesAsProjectMessage": "已导入 {count} 张{sourceLabel}图片为动画工程",
+  "@imageGenerationImportedImagesAsProjectMessage": {
+    "description": "动画工程状态：图片序列导入为工程成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "sourceLabel": {}
+    }
+  },
+  "imageGenerationImportedSequenceTrackName": "导入序列 {index}",
+  "@imageGenerationImportedSequenceTrackName": {
+    "description": "动画工程状态：导入序列默认轨道名",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationImportImageSequenceTrackHistory": "导入图片序列为轨道",
+  "@imageGenerationImportImageSequenceTrackHistory": {
+    "description": "动画工程状态：导入图片序列为轨道历史动作"
+  },
+  "imageGenerationImportedImagesAsTrackMessage": "已导入 {count} 张{sourceLabel}图片为新轨道",
+  "@imageGenerationImportedImagesAsTrackMessage": {
+    "description": "动画工程状态：图片序列导入为新轨道成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "sourceLabel": {}
+    }
+  },
+  "imageGenerationImportImageSequenceFailedMessage": "导入图片序列失败：{error}",
+  "@imageGenerationImportImageSequenceFailedMessage": {
+    "description": "动画工程状态：导入图片序列失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageGenerationAddAnimationTrackHistory": "新建动画轨道",
+  "@imageGenerationAddAnimationTrackHistory": {
+    "description": "动画工程状态：新建轨道历史动作"
+  },
+  "imageGenerationDuplicateAnimationTrackHistory": "复制动画轨道",
+  "@imageGenerationDuplicateAnimationTrackHistory": {
+    "description": "动画工程状态：复制轨道历史动作"
+  },
+  "imageGenerationDeleteAnimationTrackHistory": "删除动画轨道",
+  "@imageGenerationDeleteAnimationTrackHistory": {
+    "description": "动画工程状态：删除轨道历史动作"
+  },
+  "imageGenerationMoveAnimationTrackHistory": "调整动画轨道顺序",
+  "@imageGenerationMoveAnimationTrackHistory": {
+    "description": "动画工程状态：调整轨道顺序历史动作"
+  },
+  "imageGenerationShowAnimationTrackHistory": "显示动画轨道",
+  "@imageGenerationShowAnimationTrackHistory": {
+    "description": "动画工程状态：显示轨道历史动作"
+  },
+  "imageGenerationHideAnimationTrackHistory": "隐藏动画轨道",
+  "@imageGenerationHideAnimationTrackHistory": {
+    "description": "动画工程状态：隐藏轨道历史动作"
+  },
+  "imageGenerationLockAnimationTrackHistory": "锁定动画轨道",
+  "@imageGenerationLockAnimationTrackHistory": {
+    "description": "动画工程状态：锁定轨道历史动作"
+  },
+  "imageGenerationUnlockAnimationTrackHistory": "解锁动画轨道",
+  "@imageGenerationUnlockAnimationTrackHistory": {
+    "description": "动画工程状态：解锁轨道历史动作"
+  },
+  "imageGenerationMoveAnimationFrameHistory": "调整序列帧顺序",
+  "@imageGenerationMoveAnimationFrameHistory": {
+    "description": "动画工程状态：调整序列帧顺序历史动作"
+  },
+  "imageGenerationDuplicateAnimationFrameHistory": "复制序列帧",
+  "@imageGenerationDuplicateAnimationFrameHistory": {
+    "description": "动画工程状态：复制序列帧历史动作"
+  },
+  "imageGenerationDeleteAnimationFrameHistory": "删除序列帧",
+  "@imageGenerationDeleteAnimationFrameHistory": {
+    "description": "动画工程状态：删除序列帧历史动作"
+  },
+  "imageGenerationAdjustFrameDelayHistory": "调整单帧时长",
+  "@imageGenerationAdjustFrameDelayHistory": {
+    "description": "动画工程状态：调整单帧时长历史动作"
+  },
+  "imageGenerationAdjustFrameTransformHistory": "调整单帧变换",
+  "@imageGenerationAdjustFrameTransformHistory": {
+    "description": "动画工程状态：调整单帧变换历史动作"
+  },
+  "imageGenerationRebindFrameAssetHistory": "重新绑定动画帧资源",
+  "@imageGenerationRebindFrameAssetHistory": {
+    "description": "动画工程状态：重新绑定帧资源历史动作"
+  },
+  "imageGenerationReboundFrameAssetMessage": "已重新绑定帧资源：{fileName}",
+  "@imageGenerationReboundFrameAssetMessage": {
+    "description": "动画工程状态：重新绑定帧资源成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageGenerationRebindFrameAssetFailedMessage": "重新绑定帧资源失败：{error}",
+  "@imageGenerationRebindFrameAssetFailedMessage": {
+    "description": "动画工程状态：重新绑定帧资源失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageGenerationReplaceAnimationFrameHistory": "替换动画帧",
+  "@imageGenerationReplaceAnimationFrameHistory": {
+    "description": "动画工程状态：替换动画帧历史动作"
+  },
+  "imageGenerationReplacedAnimationFrameMessage": "已替换第 {index} 帧：{fileName}",
+  "@imageGenerationReplacedAnimationFrameMessage": {
+    "description": "动画工程状态：替换动画帧成功提示",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "fileName": {}
+    }
+  },
+  "imageGenerationReplaceAnimationFrameFailedPrefix": "替换动画帧失败",
+  "@imageGenerationReplaceAnimationFrameFailedPrefix": {
+    "description": "动画工程状态：替换动画帧失败前缀"
+  },
+  "imageGenerationInsertBlankFrameHistory": "插入空白动画帧",
+  "@imageGenerationInsertBlankFrameHistory": {
+    "description": "动画工程状态：插入空白动画帧历史动作"
+  },
+  "imageGenerationInsertedBlankFrameMessage": "已在第 {index} 帧插入空白帧",
+  "@imageGenerationInsertedBlankFrameMessage": {
+    "description": "动画工程状态：插入空白帧成功提示",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationInsertBlankFrameFailedPrefix": "插入空白动画帧失败",
+  "@imageGenerationInsertBlankFrameFailedPrefix": {
+    "description": "动画工程状态：插入空白动画帧失败前缀"
+  },
+  "imageGenerationInsertImageFrameHistory": "插入图片动画帧",
+  "@imageGenerationInsertImageFrameHistory": {
+    "description": "动画工程状态：插入图片动画帧历史动作"
+  },
+  "imageGenerationInsertedImageFrameMessage": "已在第 {index} 帧插入图片帧：{fileName}",
+  "@imageGenerationInsertedImageFrameMessage": {
+    "description": "动画工程状态：插入图片帧成功提示",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "fileName": {}
+    }
+  },
+  "imageGenerationInsertImageFrameFailedPrefix": "插入图片动画帧失败",
+  "@imageGenerationInsertImageFrameFailedPrefix": {
+    "description": "动画工程状态：插入图片动画帧失败前缀"
+  },
+  "imageGenerationClearAnimationFrameHistory": "清空动画帧",
+  "@imageGenerationClearAnimationFrameHistory": {
+    "description": "动画工程状态：清空动画帧历史动作"
+  },
+  "imageGenerationClearAnimationFrameFailedPrefix": "清空动画帧失败",
+  "@imageGenerationClearAnimationFrameFailedPrefix": {
+    "description": "动画工程状态：清空动画帧失败前缀"
+  },
+  "imageGenerationPixelateAnimationFrameHistory": "像素化动画帧",
+  "@imageGenerationPixelateAnimationFrameHistory": {
+    "description": "动画工程状态：像素化动画帧历史动作"
+  },
+  "imageGenerationPixelatedAnimationFrameMessage": "已像素化第 {index} 帧（{blockSize} px）",
+  "@imageGenerationPixelatedAnimationFrameMessage": {
+    "description": "动画工程状态：像素化动画帧成功提示",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "blockSize": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationPixelateAnimationFrameFailedPrefix": "像素化动画帧失败",
+  "@imageGenerationPixelateAnimationFrameFailedPrefix": {
+    "description": "动画工程状态：像素化动画帧失败前缀"
+  },
+  "imageGenerationCurrentFrameNotEditableMessage": "当前帧不能编辑，请确认轨道未锁定",
+  "@imageGenerationCurrentFrameNotEditableMessage": {
+    "description": "动画工程状态：当前帧不可编辑提示"
+  },
+  "imageGenerationPrefixedErrorMessage": "{prefix}：{error}",
+  "@imageGenerationPrefixedErrorMessage": {
+    "description": "动画工程状态：带前缀错误提示",
+    "placeholders": {
+      "prefix": {},
+      "error": {}
+    }
+  },
+  "imageGenerationNoRepairableProjectIssuesMessage": "没有可自动修复的工程问题",
+  "@imageGenerationNoRepairableProjectIssuesMessage": {
+    "description": "动画工程状态：没有可自动修复问题提示"
+  },
+  "imageGenerationRepairProjectConsistencyHistory": "自动修复动画工程一致性",
+  "@imageGenerationRepairProjectConsistencyHistory": {
+    "description": "动画工程状态：自动修复工程一致性历史动作"
+  },
+  "imageGenerationRepairedProjectConsistencyMessage": "已自动修复工程一致性问题",
+  "@imageGenerationRepairedProjectConsistencyMessage": {
+    "description": "动画工程状态：自动修复工程一致性成功提示"
+  },
+  "imageGenerationPleaseImportAnimationProjectMessage": "请先导入动画工程",
+  "@imageGenerationPleaseImportAnimationProjectMessage": {
+    "description": "动画工程状态：未导入工程提示"
+  },
+  "imageGenerationExportAnimationProjectSpriteSheetHistory": "导出动画工程 Sprite Sheet",
+  "@imageGenerationExportAnimationProjectSpriteSheetHistory": {
+    "description": "动画工程状态：导出工程 Sprite Sheet 历史动作"
+  },
+  "imageGenerationExportedProjectSpriteSheetMessage": "动画工程 Sprite Sheet 已导出：{fileName}",
+  "@imageGenerationExportedProjectSpriteSheetMessage": {
+    "description": "动画工程状态：导出工程 Sprite Sheet 成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageGenerationExportFailedMessage": "导出失败：{error}",
+  "@imageGenerationExportFailedMessage": {
+    "description": "动画工程状态：导出失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageGenerationExportAnimationProjectGifHistory": "导出动画工程 GIF",
+  "@imageGenerationExportAnimationProjectGifHistory": {
+    "description": "动画工程状态：导出工程 GIF 历史动作"
+  },
+  "imageGenerationExportedProjectGifMessage": "动画工程 GIF 已导出：{fileName}",
+  "@imageGenerationExportedProjectGifMessage": {
+    "description": "动画工程状态：导出工程 GIF 成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageGenerationExportProjectGifFailedMessage": "导出工程 GIF 失败：{error}",
+  "@imageGenerationExportProjectGifFailedMessage": {
+    "description": "动画工程状态：导出工程 GIF 失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageGenerationPleaseSelectAnimationTrackMessage": "请先选择动画轨道",
+  "@imageGenerationPleaseSelectAnimationTrackMessage": {
+    "description": "动画工程状态：未选择轨道提示"
+  },
+  "imageGenerationExportAnimationTrackGifHistory": "导出动画轨道 GIF",
+  "@imageGenerationExportAnimationTrackGifHistory": {
+    "description": "动画工程状态：导出轨道 GIF 历史动作"
+  },
+  "imageGenerationExportedTrackGifMessage": "当前轨道 GIF 已导出：{fileName}",
+  "@imageGenerationExportedTrackGifMessage": {
+    "description": "动画工程状态：导出轨道 GIF 成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageGenerationExportedProjectPngSequenceMessage": "已导出 {count} 张工程合成 PNG 序列帧",
+  "@imageGenerationExportedProjectPngSequenceMessage": {
+    "description": "动画工程状态：导出工程 PNG 序列成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationExportProjectPngSequenceFailedMessage": "导出工程 PNG 序列失败：{error}",
+  "@imageGenerationExportProjectPngSequenceFailedMessage": {
+    "description": "动画工程状态：导出工程 PNG 序列失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageGenerationExportedTrackPngSequenceMessage": "已导出 {count} 张 PNG 序列帧",
+  "@imageGenerationExportedTrackPngSequenceMessage": {
+    "description": "动画工程状态：导出轨道 PNG 序列成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationExportPngSequenceFailedMessage": "导出 PNG 序列失败：{error}",
+  "@imageGenerationExportPngSequenceFailedMessage": {
+    "description": "动画工程状态：导出 PNG 序列失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "batchGenerationWorkspaceTitle": "批量生成",
+  "@batchGenerationWorkspaceTitle": {
+    "description": "批量生成工作区标题"
+  },
+  "batchGenerationWorkspaceDescription": "把多条文本生图任务排队串行执行，成功结果会自动进入作品库。",
+  "@batchGenerationWorkspaceDescription": {
+    "description": "批量生成工作区说明"
+  },
+  "batchQueueControlTitle": "队列控制",
+  "@batchQueueControlTitle": {
+    "description": "批量生成：队列控制面板标题"
+  },
+  "batchPromptLabel": "批量提示词",
+  "@batchPromptLabel": {
+    "description": "批量生成：批量提示词字段标签"
+  },
+  "batchPromptHint": "每行一条提示词；每条会按目标数量自动拆分",
+  "@batchPromptHint": {
+    "description": "批量生成：批量提示词字段提示"
+  },
+  "batchNegativePromptHint": "会应用到每一个批量任务",
+  "@batchNegativePromptHint": {
+    "description": "批量生成：负向提示词字段提示"
+  },
+  "batchTargetCountHelper": "每条提示词最终想生成的总数",
+  "@batchTargetCountHelper": {
+    "description": "批量生成：目标数量字段说明"
+  },
+  "batchRequestCountLabel": "每批张数",
+  "@batchRequestCountLabel": {
+    "description": "批量生成：每批张数字段标签"
+  },
+  "batchRequestCountHelper": "单次请求最多 {maxCount} 张",
+  "@batchRequestCountHelper": {
+    "description": "批量生成：每批张数字段说明",
+    "placeholders": {
+      "maxCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchSplitStatus": "当前会把每条提示词拆成 {batchCount} 个串行任务",
+  "@batchSplitStatus": {
+    "description": "批量生成：当前拆分任务数量说明",
+    "placeholders": {
+      "batchCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchAddPrompts": "按行拆分入队",
+  "@batchAddPrompts": {
+    "description": "批量生成：按行拆分入队按钮"
+  },
+  "batchStartQueue": "开始队列",
+  "@batchStartQueue": {
+    "description": "批量生成：开始队列按钮"
+  },
+  "batchContinueQueue": "继续队列",
+  "@batchContinueQueue": {
+    "description": "批量生成：继续队列按钮"
+  },
+  "batchQueueRunning": "队列运行中",
+  "@batchQueueRunning": {
+    "description": "批量生成：队列运行中按钮状态"
+  },
+  "batchActionQueueBusyUnavailable": "队列运行中，当前不能执行此操作",
+  "@batchActionQueueBusyUnavailable": {
+    "description": "批量生成：队列运行时操作不可用原因"
+  },
+  "batchActionNeedsQueuedJobs": "没有等待中的任务可执行",
+  "@batchActionNeedsQueuedJobs": {
+    "description": "批量生成：开始或继续队列不可用原因"
+  },
+  "batchActionQueueNotRunning": "队列未运行",
+  "@batchActionQueueNotRunning": {
+    "description": "批量生成：暂停按钮不可用原因"
+  },
+  "batchActionQueueAlreadyPausing": "已请求暂停后续任务",
+  "@batchActionQueueAlreadyPausing": {
+    "description": "批量生成：重复暂停不可用原因"
+  },
+  "batchActionQueueNotPaused": "队列未暂停",
+  "@batchActionQueueNotPaused": {
+    "description": "批量生成：继续后续按钮不可用原因"
+  },
+  "batchPauseAfterCurrent": "暂停后续",
+  "@batchPauseAfterCurrent": {
+    "description": "批量生成：暂停后续按钮"
+  },
+  "batchResumeQueue": "继续后续",
+  "@batchResumeQueue": {
+    "description": "批量生成：继续后续按钮"
+  },
+  "batchCancelQueued": "取消等待任务",
+  "@batchCancelQueued": {
+    "description": "批量生成：取消等待任务按钮"
+  },
+  "batchRetryFailed": "重试失败任务",
+  "@batchRetryFailed": {
+    "description": "批量生成：重试失败任务按钮"
+  },
+  "batchRetryFailedCount": "重试失败任务 ({count})",
+  "@batchRetryFailedCount": {
+    "description": "批量生成：带数量的重试失败任务按钮",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchClearFinished": "清理完成 / 失败 / 取消",
+  "@batchClearFinished": {
+    "description": "批量生成：清理完成失败取消任务按钮"
+  },
+  "batchActionNoFinishedJobs": "没有可清理的完成、失败或取消任务",
+  "@batchActionNoFinishedJobs": {
+    "description": "批量生成：清理按钮不可用原因"
+  },
+  "batchQueuePausingStatus": "已暂停后续任务。正在请求的 {runningCount} 个任务会等接口返回或超时后停下，不会继续启动新的等待任务。",
+  "@batchQueuePausingStatus": {
+    "description": "批量生成：暂停后续任务状态说明",
+    "placeholders": {
+      "runningCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchQueueRunningStatus": "正在请求 {runningCount} 个任务，后面还有 {queuedCount} 个等待任务。暂停只会阻止下一批开始，不会中断已发出的 HTTP 请求。",
+  "@batchQueueRunningStatus": {
+    "description": "批量生成：队列运行中状态说明",
+    "placeholders": {
+      "runningCount": {
+        "type": "int"
+      },
+      "queuedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchQueueWaitingStatus": "队列里有 {queuedCount} 个等待任务，可继续执行或取消等待任务。",
+  "@batchQueueWaitingStatus": {
+    "description": "批量生成：队列有等待任务状态说明",
+    "placeholders": {
+      "queuedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchQueueEmptyStatus": "没有等待中的任务。",
+  "@batchQueueEmptyStatus": {
+    "description": "批量生成：队列空状态说明"
+  },
+  "batchJobListTitle": "任务队列",
+  "@batchJobListTitle": {
+    "description": "批量生成：任务队列面板标题"
+  },
+  "batchJobListEmpty": "还没有任务。把提示词加入队列后，会按目标数量拆分并串行生成。",
+  "@batchJobListEmpty": {
+    "description": "批量生成：任务队列空状态"
+  },
+  "batchJobCount": "{count} 个任务",
+  "@batchJobCount": {
+    "description": "批量生成：任务队列数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchJobBatchPrefix": "第 {batchIndex}/{batchTotal} 批 · ",
+  "@batchJobBatchPrefix": {
+    "description": "批量生成：任务摘要中的批次前缀",
+    "placeholders": {
+      "batchIndex": {
+        "type": "int"
+      },
+      "batchTotal": {
+        "type": "int"
+      }
+    }
+  },
+  "batchJobRetrySuffix": " · 重试 {retryAttempt}/{maxAttempts}",
+  "@batchJobRetrySuffix": {
+    "description": "批量生成：任务摘要中的重试后缀",
+    "placeholders": {
+      "retryAttempt": {
+        "type": "int"
+      },
+      "maxAttempts": {
+        "type": "int"
+      }
+    }
+  },
+  "batchJobSummary": "{status} · {batchLabel}{size} · {imageCount} 张 · {apiConfigName}{retryLabel}",
+  "@batchJobSummary": {
+    "description": "批量生成：任务摘要",
+    "placeholders": {
+      "status": {},
+      "batchLabel": {},
+      "size": {},
+      "imageCount": {
+        "type": "int"
+      },
+      "apiConfigName": {},
+      "retryLabel": {}
+    }
+  },
+  "batchRetryJobTooltip": "重试任务",
+  "@batchRetryJobTooltip": {
+    "description": "批量生成：单个任务重试 tooltip"
+  },
+  "batchRemoveJobTooltip": "移除任务",
+  "@batchRemoveJobTooltip": {
+    "description": "批量生成：单个任务移除 tooltip"
+  },
+  "batchJobStatusQueued": "等待中",
+  "@batchJobStatusQueued": {
+    "description": "批量生成：任务状态等待中"
+  },
+  "batchJobStatusRunning": "生成中",
+  "@batchJobStatusRunning": {
+    "description": "批量生成：任务状态生成中"
+  },
+  "batchJobStatusSucceeded": "已完成",
+  "@batchJobStatusSucceeded": {
+    "description": "批量生成：任务状态已完成"
+  },
+  "batchJobStatusFailed": "失败",
+  "@batchJobStatusFailed": {
+    "description": "批量生成：任务状态失败"
+  },
+  "batchJobStatusSkipped": "已取消",
+  "@batchJobStatusSkipped": {
+    "description": "批量生成：任务状态已取消"
+  },
+  "cancelAction": "取消",
+  "@cancelAction": {
+    "description": "通用：取消操作"
+  },
+  "saveAction": "保存",
+  "@saveAction": {
+    "description": "通用：保存操作"
+  },
+  "retryAction": "重试",
+  "@retryAction": {
+    "description": "通用：重试操作"
+  },
+  "playAction": "播放",
+  "@playAction": {
+    "description": "通用：播放操作"
+  },
+  "pauseAction": "暂停",
+  "@pauseAction": {
+    "description": "通用：暂停操作"
+  },
+  "closeAction": "关闭",
+  "@closeAction": {
+    "description": "通用：关闭操作"
+  },
+  "copyAction": "复制",
+  "@copyAction": {
+    "description": "通用：复制操作"
+  },
+  "selectAction": "选择",
+  "@selectAction": {
+    "description": "通用：选择操作"
+  },
+  "replaceAction": "更换",
+  "@replaceAction": {
+    "description": "通用：更换操作"
+  },
+  "confirmSelectionAction": "确认选择",
+  "@confirmSelectionAction": {
+    "description": "通用：确认选择操作"
+  },
+  "confirmDeleteAction": "确认删除",
+  "@confirmDeleteAction": {
+    "description": "通用：确认删除操作"
+  },
+  "imageLibraryWorkspaceTitle": "作品",
+  "@imageLibraryWorkspaceTitle": {
+    "description": "作品库工作区标题"
+  },
+  "imageLibraryWorkspaceDescription": "集中保存生成、切片、编辑和合成后的图片，其他功能可以直接复用",
+  "@imageLibraryWorkspaceDescription": {
+    "description": "作品库工作区说明"
+  },
+  "imageLibraryPanelTitle": "应用内作品",
+  "@imageLibraryPanelTitle": {
+    "description": "作品库面板标题"
+  },
+  "imageLibraryTotalCount": "{count} 个作品",
+  "@imageLibraryTotalCount": {
+    "description": "作品库：总作品数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryFilteredCount": "{visibleCount} / {totalCount}",
+  "@imageLibraryFilteredCount": {
+    "description": "作品库：筛选后数量 / 总数量",
+    "placeholders": {
+      "visibleCount": {
+        "type": "int"
+      },
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySearchLabel": "搜索作品",
+  "@imageLibrarySearchLabel": {
+    "description": "作品库：搜索框标签"
+  },
+  "imageLibraryClearSearchTooltip": "清空搜索",
+  "@imageLibraryClearSearchTooltip": {
+    "description": "作品库：清空搜索 tooltip"
+  },
+  "imageLibraryProjectLabel": "项目",
+  "@imageLibraryProjectLabel": {
+    "description": "作品库：项目字段标签"
+  },
+  "imageLibraryAllProjects": "全部项目",
+  "@imageLibraryAllProjects": {
+    "description": "作品库：全部项目筛选项"
+  },
+  "imageLibraryTagLabel": "标签",
+  "@imageLibraryTagLabel": {
+    "description": "作品库：标签字段标签"
+  },
+  "imageLibraryAllTags": "全部标签",
+  "@imageLibraryAllTags": {
+    "description": "作品库：全部标签筛选项"
+  },
+  "imageLibrarySortLabel": "排序",
+  "@imageLibrarySortLabel": {
+    "description": "作品库：排序字段标签"
+  },
+  "imageLibrarySelectVisible": "选择当前结果",
+  "@imageLibrarySelectVisible": {
+    "description": "作品库：选择当前可见结果按钮"
+  },
+  "imageLibrarySelectVisibleEmptyUnavailable": "当前没有可选择的作品",
+  "@imageLibrarySelectVisibleEmptyUnavailable": {
+    "description": "作品库：空结果时选择当前结果按钮不可用原因"
+  },
+  "imageLibrarySelectVisibleAllSelectedUnavailable": "当前结果已全部选中",
+  "@imageLibrarySelectVisibleAllSelectedUnavailable": {
+    "description": "作品库：当前结果全选时选择当前结果按钮不可用原因"
+  },
+  "imageLibraryExpandSlices": "展开切片 ({count})",
+  "@imageLibraryExpandSlices": {
+    "description": "作品库：展开切片筛选按钮",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySelectedCount": "已选 {count}",
+  "@imageLibrarySelectedCount": {
+    "description": "作品库：已选数量按钮",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryExportSelected": "导出已选",
+  "@imageLibraryExportSelected": {
+    "description": "作品库：导出已选按钮"
+  },
+  "imageLibraryDeleteSelected": "删除已选",
+  "@imageLibraryDeleteSelected": {
+    "description": "作品库：删除已选按钮"
+  },
+  "imageLibraryTileKeyboardHint": "按空格切换选择，按回车打开主要操作",
+  "@imageLibraryTileKeyboardHint": {
+    "description": "作品库：作品卡片键盘操作语义提示"
+  },
+  "imageLibraryEmptyAll": "暂无作品。生成、导出、编辑或合成后的图片会保存到这里。",
+  "@imageLibraryEmptyAll": {
+    "description": "作品库：无任何作品空状态"
+  },
+  "imageLibraryEmptyFiltered": "当前条件下没有作品。",
+  "@imageLibraryEmptyFiltered": {
+    "description": "作品库：筛选后无结果空状态"
+  },
+  "imageLibraryPageEmptyRange": "0 / 0",
+  "@imageLibraryPageEmptyRange": {
+    "description": "作品库：空分页范围"
+  },
+  "imageLibraryPageRange": "{startIndex}-{endIndex} / {totalCount}",
+  "@imageLibraryPageRange": {
+    "description": "作品库：分页范围",
+    "placeholders": {
+      "startIndex": {
+        "type": "int"
+      },
+      "endIndex": {
+        "type": "int"
+      },
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryPageStatus": "第 {pageIndex} / {pageCount} 页 · {rangeLabel}",
+  "@imageLibraryPageStatus": {
+    "description": "作品库：分页状态",
+    "placeholders": {
+      "pageIndex": {
+        "type": "int"
+      },
+      "pageCount": {
+        "type": "int"
+      },
+      "rangeLabel": {}
+    }
+  },
+  "imageLibraryPaginationSemanticLabel": "作品库分页控制 · {statusLabel} · 每页 {pageSize} 个",
+  "@imageLibraryPaginationSemanticLabel": {
+    "description": "作品库：分页控制区域语义标签",
+    "placeholders": {
+      "statusLabel": {},
+      "pageSize": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryFirstPageTooltip": "第一页",
+  "@imageLibraryFirstPageTooltip": {
+    "description": "作品库：第一页 tooltip"
+  },
+  "imageLibraryPreviousPageTooltip": "上一页",
+  "@imageLibraryPreviousPageTooltip": {
+    "description": "作品库：上一页 tooltip"
+  },
+  "imageLibraryNextPageTooltip": "下一页",
+  "@imageLibraryNextPageTooltip": {
+    "description": "作品库：下一页 tooltip"
+  },
+  "imageLibraryLastPageTooltip": "最后一页",
+  "@imageLibraryLastPageTooltip": {
+    "description": "作品库：最后一页 tooltip"
+  },
+  "imageLibraryPageSizePrefix": "每页",
+  "@imageLibraryPageSizePrefix": {
+    "description": "作品库：每页数量前缀"
+  },
+  "imageLibraryPageSizeSuffix": "个",
+  "@imageLibraryPageSizeSuffix": {
+    "description": "作品库：每页数量后缀"
+  },
+  "imageLibraryFilterAll": "全部",
+  "@imageLibraryFilterAll": {
+    "description": "作品库：筛选全部"
+  },
+  "imageLibraryFilterGenerated": "生图",
+  "@imageLibraryFilterGenerated": {
+    "description": "作品库：筛选生图"
+  },
+  "imageLibraryFilterSprite": "切片 / 帧",
+  "@imageLibraryFilterSprite": {
+    "description": "作品库：筛选切片或帧图"
+  },
+  "imageLibraryFilterEdited": "编辑",
+  "@imageLibraryFilterEdited": {
+    "description": "作品库：筛选编辑图"
+  },
+  "imageLibraryFilterAnimation": "动画",
+  "@imageLibraryFilterAnimation": {
+    "description": "作品库：筛选动画工程"
+  },
+  "imageLibraryFilterGif": "GIF",
+  "@imageLibraryFilterGif": {
+    "description": "作品库：筛选 GIF"
+  },
+  "imageLibrarySortNewest": "最新优先",
+  "@imageLibrarySortNewest": {
+    "description": "作品库：最新优先排序"
+  },
+  "imageLibrarySortOldest": "最旧优先",
+  "@imageLibrarySortOldest": {
+    "description": "作品库：最旧优先排序"
+  },
+  "imageLibrarySortTitleAsc": "标题 A-Z",
+  "@imageLibrarySortTitleAsc": {
+    "description": "作品库：标题升序排序"
+  },
+  "imageLibrarySavedFramesBadge": "{savedCount}/{totalCount} 帧",
+  "@imageLibrarySavedFramesBadge": {
+    "description": "作品库：已保存切片数量徽标",
+    "placeholders": {
+      "savedCount": {
+        "type": "int"
+      },
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryActionSlices": "切片",
+  "@imageLibraryActionSlices": {
+    "description": "作品库卡片：切片主操作"
+  },
+  "imageLibraryActionOpen": "打开",
+  "@imageLibraryActionOpen": {
+    "description": "作品库卡片：打开主操作"
+  },
+  "imageLibraryActionReuse": "复用",
+  "@imageLibraryActionReuse": {
+    "description": "作品库卡片：复用主操作"
+  },
+  "imageLibraryActionEdit": "编辑",
+  "@imageLibraryActionEdit": {
+    "description": "作品库卡片：编辑主操作"
+  },
+  "imageLibraryEditMetadataTooltip": "编辑作品信息",
+  "@imageLibraryEditMetadataTooltip": {
+    "description": "作品库卡片：编辑作品信息 tooltip"
+  },
+  "imageLibraryMoreActionsTooltip": "更多操作",
+  "@imageLibraryMoreActionsTooltip": {
+    "description": "作品库卡片：更多操作 tooltip"
+  },
+  "imageLibraryMenuOpenAnimation": "打开动画工程",
+  "@imageLibraryMenuOpenAnimation": {
+    "description": "作品库菜单：打开动画工程"
+  },
+  "imageLibraryMenuOpenInEditor": "在编辑器中打开",
+  "@imageLibraryMenuOpenInEditor": {
+    "description": "作品库菜单：在编辑器中打开"
+  },
+  "imageLibraryMenuReuseGeneration": "复用生成参数",
+  "@imageLibraryMenuReuseGeneration": {
+    "description": "作品库菜单：复用生成参数"
+  },
+  "imageLibraryMenuCopyGeneration": "复制生成参数",
+  "@imageLibraryMenuCopyGeneration": {
+    "description": "作品库菜单：复制生成参数"
+  },
+  "imageLibraryMenuTransparentBg": "背景转透明",
+  "@imageLibraryMenuTransparentBg": {
+    "description": "作品库菜单：背景转透明"
+  },
+  "imageLibraryMenuCopyImage": "复制图片",
+  "@imageLibraryMenuCopyImage": {
+    "description": "作品库菜单：复制图片"
+  },
+  "imageLibraryMenuExportImage": "导出图片",
+  "@imageLibraryMenuExportImage": {
+    "description": "作品库菜单：导出图片"
+  },
+  "imageLibraryMenuExportFile": "导出文件",
+  "@imageLibraryMenuExportFile": {
+    "description": "作品库菜单：导出文件"
+  },
+  "imageLibraryMenuCopyPath": "复制路径",
+  "@imageLibraryMenuCopyPath": {
+    "description": "作品库菜单：复制路径"
+  },
+  "imageLibraryMenuOpenLocation": "打开位置",
+  "@imageLibraryMenuOpenLocation": {
+    "description": "作品库菜单：打开位置"
+  },
+  "imageLibraryMenuDelete": "删除作品",
+  "@imageLibraryMenuDelete": {
+    "description": "作品库菜单：删除作品"
+  },
+  "imageAssetKindGenerated": "生图",
+  "@imageAssetKindGenerated": {
+    "description": "图片资产类型：生图"
+  },
+  "imageAssetKindSpriteSheet": "切片",
+  "@imageAssetKindSpriteSheet": {
+    "description": "图片资产类型：Sprite Sheet"
+  },
+  "imageAssetKindSpriteFrame": "帧图",
+  "@imageAssetKindSpriteFrame": {
+    "description": "图片资产类型：帧图"
+  },
+  "imageAssetKindEdited": "编辑",
+  "@imageAssetKindEdited": {
+    "description": "图片资产类型：编辑图"
+  },
+  "imageAssetKindAnimationProject": "动画",
+  "@imageAssetKindAnimationProject": {
+    "description": "图片资产类型：动画工程"
+  },
+  "imageAssetKindGif": "GIF",
+  "@imageAssetKindGif": {
+    "description": "图片资产类型：GIF"
+  },
+  "imageLibraryPickerSelectCount": "选择 {count} 张",
+  "@imageLibraryPickerSelectCount": {
+    "description": "作品库选择器：选择多张按钮",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryPickerItemSemanticLabel": "{kind} · {title} · 第 {index} / {total} 项",
+  "@imageLibraryPickerItemSemanticLabel": {
+    "description": "作品库选择器：单个作品项语义标签",
+    "placeholders": {
+      "kind": {},
+      "title": {},
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySliceMissingGridMetadata": "该 Sprite Sheet 缺少行列元数据。",
+  "@imageLibrarySliceMissingGridMetadata": {
+    "description": "作品库切片：缺少行列元数据错误"
+  },
+  "imageLibrarySliceLoadFailed": "加载切片失败：{error}",
+  "@imageLibrarySliceLoadFailed": {
+    "description": "作品库切片：加载失败错误",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageLibrarySliceExplorerTitle": "切片管理 · {title}",
+  "@imageLibrarySliceExplorerTitle": {
+    "description": "作品库切片管理弹窗标题",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageLibrarySliceSavedStatus": "已保存 {savedCount} / {totalCount}",
+  "@imageLibrarySliceSavedStatus": {
+    "description": "作品库切片：已保存数量状态",
+    "placeholders": {
+      "savedCount": {
+        "type": "int"
+      },
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySliceSavedBadge": "已保存",
+  "@imageLibrarySliceSavedBadge": {
+    "description": "作品库切片：已保存徽标"
+  },
+  "imageLibrarySliceUnsavedStatus": "未保存",
+  "@imageLibrarySliceUnsavedStatus": {
+    "description": "作品库切片：未保存状态"
+  },
+  "imageLibrarySliceExplorerFrameSemanticLabel": "切片帧 {index} / {total} · {status}",
+  "@imageLibrarySliceExplorerFrameSemanticLabel": {
+    "description": "作品库切片管理：单帧语义标签",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "status": {}
+    }
+  },
+  "imageLibrarySliceSaveOneTooltip": "保存这一帧",
+  "@imageLibrarySliceSaveOneTooltip": {
+    "description": "作品库切片：保存单帧 tooltip"
+  },
+  "imageLibrarySliceAllSaved": "已全部保存",
+  "@imageLibrarySliceAllSaved": {
+    "description": "作品库切片：全部已保存按钮"
+  },
+  "imageLibrarySliceSaveAll": "全部保存为切片 ({count})",
+  "@imageLibrarySliceSaveAll": {
+    "description": "作品库切片：全部保存按钮",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySlicePickerMultiTitle": "挑选切片帧",
+  "@imageLibrarySlicePickerMultiTitle": {
+    "description": "作品库切片选择器：多选默认标题"
+  },
+  "imageLibrarySlicePickerSingleTitle": "挑选一帧作为来源",
+  "@imageLibrarySlicePickerSingleTitle": {
+    "description": "作品库切片选择器：单选默认标题"
+  },
+  "imageLibrarySlicePickerTitle": "{title} · {sheetTitle}",
+  "@imageLibrarySlicePickerTitle": {
+    "description": "作品库切片选择器标题",
+    "placeholders": {
+      "title": {},
+      "sheetTitle": {}
+    }
+  },
+  "imageLibrarySlicePickerSelectedStatus": "已选 {selectedCount} / {totalCount}",
+  "@imageLibrarySlicePickerSelectedStatus": {
+    "description": "作品库切片选择器：多选已选状态",
+    "placeholders": {
+      "selectedCount": {
+        "type": "int"
+      },
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySlicePickerNotSelected": "尚未选择",
+  "@imageLibrarySlicePickerNotSelected": {
+    "description": "作品库切片选择器：未选择状态"
+  },
+  "imageLibrarySlicePickerSelectedOne": "已选 #{index}",
+  "@imageLibrarySlicePickerSelectedOne": {
+    "description": "作品库切片选择器：单选已选状态",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySlicePickerConfirmCount": "确认选择 ({count})",
+  "@imageLibrarySlicePickerConfirmCount": {
+    "description": "作品库切片选择器：确认多选按钮",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySliceFrameSemanticLabel": "切片帧 {index} / {total}",
+  "@imageLibrarySliceFrameSemanticLabel": {
+    "description": "作品库切片选择器：单帧语义标签",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "pickSourceLocalFileTitle": "从本地文件选择",
+  "@pickSourceLocalFileTitle": {
+    "description": "图片来源选择：本地文件标题"
+  },
+  "pickSourceLocalFileSubtitle": "打开电脑文件选择窗口",
+  "@pickSourceLocalFileSubtitle": {
+    "description": "图片来源选择：本地文件说明"
+  },
+  "pickSourceImageLibraryTitle": "从作品库选择",
+  "@pickSourceImageLibraryTitle": {
+    "description": "图片来源选择：作品库标题"
+  },
+  "pickSourceImageLibrarySubtitle": "直接使用已保存到作品库的图片",
+  "@pickSourceImageLibrarySubtitle": {
+    "description": "图片来源选择：作品库说明"
+  },
+  "pickSourceImageLibraryEmpty": "作品库还没有可用图片",
+  "@pickSourceImageLibraryEmpty": {
+    "description": "图片来源选择：作品库无可用图片说明"
+  },
+  "imageLibraryEditMetadataTitle": "编辑作品信息",
+  "@imageLibraryEditMetadataTitle": {
+    "description": "作品库：编辑作品信息弹窗标题"
+  },
+  "imageLibraryMetadataTitleLabel": "标题",
+  "@imageLibraryMetadataTitleLabel": {
+    "description": "作品库：作品标题字段标签"
+  },
+  "imageLibraryMetadataNoteLabel": "备注",
+  "@imageLibraryMetadataNoteLabel": {
+    "description": "作品库：备注字段标签"
+  },
+  "imageLibraryMetadataNoteHint": "记录用途、版本或修改说明",
+  "@imageLibraryMetadataNoteHint": {
+    "description": "作品库：备注字段提示"
+  },
+  "imageLibraryMetadataProjectHint": "例如：角色 A、Demo 游戏、UI 图标集",
+  "@imageLibraryMetadataProjectHint": {
+    "description": "作品库：项目字段提示"
+  },
+  "imageLibraryMetadataTagsHint": "用逗号分隔，例如：idle, run, pixel",
+  "@imageLibraryMetadataTagsHint": {
+    "description": "作品库：标签字段提示"
+  },
+  "imageLibraryDeleteCascade": "同时会移除 {count} 个关联的切片帧。",
+  "@imageLibraryDeleteCascade": {
+    "description": "作品库：删除时级联切片数量提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryDeleteBatchTitle": "删除 {count} 个作品",
+  "@imageLibraryDeleteBatchTitle": {
+    "description": "作品库：批量删除标题",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryDeleteOneTitle": "删除作品",
+  "@imageLibraryDeleteOneTitle": {
+    "description": "作品库：删除单个作品标题"
+  },
+  "imageLibraryDeleteBatchMessage": "将从作品库移除这些作品，并删除应用缓存中的对应文件。{cascadeText}\n此操作不可撤销。",
+  "@imageLibraryDeleteBatchMessage": {
+    "description": "作品库：批量删除确认内容",
+    "placeholders": {
+      "cascadeText": {}
+    }
+  },
+  "imageLibraryDeleteOneMessage": "将从作品库移除「{title}」，并删除应用缓存中的对应文件。{cascadeText}\n此操作不可撤销。",
+  "@imageLibraryDeleteOneMessage": {
+    "description": "作品库：删除单个作品确认内容",
+    "placeholders": {
+      "title": {},
+      "cascadeText": {}
+    }
+  },
+  "pixelArtWorkspaceDescription": "逐格绘制像素画，支持画笔、橡皮、取色和保存到作品库",
+  "@pixelArtWorkspaceDescription": {
+    "description": "像素画工作区说明"
+  },
+  "pixelArtEnterFocusTooltip": "进入全屏编辑",
+  "@pixelArtEnterFocusTooltip": {
+    "description": "像素画：进入全屏编辑 tooltip"
+  },
+  "pixelArtExitFocusTooltip": "退出全屏编辑",
+  "@pixelArtExitFocusTooltip": {
+    "description": "像素画：退出全屏编辑 tooltip"
+  },
+  "pixelArtToolsTitle": "像素画工具",
+  "@pixelArtToolsTitle": {
+    "description": "像素画：工具面板标题"
+  },
+  "pixelArtCanvasSizeTitle": "画布尺寸",
+  "@pixelArtCanvasSizeTitle": {
+    "description": "像素画：画布尺寸区块标题"
+  },
+  "pixelArtCanvasWidthLabel": "画布宽度",
+  "@pixelArtCanvasWidthLabel": {
+    "description": "像素画：画布宽度字段"
+  },
+  "pixelArtCanvasHeightLabel": "画布高度",
+  "@pixelArtCanvasHeightLabel": {
+    "description": "像素画：画布高度字段"
+  },
+  "pixelArtApplyAfterChangeHelper": "修改后应用",
+  "@pixelArtApplyAfterChangeHelper": {
+    "description": "像素画：画布尺寸修改后应用提示"
+  },
+  "pixelArtApplyCanvasSize": "应用画布尺寸",
+  "@pixelArtApplyCanvasSize": {
+    "description": "像素画：应用画布尺寸按钮"
+  },
+  "pixelArtBrushTool": "画笔",
+  "@pixelArtBrushTool": {
+    "description": "像素画：画笔工具"
+  },
+  "pixelArtEraserTool": "橡皮",
+  "@pixelArtEraserTool": {
+    "description": "像素画：橡皮工具"
+  },
+  "pixelArtEyedropperTool": "取色",
+  "@pixelArtEyedropperTool": {
+    "description": "像素画：取色工具"
+  },
+  "pixelArtBrushSizeLabel": "画笔大小",
+  "@pixelArtBrushSizeLabel": {
+    "description": "像素画：画笔大小字段"
+  },
+  "pixelArtCellSuffix": "格",
+  "@pixelArtCellSuffix": {
+    "description": "像素画：像素格数量后缀"
+  },
+  "pixelArtBrushSizeHelper": "按方形笔刷覆盖像素格",
+  "@pixelArtBrushSizeHelper": {
+    "description": "像素画：画笔大小说明"
+  },
+  "pixelArtColorTitle": "颜色",
+  "@pixelArtColorTitle": {
+    "description": "像素画：颜色区块标题"
+  },
+  "pixelArtZoomTitle": "缩放",
+  "@pixelArtZoomTitle": {
+    "description": "像素画：缩放区块标题"
+  },
+  "pixelArtNewBlankCanvas": "新建空白",
+  "@pixelArtNewBlankCanvas": {
+    "description": "像素画：新建空白画布按钮"
+  },
+  "pixelArtClearCanvas": "清空",
+  "@pixelArtClearCanvas": {
+    "description": "像素画：清空画布按钮"
+  },
+  "pixelArtSaveToLibrary": "保存到作品库",
+  "@pixelArtSaveToLibrary": {
+    "description": "像素画：保存到作品库按钮"
+  },
+  "pixelArtSaving": "保存中",
+  "@pixelArtSaving": {
+    "description": "像素画：保存忙碌状态"
+  },
+  "pixelArtCanvasTitle": "像素画画布",
+  "@pixelArtCanvasTitle": {
+    "description": "像素画：画布面板标题"
+  },
+  "pixelArtCanvasSemanticLabel": "像素画画布 · {width} x {height} · 当前键盘光标第 {cursorX} 列第 {cursorY} 行，方向键移动，空格或回车绘制",
+  "@pixelArtCanvasSemanticLabel": {
+    "description": "像素画：画布键盘操作语义标签",
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      },
+      "cursorX": {
+        "type": "int"
+      },
+      "cursorY": {
+        "type": "int"
+      }
+    }
+  },
+  "homeResetDefaultsAction": "恢复默认表单",
+  "@homeResetDefaultsAction": {
+    "description": "首页：恢复默认表单历史动作标题"
+  },
+  "homeResetDefaultsMessage": "表单已重置，可用 Ctrl+Z 撤销",
+  "@homeResetDefaultsMessage": {
+    "description": "首页：恢复默认表单提示"
+  },
+  "homePixelArtTitle": "像素画",
+  "@homePixelArtTitle": {
+    "description": "首页：像素画保存到作品库时的标题"
+  },
+  "homePixelArtSource": "像素画编辑",
+  "@homePixelArtSource": {
+    "description": "首页：像素画保存到作品库时的来源字段"
+  },
+  "homePixelArtPrompt": "像素画编辑 · {width} x {height}",
+  "@homePixelArtPrompt": {
+    "description": "首页：像素画保存到作品库时的提示词摘要",
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "homePixelArtSaveAction": "保存像素画",
+  "@homePixelArtSaveAction": {
+    "description": "首页：像素画保存历史动作标题"
+  },
+  "homePixelArtSavedMessage": "像素画已保存到作品库：{fileName}",
+  "@homePixelArtSavedMessage": {
+    "description": "首页：像素画保存成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "homePixelArtSaveFailedMessage": "保存像素画失败：{error}",
+  "@homePixelArtSaveFailedMessage": {
+    "description": "首页：像素画保存失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "pixelArtChooseColorTooltip": "选择颜色",
+  "@pixelArtChooseColorTooltip": {
+    "description": "像素画：色板按钮 tooltip"
+  },
+  "generalImageEditorTitle": "通用图片编辑",
+  "@generalImageEditorTitle": {
+    "description": "通用图片编辑：控制面板标题"
+  },
+  "generalImageEditorSourceImageTitle": "待编辑图片",
+  "@generalImageEditorSourceImageTitle": {
+    "description": "通用图片编辑：待编辑图片选择器标题"
+  },
+  "generalImageEditorReplaceAction": "更换",
+  "@generalImageEditorReplaceAction": {
+    "description": "通用图片编辑：更换图片按钮"
+  },
+  "generalImageEditorClearImageTooltip": "清除图片",
+  "@generalImageEditorClearImageTooltip": {
+    "description": "通用图片编辑：清除图片 tooltip"
+  },
+  "generalImageEditorQuickActionsTitle": "快捷处理",
+  "@generalImageEditorQuickActionsTitle": {
+    "description": "通用图片编辑：快捷处理区块标题"
+  },
+  "generalImageEditorQuickActionsSubtitle": "常用导出风格与版本快照",
+  "@generalImageEditorQuickActionsSubtitle": {
+    "description": "通用图片编辑：快捷处理区块说明"
+  },
+  "generalImageEditorGeometryTab": "几何",
+  "@generalImageEditorGeometryTab": {
+    "description": "通用图片编辑：几何面板标签"
+  },
+  "generalImageEditorAppearanceTab": "外观",
+  "@generalImageEditorAppearanceTab": {
+    "description": "通用图片编辑：外观面板标签"
+  },
+  "generalImageEditorAnnotationTab": "标注",
+  "@generalImageEditorAnnotationTab": {
+    "description": "通用图片编辑：标注面板标签"
+  },
+  "generalImageEditorOutputTab": "输出",
+  "@generalImageEditorOutputTab": {
+    "description": "通用图片编辑：输出面板标签"
+  },
+  "generalImageEditorGeometryTitle": "几何调整",
+  "@generalImageEditorGeometryTitle": {
+    "description": "通用图片编辑：几何调整区块标题"
+  },
+  "generalImageEditorGeometrySubtitle": "旋转、翻转、裁剪和输出尺寸",
+  "@generalImageEditorGeometrySubtitle": {
+    "description": "通用图片编辑：几何调整区块说明"
+  },
+  "generalImageEditorAppearanceTitle": "外观处理",
+  "@generalImageEditorAppearanceTitle": {
+    "description": "通用图片编辑：外观处理区块标题"
+  },
+  "generalImageEditorAppearanceSubtitle": "色彩、滤镜、锐化、透明与局部选区",
+  "@generalImageEditorAppearanceSubtitle": {
+    "description": "通用图片编辑：外观处理区块说明"
+  },
+  "generalImageEditorAnnotationSubtitle": "文字、形状、箭头与标记位置",
+  "@generalImageEditorAnnotationSubtitle": {
+    "description": "通用图片编辑：标注区块说明"
+  },
+  "generalImageEditorOutputSubtitle": "保存格式、质量和最终预览",
+  "@generalImageEditorOutputSubtitle": {
+    "description": "通用图片编辑：输出区块说明"
+  },
+  "generalImageEditorGeneratePreview": "生成完整预览",
+  "@generalImageEditorGeneratePreview": {
+    "description": "通用图片编辑：生成完整预览按钮"
+  },
+  "generalImageEditorResetOptions": "重置参数",
+  "@generalImageEditorResetOptions": {
+    "description": "通用图片编辑：重置参数按钮"
+  },
+  "generalImageEditorApplyAndSave": "应用并保存",
+  "@generalImageEditorApplyAndSave": {
+    "description": "通用图片编辑：应用并保存按钮"
+  },
+  "generalImageEditorProcessing": "处理中",
+  "@generalImageEditorProcessing": {
+    "description": "通用图片编辑：处理忙碌状态"
+  },
+  "generalImageEditorPreviewTitle": "编辑预览",
+  "@generalImageEditorPreviewTitle": {
+    "description": "通用图片编辑：预览面板标题"
+  },
+  "generalImageEditorPreviewEmpty": "选择图片后开始编辑",
+  "@generalImageEditorPreviewEmpty": {
+    "description": "通用图片编辑：未选择图片时的预览空状态"
+  },
+  "generalImageEditorPreviewLoading": "正在生成预览",
+  "@generalImageEditorPreviewLoading": {
+    "description": "通用图片编辑：预览生成中"
+  },
+  "generalImageEditorPreviewFailed": "预览失败",
+  "@generalImageEditorPreviewFailed": {
+    "description": "通用图片编辑：预览失败标题"
+  },
+  "generalImageEditorNoPreviewResult": "没有可用的预览结果",
+  "@generalImageEditorNoPreviewResult": {
+    "description": "通用图片编辑：预览无结果错误"
+  },
+  "generalImageEditorPreviewFooter": "{fileName} · 拖拽裁剪框或选区，点击标注可删除",
+  "@generalImageEditorPreviewFooter": {
+    "description": "通用图片编辑：可编辑预览底部提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "generalImageEditorPresetsTitle": "常用预设",
+  "@generalImageEditorPresetsTitle": {
+    "description": "通用图片编辑：预设区块标题"
+  },
+  "generalImageEditorPresetsSubtitle": "快速套用常见输出和处理组合",
+  "@generalImageEditorPresetsSubtitle": {
+    "description": "通用图片编辑：预设区块说明"
+  },
+  "generalImageEditorTransparentPngPreset": "透明 PNG",
+  "@generalImageEditorTransparentPngPreset": {
+    "description": "通用图片编辑：透明 PNG 预设"
+  },
+  "generalImageEditorSocialJpegPreset": "社媒 JPEG",
+  "@generalImageEditorSocialJpegPreset": {
+    "description": "通用图片编辑：社媒 JPEG 预设"
+  },
+  "generalImageEditorSharpJpegPreset": "清晰 JPEG",
+  "@generalImageEditorSharpJpegPreset": {
+    "description": "通用图片编辑：清晰 JPEG 预设"
+  },
+  "generalImageEditorPixelPngPreset": "像素风 PNG",
+  "@generalImageEditorPixelPngPreset": {
+    "description": "通用图片编辑：像素风 PNG 预设"
+  },
+  "generalImageEditorVersionTitle": "版本快照",
+  "@generalImageEditorVersionTitle": {
+    "description": "通用图片编辑：版本快照区块标题"
+  },
+  "generalImageEditorSaveCurrentVersion": "保存当前版本",
+  "@generalImageEditorSaveCurrentVersion": {
+    "description": "通用图片编辑：保存当前版本按钮"
+  },
+  "generalImageEditorNoSavedVersions": "暂无保存版本",
+  "@generalImageEditorNoSavedVersions": {
+    "description": "通用图片编辑：无保存版本空状态"
+  },
+  "generalImageEditorVersionLabel": "版本 {index}",
+  "@generalImageEditorVersionLabel": {
+    "description": "通用图片编辑：自动版本标签",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorTransformTitle": "旋转与翻转",
+  "@generalImageEditorTransformTitle": {
+    "description": "通用图片编辑：变换区块标题"
+  },
+  "generalImageEditorRotateLeft": "左转",
+  "@generalImageEditorRotateLeft": {
+    "description": "通用图片编辑：左转按钮"
+  },
+  "generalImageEditorRotateRight": "右转",
+  "@generalImageEditorRotateRight": {
+    "description": "通用图片编辑：右转按钮"
+  },
+  "generalImageEditorFlipHorizontal": "水平翻转",
+  "@generalImageEditorFlipHorizontal": {
+    "description": "通用图片编辑：水平翻转按钮和摘要"
+  },
+  "generalImageEditorFlipVertical": "垂直翻转",
+  "@generalImageEditorFlipVertical": {
+    "description": "通用图片编辑：垂直翻转按钮和摘要"
+  },
+  "generalImageEditorCropTitle": "裁剪边距",
+  "@generalImageEditorCropTitle": {
+    "description": "通用图片编辑：裁剪区块标题"
+  },
+  "generalImageEditorLeftSide": "左侧",
+  "@generalImageEditorLeftSide": {
+    "description": "通用图片编辑：左侧边距字段"
+  },
+  "generalImageEditorTopSide": "上侧",
+  "@generalImageEditorTopSide": {
+    "description": "通用图片编辑：上侧边距字段"
+  },
+  "generalImageEditorRightSide": "右侧",
+  "@generalImageEditorRightSide": {
+    "description": "通用图片编辑：右侧边距字段"
+  },
+  "generalImageEditorBottomSide": "下侧",
+  "@generalImageEditorBottomSide": {
+    "description": "通用图片编辑：下侧边距字段"
+  },
+  "generalImageEditorClearCrop": "清除裁剪",
+  "@generalImageEditorClearCrop": {
+    "description": "通用图片编辑：清除裁剪按钮"
+  },
+  "generalImageEditorResizeTitle": "输出尺寸",
+  "@generalImageEditorResizeTitle": {
+    "description": "通用图片编辑：尺寸区块标题"
+  },
+  "generalImageEditorResizeOutput": "调整输出尺寸",
+  "@generalImageEditorResizeOutput": {
+    "description": "通用图片编辑：启用尺寸调整开关"
+  },
+  "generalImageEditorLockAspectRatio": "保持比例",
+  "@generalImageEditorLockAspectRatio": {
+    "description": "通用图片编辑：保持比例开关"
+  },
+  "generalImageEditorWidth": "宽度",
+  "@generalImageEditorWidth": {
+    "description": "通用图片编辑：宽度字段"
+  },
+  "generalImageEditorHeight": "高度",
+  "@generalImageEditorHeight": {
+    "description": "通用图片编辑：高度字段"
+  },
+  "generalImageEditorColorTitle": "色彩调整",
+  "@generalImageEditorColorTitle": {
+    "description": "通用图片编辑：色彩区块标题"
+  },
+  "generalImageEditorBrightness": "亮度",
+  "@generalImageEditorBrightness": {
+    "description": "通用图片编辑：亮度滑块"
+  },
+  "generalImageEditorContrast": "对比度",
+  "@generalImageEditorContrast": {
+    "description": "通用图片编辑：对比度滑块"
+  },
+  "generalImageEditorSaturation": "饱和度",
+  "@generalImageEditorSaturation": {
+    "description": "通用图片编辑：饱和度滑块"
+  },
+  "generalImageEditorWarmth": "冷暖",
+  "@generalImageEditorWarmth": {
+    "description": "通用图片编辑：冷暖滑块"
+  },
+  "generalImageEditorEffectTitle": "效果处理",
+  "@generalImageEditorEffectTitle": {
+    "description": "通用图片编辑：效果区块标题"
+  },
+  "generalImageEditorFilterLabel": "滤镜",
+  "@generalImageEditorFilterLabel": {
+    "description": "通用图片编辑：滤镜下拉字段"
+  },
+  "generalImageEditorBlur": "模糊",
+  "@generalImageEditorBlur": {
+    "description": "通用图片编辑：模糊开关"
+  },
+  "generalImageEditorBlurRadius": "模糊半径",
+  "@generalImageEditorBlurRadius": {
+    "description": "通用图片编辑：模糊半径滑块"
+  },
+  "generalImageEditorSharpen": "锐化",
+  "@generalImageEditorSharpen": {
+    "description": "通用图片编辑：锐化开关"
+  },
+  "generalImageEditorSharpenAmount": "锐化强度",
+  "@generalImageEditorSharpenAmount": {
+    "description": "通用图片编辑：锐化强度滑块"
+  },
+  "generalImageEditorTransparentBackground": "边缘背景转透明",
+  "@generalImageEditorTransparentBackground": {
+    "description": "通用图片编辑：背景透明开关"
+  },
+  "generalImageEditorTransparentTolerance": "透明容差",
+  "@generalImageEditorTransparentTolerance": {
+    "description": "通用图片编辑：透明容差滑块"
+  },
+  "generalImageEditorPixelation": "像素化",
+  "@generalImageEditorPixelation": {
+    "description": "通用图片编辑：像素化开关"
+  },
+  "generalImageEditorPixelBlock": "像素块",
+  "@generalImageEditorPixelBlock": {
+    "description": "通用图片编辑：像素块尺寸滑块"
+  },
+  "generalImageEditorRegionTitle": "局部选区",
+  "@generalImageEditorRegionTitle": {
+    "description": "通用图片编辑：局部选区区块标题"
+  },
+  "generalImageEditorProcessRegionOnly": "只处理选区",
+  "@generalImageEditorProcessRegionOnly": {
+    "description": "通用图片编辑：只处理选区开关"
+  },
+  "generalImageEditorLeftBoundary": "左边界",
+  "@generalImageEditorLeftBoundary": {
+    "description": "通用图片编辑：局部选区左边界字段"
+  },
+  "generalImageEditorTopBoundary": "上边界",
+  "@generalImageEditorTopBoundary": {
+    "description": "通用图片编辑：局部选区上边界字段"
+  },
+  "generalImageEditorRightBoundary": "右边界",
+  "@generalImageEditorRightBoundary": {
+    "description": "通用图片编辑：局部选区右边界字段"
+  },
+  "generalImageEditorBottomBoundary": "下边界",
+  "@generalImageEditorBottomBoundary": {
+    "description": "通用图片编辑：局部选区下边界字段"
+  },
+  "generalImageEditorCenterHalfRegion": "居中 50%",
+  "@generalImageEditorCenterHalfRegion": {
+    "description": "通用图片编辑：设置居中半幅选区按钮"
+  },
+  "generalImageEditorFullImageRegion": "全图选区",
+  "@generalImageEditorFullImageRegion": {
+    "description": "通用图片编辑：设置全图选区按钮"
+  },
+  "generalImageEditorAnnotationType": "类型",
+  "@generalImageEditorAnnotationType": {
+    "description": "通用图片编辑：标注类型字段"
+  },
+  "generalImageEditorAnnotationText": "文字",
+  "@generalImageEditorAnnotationText": {
+    "description": "通用图片编辑：标注文字字段"
+  },
+  "generalImageEditorAnnotationPositionPercent": "位置百分比",
+  "@generalImageEditorAnnotationPositionPercent": {
+    "description": "通用图片编辑：标注位置百分比说明"
+  },
+  "generalImageEditorStartX": "起点 X",
+  "@generalImageEditorStartX": {
+    "description": "通用图片编辑：标注起点 X 字段"
+  },
+  "generalImageEditorStartY": "起点 Y",
+  "@generalImageEditorStartY": {
+    "description": "通用图片编辑：标注起点 Y 字段"
+  },
+  "generalImageEditorEndX": "终点 X",
+  "@generalImageEditorEndX": {
+    "description": "通用图片编辑：标注终点 X 字段"
+  },
+  "generalImageEditorEndY": "终点 Y",
+  "@generalImageEditorEndY": {
+    "description": "通用图片编辑：标注终点 Y 字段"
+  },
+  "generalImageEditorStrokeWidth": "线宽",
+  "@generalImageEditorStrokeWidth": {
+    "description": "通用图片编辑：标注线宽字段"
+  },
+  "generalImageEditorFontSize": "字号",
+  "@generalImageEditorFontSize": {
+    "description": "通用图片编辑：标注字号字段"
+  },
+  "generalImageEditorFillShape": "填充形状",
+  "@generalImageEditorFillShape": {
+    "description": "通用图片编辑：填充形状开关"
+  },
+  "generalImageEditorAddAnnotation": "添加标注",
+  "@generalImageEditorAddAnnotation": {
+    "description": "通用图片编辑：添加标注按钮"
+  },
+  "generalImageEditorClearAnnotations": "清空标注",
+  "@generalImageEditorClearAnnotations": {
+    "description": "通用图片编辑：清空标注按钮"
+  },
+  "generalImageEditorOutputFormat": "保存格式",
+  "@generalImageEditorOutputFormat": {
+    "description": "通用图片编辑：输出格式字段"
+  },
+  "generalImageEditorJpegQuality": "JPEG 质量",
+  "@generalImageEditorJpegQuality": {
+    "description": "通用图片编辑：JPEG 质量滑块"
+  },
+  "generalImageEditorRotatedDegrees": "旋转 {degrees}°",
+  "@generalImageEditorRotatedDegrees": {
+    "description": "通用图片编辑：旋转角度摘要",
+    "placeholders": {
+      "degrees": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorNoTransform": "无变换",
+  "@generalImageEditorNoTransform": {
+    "description": "通用图片编辑：无旋转翻转摘要"
+  },
+  "generalImageEditorCropLeftSummary": "左 {value}px",
+  "@generalImageEditorCropLeftSummary": {
+    "description": "通用图片编辑：左侧裁剪摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorCropTopSummary": "上 {value}px",
+  "@generalImageEditorCropTopSummary": {
+    "description": "通用图片编辑：上侧裁剪摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorCropRightSummary": "右 {value}px",
+  "@generalImageEditorCropRightSummary": {
+    "description": "通用图片编辑：右侧裁剪摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorCropBottomSummary": "下 {value}px",
+  "@generalImageEditorCropBottomSummary": {
+    "description": "通用图片编辑：下侧裁剪摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorNoCrop": "无裁剪",
+  "@generalImageEditorNoCrop": {
+    "description": "通用图片编辑：无裁剪摘要"
+  },
+  "generalImageEditorCropSummary": "裁剪 {parts}",
+  "@generalImageEditorCropSummary": {
+    "description": "通用图片编辑：裁剪摘要",
+    "placeholders": {
+      "parts": {}
+    }
+  },
+  "generalImageEditorOriginalSize": "原尺寸",
+  "@generalImageEditorOriginalSize": {
+    "description": "通用图片编辑：原尺寸摘要"
+  },
+  "generalImageEditorBrightnessSummary": "亮度 {value}%",
+  "@generalImageEditorBrightnessSummary": {
+    "description": "通用图片编辑：亮度摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorContrastSummary": "对比度 {value}%",
+  "@generalImageEditorContrastSummary": {
+    "description": "通用图片编辑：对比度摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorSaturationSummary": "饱和度 {value}%",
+  "@generalImageEditorSaturationSummary": {
+    "description": "通用图片编辑：饱和度摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorWarmthSummary": "冷暖 {value}%",
+  "@generalImageEditorWarmthSummary": {
+    "description": "通用图片编辑：冷暖摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorNoColorAdjustment": "无色彩调整",
+  "@generalImageEditorNoColorAdjustment": {
+    "description": "通用图片编辑：无色彩调整摘要"
+  },
+  "generalImageEditorBlurSummary": "模糊 {radius}px",
+  "@generalImageEditorBlurSummary": {
+    "description": "通用图片编辑：模糊摘要",
+    "placeholders": {
+      "radius": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorSharpenSummary": "锐化 {amount}%",
+  "@generalImageEditorSharpenSummary": {
+    "description": "通用图片编辑：锐化摘要",
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorTransparentBackgroundSummary": "背景透明",
+  "@generalImageEditorTransparentBackgroundSummary": {
+    "description": "通用图片编辑：背景透明摘要"
+  },
+  "generalImageEditorPixelationSummary": "像素化 {blockSize}px",
+  "@generalImageEditorPixelationSummary": {
+    "description": "通用图片编辑：像素化摘要",
+    "placeholders": {
+      "blockSize": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorNoFilter": "无滤镜",
+  "@generalImageEditorNoFilter": {
+    "description": "通用图片编辑：无效果摘要"
+  },
+  "generalImageEditorFullImageProcessing": "全图处理",
+  "@generalImageEditorFullImageProcessing": {
+    "description": "通用图片编辑：全图处理摘要"
+  },
+  "generalImageEditorNoSavedVersionSummary": "未保存版本",
+  "@generalImageEditorNoSavedVersionSummary": {
+    "description": "通用图片编辑：无版本摘要"
+  },
+  "generalImageEditorSavedVersionCount": "{count} 个版本",
+  "@generalImageEditorSavedVersionCount": {
+    "description": "通用图片编辑：保存版本数量摘要",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorNoAnnotationSummary": "无标注",
+  "@generalImageEditorNoAnnotationSummary": {
+    "description": "通用图片编辑：无标注摘要"
+  },
+  "generalImageEditorAnnotationCount": "{count} 个标注",
+  "@generalImageEditorAnnotationCount": {
+    "description": "通用图片编辑：标注数量摘要",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorPngTransparentSummary": "PNG · 支持透明",
+  "@generalImageEditorPngTransparentSummary": {
+    "description": "通用图片编辑：PNG 输出摘要"
+  },
+  "generalImageEditorSnapshotOriginalSize": "原尺寸",
+  "@generalImageEditorSnapshotOriginalSize": {
+    "description": "通用图片编辑：版本快照原尺寸摘要"
+  },
+  "generalImageEditorSnapshotLocalRegion": "局部选区",
+  "@generalImageEditorSnapshotLocalRegion": {
+    "description": "通用图片编辑：版本快照局部选区摘要"
+  },
+  "generalImageEditorSnapshotAnnotationCount": "标注 {count}",
+  "@generalImageEditorSnapshotAnnotationCount": {
+    "description": "通用图片编辑：版本快照标注数量摘要",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "generalImageEditorAnnotationKindText": "文字",
+  "@generalImageEditorAnnotationKindText": {
+    "description": "通用图片编辑：文字标注类型"
+  },
+  "generalImageEditorAnnotationKindRectangle": "矩形",
+  "@generalImageEditorAnnotationKindRectangle": {
+    "description": "通用图片编辑：矩形标注类型"
+  },
+  "generalImageEditorAnnotationKindEllipse": "椭圆",
+  "@generalImageEditorAnnotationKindEllipse": {
+    "description": "通用图片编辑：椭圆标注类型"
+  },
+  "generalImageEditorAnnotationKindLine": "直线",
+  "@generalImageEditorAnnotationKindLine": {
+    "description": "通用图片编辑：直线标注类型"
+  },
+  "generalImageEditorAnnotationKindArrow": "箭头",
+  "@generalImageEditorAnnotationKindArrow": {
+    "description": "通用图片编辑：箭头标注类型"
+  },
+  "generalImageEditorColorRed": "红色",
+  "@generalImageEditorColorRed": {
+    "description": "通用图片编辑：红色色板"
+  },
+  "generalImageEditorColorYellow": "黄色",
+  "@generalImageEditorColorYellow": {
+    "description": "通用图片编辑：黄色色板"
+  },
+  "generalImageEditorColorGreen": "绿色",
+  "@generalImageEditorColorGreen": {
+    "description": "通用图片编辑：绿色色板"
+  },
+  "generalImageEditorColorBlue": "蓝色",
+  "@generalImageEditorColorBlue": {
+    "description": "通用图片编辑：蓝色色板"
+  },
+  "generalImageEditorColorBlack": "黑色",
+  "@generalImageEditorColorBlack": {
+    "description": "通用图片编辑：黑色色板"
+  },
+  "generalImageEditorColorWhite": "白色",
+  "@generalImageEditorColorWhite": {
+    "description": "通用图片编辑：白色色板"
+  },
+  "generalImageEditorColorCustom": "自定义",
+  "@generalImageEditorColorCustom": {
+    "description": "通用图片编辑：自定义颜色"
+  },
+  "generalImageEditorAnnotationFilledSuffix": "填充",
+  "@generalImageEditorAnnotationFilledSuffix": {
+    "description": "通用图片编辑：标注描述的填充后缀"
+  },
+  "generalImageEditorRestoreVersionTooltip": "恢复版本",
+  "@generalImageEditorRestoreVersionTooltip": {
+    "description": "通用图片编辑：恢复版本 tooltip"
+  },
+  "generalImageEditorDeleteVersionTooltip": "删除版本",
+  "@generalImageEditorDeleteVersionTooltip": {
+    "description": "通用图片编辑：删除版本 tooltip"
+  },
+  "generalImageEditorDeleteAnnotationTooltip": "删除标注",
+  "@generalImageEditorDeleteAnnotationTooltip": {
+    "description": "通用图片编辑：删除标注 tooltip"
+  },
+  "generalImageEditorDeleteSelectedAnnotationTooltip": "删除选中的标注",
+  "@generalImageEditorDeleteSelectedAnnotationTooltip": {
+    "description": "通用图片编辑：删除选中标注 tooltip"
+  },
+  "generalImageEditorImageLoadFailed": "图片加载失败",
+  "@generalImageEditorImageLoadFailed": {
+    "description": "通用图片编辑：预览图片加载失败"
+  },
+  "generalImageEditorEffectOriginal": "原色",
+  "@generalImageEditorEffectOriginal": {
+    "description": "通用图片编辑：原色滤镜标签"
+  },
+  "generalImageEditorEffectGrayscale": "灰度",
+  "@generalImageEditorEffectGrayscale": {
+    "description": "通用图片编辑：灰度滤镜标签"
+  },
+  "generalImageEditorEffectSepia": "复古",
+  "@generalImageEditorEffectSepia": {
+    "description": "通用图片编辑：复古滤镜标签"
+  },
+  "generalImageEditorEffectInvert": "反相",
+  "@generalImageEditorEffectInvert": {
+    "description": "通用图片编辑：反相滤镜标签"
+  },
+  "generalImageEditSummaryCrop": "裁剪",
+  "@generalImageEditSummaryCrop": {
+    "description": "通用图片编辑摘要：裁剪"
+  },
+  "generalImageEditSummaryRotatePattern": "旋转 %degrees%°",
+  "@generalImageEditSummaryRotatePattern": {
+    "description": "通用图片编辑摘要：旋转模板，%degrees% 会替换为角度"
+  },
+  "generalImageEditSummaryResizePattern": "缩放 %width% x %height%",
+  "@generalImageEditSummaryResizePattern": {
+    "description": "通用图片编辑摘要：缩放模板，%width%/%height% 会替换为尺寸"
+  },
+  "generalImageEditSummaryAnnotationPattern": "标注 %count% 个",
+  "@generalImageEditSummaryAnnotationPattern": {
+    "description": "通用图片编辑摘要：标注数量模板，%count% 会替换为数量"
+  },
+  "generalImageEditSummaryJpegQualityPattern": "JPEG %quality%质量",
+  "@generalImageEditSummaryJpegQualityPattern": {
+    "description": "通用图片编辑摘要：JPEG 质量模板，%quality% 会替换为质量"
+  },
+  "generalImageEditSummarySaveCopy": "保存副本",
+  "@generalImageEditSummarySaveCopy": {
+    "description": "通用图片编辑摘要：未做编辑时的保存副本摘要"
+  },
+  "generalImageEditSummarySeparator": " · ",
+  "@generalImageEditSummarySeparator": {
+    "description": "通用图片编辑摘要：多个摘要片段之间的分隔符"
+  },
+  "generalImageEditSummaryBlurPattern": "模糊 %radius%px",
+  "@generalImageEditSummaryBlurPattern": {
+    "description": "通用图片编辑摘要：模糊半径模板，%radius% 会替换为半径"
+  },
+  "generalImageEditSummarySharpenPattern": "锐化 %amount%%",
+  "@generalImageEditSummarySharpenPattern": {
+    "description": "通用图片编辑摘要：锐化强度模板，%amount% 会替换为百分比"
+  },
+  "generalImageEditSummaryPixelationPattern": "像素化 %blockSize%px",
+  "@generalImageEditSummaryPixelationPattern": {
+    "description": "通用图片编辑摘要：像素化块大小模板，%blockSize% 会替换为像素块"
+  },
+  "frameCountBadgeDefaultLabel": "帧",
+  "@frameCountBadgeDefaultLabel": {
+    "description": "通用：帧数量徽标默认单位"
+  },
+  "frameCountBadgeTooltip": "共 {count} {label}",
+  "@frameCountBadgeTooltip": {
+    "description": "通用：数量徽标 tooltip",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "label": {}
+    }
+  },
+  "sharedDecreasePxTooltip": "{label}减少 1px",
+  "@sharedDecreasePxTooltip": {
+    "description": "通用：像素数字步进减少 tooltip",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "sharedIncreasePxTooltip": "{label}增加 1px",
+  "@sharedIncreasePxTooltip": {
+    "description": "通用：像素数字步进增加 tooltip",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "sharedDecreaseTooltip": "{label}减少 1",
+  "@sharedDecreaseTooltip": {
+    "description": "通用：数字步进减少 tooltip",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "sharedIncreaseTooltip": "{label}增加 1",
+  "@sharedIncreaseTooltip": {
+    "description": "通用：数字步进增加 tooltip",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "spriteSheetGridSpecTitle": "切片校准",
+  "@spriteSheetGridSpecTitle": {
+    "description": "Sprite Sheet 网格校准标题"
+  },
+  "spriteSheetGridSpecAdjusted": "已调整",
+  "@spriteSheetGridSpecAdjusted": {
+    "description": "Sprite Sheet 网格校准已调整徽标"
+  },
+  "spriteSheetGridSpecDescription": "用于处理 Sprite Sheet 外边距或格子间隔，预览、切片和替换都会按这里计算。",
+  "@spriteSheetGridSpecDescription": {
+    "description": "Sprite Sheet 网格校准说明"
+  },
+  "spriteSheetGridMarginLeft": "左边距",
+  "@spriteSheetGridMarginLeft": {
+    "description": "Sprite Sheet 网格校准左边距字段"
+  },
+  "spriteSheetGridMarginTop": "上边距",
+  "@spriteSheetGridMarginTop": {
+    "description": "Sprite Sheet 网格校准上边距字段"
+  },
+  "spriteSheetGridMarginRight": "右边距",
+  "@spriteSheetGridMarginRight": {
+    "description": "Sprite Sheet 网格校准右边距字段"
+  },
+  "spriteSheetGridMarginBottom": "下边距",
+  "@spriteSheetGridMarginBottom": {
+    "description": "Sprite Sheet 网格校准下边距字段"
+  },
+  "spriteSheetGridColumnGap": "列间距",
+  "@spriteSheetGridColumnGap": {
+    "description": "Sprite Sheet 网格校准列间距字段"
+  },
+  "spriteSheetGridRowGap": "行间距",
+  "@spriteSheetGridRowGap": {
+    "description": "Sprite Sheet 网格校准行间距字段"
+  },
+  "spriteSheetGridReset": "重置切片校准",
+  "@spriteSheetGridReset": {
+    "description": "Sprite Sheet 网格校准重置按钮"
+  },
+  "spriteSheetGridMarginLeftSummary": "左 {value}px",
+  "@spriteSheetGridMarginLeftSummary": {
+    "description": "Sprite Sheet 网格校准左边距摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetGridMarginTopSummary": "上 {value}px",
+  "@spriteSheetGridMarginTopSummary": {
+    "description": "Sprite Sheet 网格校准上边距摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetGridMarginRightSummary": "右 {value}px",
+  "@spriteSheetGridMarginRightSummary": {
+    "description": "Sprite Sheet 网格校准右边距摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetGridMarginBottomSummary": "下 {value}px",
+  "@spriteSheetGridMarginBottomSummary": {
+    "description": "Sprite Sheet 网格校准下边距摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetGridColumnGapSummary": "列间距 {value}px",
+  "@spriteSheetGridColumnGapSummary": {
+    "description": "Sprite Sheet 网格校准列间距摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetGridRowGapSummary": "行间距 {value}px",
+  "@spriteSheetGridRowGapSummary": {
+    "description": "Sprite Sheet 网格校准行间距摘要",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetGridSpecDefaultSummary": "默认：无边距 / 无间距",
+  "@spriteSheetGridSpecDefaultSummary": {
+    "description": "Sprite Sheet 网格校准默认摘要"
+  },
+  "requestDebugUnavailableTooltip": "生成后可查看请求和返回值",
+  "@requestDebugUnavailableTooltip": {
+    "description": "请求调试按钮不可用 tooltip"
+  },
+  "requestDebugAvailableTooltip": "查看请求参数和返回值",
+  "@requestDebugAvailableTooltip": {
+    "description": "请求调试按钮可用 tooltip"
+  },
+  "requestDebugButtonLabel": "调试详情",
+  "@requestDebugButtonLabel": {
+    "description": "请求调试按钮标签"
+  },
+  "requestDebugDialogTitle": "请求调试详情",
+  "@requestDebugDialogTitle": {
+    "description": "请求调试弹窗标题"
+  },
+  "requestDebugCopied": "调试详情已复制。",
+  "@requestDebugCopied": {
+    "description": "请求调试详情复制成功提示"
+  },
+  "templateImagePickerDefaultTitle": "模板图片",
+  "@templateImagePickerDefaultTitle": {
+    "description": "模板图片选择器默认标题"
+  },
+  "templateImagePickerClearTooltip": "清除模板图片",
+  "@templateImagePickerClearTooltip": {
+    "description": "模板图片选择器清除 tooltip"
+  },
+  "templateImagePickerLoadFailed": "模板图片加载失败。",
+  "@templateImagePickerLoadFailed": {
+    "description": "模板图片选择器加载失败提示"
+  },
+  "imageAdvancedSettingsTitle": "高级输出参数",
+  "@imageAdvancedSettingsTitle": {
+    "description": "图片高级输出参数标题"
+  },
+  "imageAdvancedSettingsQualitySuffix": "质量",
+  "@imageAdvancedSettingsQualitySuffix": {
+    "description": "图片高级输出参数摘要质量后缀"
+  },
+  "imageAdvancedSettingsBackgroundSuffix": "背景",
+  "@imageAdvancedSettingsBackgroundSuffix": {
+    "description": "图片高级输出参数摘要背景后缀"
+  },
+  "imageAdvancedSettingsQuality": "质量",
+  "@imageAdvancedSettingsQuality": {
+    "description": "图片高级输出参数质量字段"
+  },
+  "imageAdvancedSettingsBackground": "背景",
+  "@imageAdvancedSettingsBackground": {
+    "description": "图片高级输出参数背景字段"
+  },
+  "imageAdvancedSettingsOutputFormat": "输出格式",
+  "@imageAdvancedSettingsOutputFormat": {
+    "description": "图片高级输出参数输出格式字段"
+  },
+  "imageAdvancedSettingsModeration": "审核强度",
+  "@imageAdvancedSettingsModeration": {
+    "description": "图片高级输出参数审核强度字段"
+  },
+  "imageAdvancedSettingsFinalUserId": "最终用户 ID",
+  "@imageAdvancedSettingsFinalUserId": {
+    "description": "图片高级输出参数最终用户 ID 字段"
+  },
+  "imageAdvancedSettingsFinalUserHint": "可选，用于 OpenAI 滥用监控",
+  "@imageAdvancedSettingsFinalUserHint": {
+    "description": "图片高级输出参数最终用户 ID 提示"
+  },
+  "imageAdvancedSettingsInputFidelity": "参考图保真度",
+  "@imageAdvancedSettingsInputFidelity": {
+    "description": "图片高级输出参数参考图保真度字段"
+  },
+  "imageAdvancedSettingsHigh": "高",
+  "@imageAdvancedSettingsHigh": {
+    "description": "图片高级输出参数高选项"
+  },
+  "imageAdvancedSettingsLow": "低",
+  "@imageAdvancedSettingsLow": {
+    "description": "图片高级输出参数低选项"
+  },
+  "imageAdvancedSettingsCompressionValue": "输出压缩率 {value}%",
+  "@imageAdvancedSettingsCompressionValue": {
+    "description": "图片高级输出参数压缩率当前值",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "imageAdvancedSettingsCompressionUnavailable": "输出压缩率仅用于 JPEG / WebP",
+  "@imageAdvancedSettingsCompressionUnavailable": {
+    "description": "图片高级输出参数压缩率不可用提示"
+  },
+  "imageSizeWidth": "宽度",
+  "@imageSizeWidth": {
+    "description": "图片尺寸输入宽度字段"
+  },
+  "imageSizeHeight": "高度",
+  "@imageSizeHeight": {
+    "description": "图片尺寸输入高度字段"
+  },
+  "imageSizeCustomSize": "自定义尺寸",
+  "@imageSizeCustomSize": {
+    "description": "图片尺寸输入自定义尺寸选项"
+  },
+  "imageSizeScaleLabel": "尺寸档位",
+  "@imageSizeScaleLabel": {
+    "description": "图片尺寸输入尺寸档位字段"
+  },
+  "imageSizeOrientation": "方向",
+  "@imageSizeOrientation": {
+    "description": "图片尺寸输入方向字段"
+  },
+  "imageAspectSquare": "方图",
+  "@imageAspectSquare": {
+    "description": "图片尺寸方向：方图"
+  },
+  "imageAspectLandscape": "横图",
+  "@imageAspectLandscape": {
+    "description": "图片尺寸方向：横图"
+  },
+  "imageAspectPortrait": "竖图",
+  "@imageAspectPortrait": {
+    "description": "图片尺寸方向：竖图"
+  },
+  "imageSizePresetLabel": "{scale} {orientation}",
+  "@imageSizePresetLabel": {
+    "description": "图片尺寸预设标签",
+    "placeholders": {
+      "scale": {},
+      "orientation": {}
+    }
+  },
+  "imageSizePresetWide": "{scale} 宽屏",
+  "@imageSizePresetWide": {
+    "description": "图片尺寸预设超宽屏标签",
+    "placeholders": {
+      "scale": {}
+    }
+  },
+  "imageSizeConstraintHelper": "{minSide}-{maxSide}，{step}px 倍数",
+  "@imageSizeConstraintHelper": {
+    "description": "图片尺寸输入约束说明",
+    "placeholders": {
+      "minSide": {
+        "type": "int"
+      },
+      "maxSide": {
+        "type": "int"
+      },
+      "step": {
+        "type": "int"
+      }
+    }
+  },
+  "imageSizeInvalidFallback": "当前图片尺寸无效。",
+  "@imageSizeInvalidFallback": {
+    "description": "图片尺寸输入无效兜底提示"
+  },
+  "imageSizeInvalidDimensions": "请输入有效的宽度和高度。",
+  "@imageSizeInvalidDimensions": {
+    "description": "图片尺寸输入宽高无法解析提示"
+  },
+  "imageSizeFixedPresetsOnly": "当前模型只支持固定分辨率：{presetSizes}。",
+  "@imageSizeFixedPresetsOnly": {
+    "description": "图片尺寸输入固定分辨率校验提示",
+    "placeholders": {
+      "presetSizes": {}
+    }
+  },
+  "imageSizeSideTooSmall": "宽高都不能小于 {minSide}px。",
+  "@imageSizeSideTooSmall": {
+    "description": "图片尺寸输入边长过小提示",
+    "placeholders": {
+      "minSide": {
+        "type": "int"
+      }
+    }
+  },
+  "imageSizeSideTooLarge": "宽高都不能超过 {maxSide}px。",
+  "@imageSizeSideTooLarge": {
+    "description": "图片尺寸输入边长过大提示",
+    "placeholders": {
+      "maxSide": {
+        "type": "int"
+      }
+    }
+  },
+  "imageSizeSideStepMismatch": "宽高都必须是 {step}px 的倍数。",
+  "@imageSizeSideStepMismatch": {
+    "description": "图片尺寸输入步长不匹配提示",
+    "placeholders": {
+      "step": {
+        "type": "int"
+      }
+    }
+  },
+  "imageSizeAspectRatioTooLarge": "长边不能超过短边的 {maxAspectRatio} 倍。",
+  "@imageSizeAspectRatioTooLarge": {
+    "description": "图片尺寸输入长宽比过大提示",
+    "placeholders": {
+      "maxAspectRatio": {
+        "type": "int"
+      }
+    }
+  },
+  "imageSizeTotalPixelsTooSmall": "总像素不能低于 {minPixels}。",
+  "@imageSizeTotalPixelsTooSmall": {
+    "description": "图片尺寸输入总像素过低提示",
+    "placeholders": {
+      "minPixels": {
+        "type": "int"
+      }
+    }
+  },
+  "imageSizeTotalPixelsTooLarge": "总像素不能超过 {maxPixels}。",
+  "@imageSizeTotalPixelsTooLarge": {
+    "description": "图片尺寸输入总像素过高提示",
+    "placeholders": {
+      "maxPixels": {
+        "type": "int"
+      }
+    }
+  },
+  "imageSizeGeminiAspectSummary": "{label} · Gemini 画幅比例 {aspectRatio}",
+  "@imageSizeGeminiAspectSummary": {
+    "description": "图片尺寸输入 Gemini 画幅比例摘要",
+    "placeholders": {
+      "label": {},
+      "aspectRatio": {}
+    }
+  },
+  "imageSizeCustomRequestSummary": "自定义尺寸 · 请求尺寸 {size}",
+  "@imageSizeCustomRequestSummary": {
+    "description": "图片尺寸输入自定义请求尺寸摘要",
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "imageSizeRequestSummary": "{label} · 请求尺寸 {size}",
+  "@imageSizeRequestSummary": {
+    "description": "图片尺寸输入请求尺寸摘要",
+    "placeholders": {
+      "label": {},
+      "size": {}
+    }
+  },
+  "imageSizeFixedResolution": "固定分辨率",
+  "@imageSizeFixedResolution": {
+    "description": "图片尺寸输入固定分辨率兜底标签"
+  },
+  "imageSizeModeResolution": "分辨率",
+  "@imageSizeModeResolution": {
+    "description": "图片尺寸模式：分辨率"
+  },
+  "imageSizeModeAspectRatio": "画幅比例",
+  "@imageSizeModeAspectRatio": {
+    "description": "图片尺寸模式：画幅比例"
+  },
+  "imageSizeModeFixedPresets": "分辨率档位",
+  "@imageSizeModeFixedPresets": {
+    "description": "图片尺寸模式：分辨率档位"
+  },
+  "imageSizeCapabilityAuto": "自动识别",
+  "@imageSizeCapabilityAuto": {
+    "description": "图片尺寸能力：自动识别"
+  },
+  "imageSizeCapabilityFixedPresets": "固定分辨率",
+  "@imageSizeCapabilityFixedPresets": {
+    "description": "图片尺寸能力：固定分辨率"
+  },
+  "imageSizeCapabilityCustomPixels": "自定义像素尺寸",
+  "@imageSizeCapabilityCustomPixels": {
+    "description": "图片尺寸能力：自定义像素尺寸"
+  },
+  "imageSizeCapabilityAspectRatio": "画幅比例",
+  "@imageSizeCapabilityAspectRatio": {
+    "description": "图片尺寸能力：画幅比例"
+  },
+  "imageSizeCapabilityGeminiAspectRatio": "Gemini 画幅比例",
+  "@imageSizeCapabilityGeminiAspectRatio": {
+    "description": "图片尺寸能力：Gemini 画幅比例"
+  },
+  "imageSizeCapabilityFixedDescription": "仅允许固定档位：{presetSizes}。",
+  "@imageSizeCapabilityFixedDescription": {
+    "description": "图片尺寸能力固定档位说明",
+    "placeholders": {
+      "presetSizes": {}
+    }
+  },
+  "imageSizeCapabilityCustomDescription": "允许固定档位或自定义宽高，宽高必须是 {step}px 倍数。",
+  "@imageSizeCapabilityCustomDescription": {
+    "description": "图片尺寸能力自定义像素说明",
+    "placeholders": {
+      "step": {
+        "type": "int"
+      }
+    }
+  },
+  "imageSizeCapabilityAspectDescription": "按所选尺寸换算为最接近的 Gemini 画幅比例。",
+  "@imageSizeCapabilityAspectDescription": {
+    "description": "图片尺寸能力 Gemini 画幅比例说明"
+  },
+  "imageEditorWorkspaceTitle": "图片编辑",
+  "@imageEditorWorkspaceTitle": {
+    "description": "图片编辑工作区标题"
+  },
+  "imageEditorWorkspaceGeneralDescription": "裁剪、旋转、缩放、调色和保存图片副本",
+  "@imageEditorWorkspaceGeneralDescription": {
+    "description": "图片编辑工作区普通图片模式说明"
+  },
+  "imageEditorWorkspaceSpriteSheetDescription": "载入一张 Sprite Sheet，按行列快速查看第几帧",
+  "@imageEditorWorkspaceSpriteSheetDescription": {
+    "description": "图片编辑工作区 Sprite Sheet 模式说明"
+  },
+  "imageEditorGeneralImageTab": "普通图片",
+  "@imageEditorGeneralImageTab": {
+    "description": "图片编辑工作区普通图片模式标签"
+  },
+  "imageEditorSpriteSheetTab": "Sprite Sheet",
+  "@imageEditorSpriteSheetTab": {
+    "description": "图片编辑工作区 Sprite Sheet 模式标签"
+  },
+  "imageEditorExitFocusModeTooltip": "退出专注模式",
+  "@imageEditorExitFocusModeTooltip": {
+    "description": "图片编辑工作区退出专注模式 tooltip"
+  },
+  "imageEditorEnterFocusModeTooltip": "进入专注模式",
+  "@imageEditorEnterFocusModeTooltip": {
+    "description": "图片编辑工作区进入专注模式 tooltip"
+  },
+  "imageEditorSlicePreviewTitle": "切片查看",
+  "@imageEditorSlicePreviewTitle": {
+    "description": "图片编辑工作区切片预览标题"
+  },
+  "imageEditorSlicePreviewEmpty": "选择一张 Sprite Sheet 后，可以按行列查看第几帧",
+  "@imageEditorSlicePreviewEmpty": {
+    "description": "图片编辑工作区切片预览空状态"
+  },
+  "editorGifAdjustRowsHistory": "调整行数为 {value} 行",
+  "@editorGifAdjustRowsHistory": {
+    "description": "图片编辑：调整行数历史动作",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifAdjustColumnsHistory": "调整列数为 {value} 列",
+  "@editorGifAdjustColumnsHistory": {
+    "description": "图片编辑：调整列数历史动作",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifAdjustGridSpecHistory": "调整切片校准",
+  "@editorGifAdjustGridSpecHistory": {
+    "description": "图片编辑：调整切片校准历史动作"
+  },
+  "editorGifAdjustFrameFitHistory": "调整适配方式为 {label}",
+  "@editorGifAdjustFrameFitHistory": {
+    "description": "图片编辑：调整适配方式历史动作",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "editorGifSelectSpriteSheetTitle": "选择 Sprite Sheet 图片",
+  "@editorGifSelectSpriteSheetTitle": {
+    "description": "图片编辑：选择 Sprite Sheet 图片标题"
+  },
+  "editorGifSpriteSheetLibraryEmpty": "生成或导出 Sprite Sheet 后可从这里复用",
+  "@editorGifSpriteSheetLibraryEmpty": {
+    "description": "图片编辑：Sprite Sheet 作品库为空提示"
+  },
+  "editorGifLoadSpriteSheetHistory": "载入 Sprite Sheet",
+  "@editorGifLoadSpriteSheetHistory": {
+    "description": "图片编辑：载入 Sprite Sheet 历史动作"
+  },
+  "editorGifLoadedImageMessage": "已载入图片：{fileName}",
+  "@editorGifLoadedImageMessage": {
+    "description": "图片编辑：载入图片成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "editorGifClearSpriteSheetHistory": "清空 Sprite Sheet",
+  "@editorGifClearSpriteSheetHistory": {
+    "description": "图片编辑：清空 Sprite Sheet 历史动作"
+  },
+  "editorGifSelectSingleFrameTitle": "选择单帧图片",
+  "@editorGifSelectSingleFrameTitle": {
+    "description": "图片编辑：选择单帧图片标题"
+  },
+  "editorGifSingleFrameLibraryEmpty": "保存到作品库后的单帧图片会显示在这里",
+  "@editorGifSingleFrameLibraryEmpty": {
+    "description": "图片编辑：单帧图片作品库为空提示"
+  },
+  "editorGifSelectSingleFrameHistory": "选择单帧图片",
+  "@editorGifSelectSingleFrameHistory": {
+    "description": "图片编辑：选择单帧图片历史动作"
+  },
+  "editorGifLoadedSingleFrameMessage": "已选择单帧图片：{fileName}",
+  "@editorGifLoadedSingleFrameMessage": {
+    "description": "图片编辑：选择单帧图片成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "editorGifClearSingleFrameHistory": "清空单帧图片",
+  "@editorGifClearSingleFrameHistory": {
+    "description": "图片编辑：清空单帧图片历史动作"
+  },
+  "editorGifPleaseSelectSingleFrame": "请先选择一张单帧图片",
+  "@editorGifPleaseSelectSingleFrame": {
+    "description": "图片编辑：未选择单帧图片提示"
+  },
+  "editorGifNoTransparentEdgeMessage": "没有检测到可透明化的边缘背景，可尝试调高容差",
+  "@editorGifNoTransparentEdgeMessage": {
+    "description": "图片编辑：背景转透明无可处理像素提示"
+  },
+  "editorGifTransparentBackgroundTitle": "透明背景单帧",
+  "@editorGifTransparentBackgroundTitle": {
+    "description": "图片编辑：透明背景单帧作品标题"
+  },
+  "editorGifTransparentBackgroundSource": "图片编辑",
+  "@editorGifTransparentBackgroundSource": {
+    "description": "图片编辑：透明背景单帧来源字段"
+  },
+  "editorGifTransparentBackgroundPrompt": "背景转透明 · 容差 {tolerance} · {width} x {height}",
+  "@editorGifTransparentBackgroundPrompt": {
+    "description": "图片编辑：透明背景单帧提示词摘要",
+    "placeholders": {
+      "tolerance": {
+        "type": "int"
+      },
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifTransparentBackgroundHistory": "背景转透明单帧",
+  "@editorGifTransparentBackgroundHistory": {
+    "description": "图片编辑：透明背景单帧历史动作"
+  },
+  "editorGifTransparentBackgroundSavedMessage": "已生成透明背景单帧：{fileName} · 透明化 {count} 个像素",
+  "@editorGifTransparentBackgroundSavedMessage": {
+    "description": "图片编辑：透明背景单帧成功提示",
+    "placeholders": {
+      "fileName": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifTransparentBackgroundFailedMessage": "背景转透明失败：{error}",
+  "@editorGifTransparentBackgroundFailedMessage": {
+    "description": "图片编辑：透明背景单帧失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editorGifPleaseSelectSpriteSheet": "请先选择一张 Sprite Sheet",
+  "@editorGifPleaseSelectSpriteSheet": {
+    "description": "图片编辑：未选择 Sprite Sheet 提示"
+  },
+  "editorGifFramedSingleFrameTitle": "取景单帧",
+  "@editorGifFramedSingleFrameTitle": {
+    "description": "图片编辑：取景单帧作品标题"
+  },
+  "editorGifFramedSingleFramePrompt": "单帧取景 · {width} x {height}",
+  "@editorGifFramedSingleFramePrompt": {
+    "description": "图片编辑：取景单帧提示词摘要",
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifAdjustFramingHistory": "调整单帧取景",
+  "@editorGifAdjustFramingHistory": {
+    "description": "图片编辑：调整单帧取景历史动作"
+  },
+  "editorGifFramedSingleFrameSavedMessage": "已生成取景单帧：{fileName} · {width} x {height}",
+  "@editorGifFramedSingleFrameSavedMessage": {
+    "description": "图片编辑：取景单帧成功提示",
+    "placeholders": {
+      "fileName": {},
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifAdjustFramingFailedMessage": "调整取景失败：{error}",
+  "@editorGifAdjustFramingFailedMessage": {
+    "description": "图片编辑：调整取景失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editorGifSelectTemplateTitle": "选择模板图片",
+  "@editorGifSelectTemplateTitle": {
+    "description": "图片编辑：选择模板图片标题"
+  },
+  "editorGifTemplateLibraryEmpty": "保存到作品库后的图片会显示在这里",
+  "@editorGifTemplateLibraryEmpty": {
+    "description": "图片编辑：模板图片作品库为空提示"
+  },
+  "editorGifSelectedTemplateSliceMessage": "已选择模板切片：{sliceLabel}",
+  "@editorGifSelectedTemplateSliceMessage": {
+    "description": "图片编辑：选择模板切片成功提示",
+    "placeholders": {
+      "sliceLabel": {}
+    }
+  },
+  "editorGifSelectedTemplateImageMessage": "已选择模板图片：{fileName}",
+  "@editorGifSelectedTemplateImageMessage": {
+    "description": "图片编辑：选择模板图片成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "editorGifImageEditorSource": "图片编辑",
+  "@editorGifImageEditorSource": {
+    "description": "图片编辑：作品库来源字段"
+  },
+  "editorGifTemplateSliceLabel": "{title} · 帧 {frame}",
+  "@editorGifTemplateSliceLabel": {
+    "description": "图片编辑：模板切片选择标签",
+    "placeholders": {
+      "title": {},
+      "frame": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifNeedAtLeastTwoFrames": "至少需要 2 帧才能合成 GIF",
+  "@editorGifNeedAtLeastTwoFrames": {
+    "description": "图片编辑：导出 GIF 帧数不足提示"
+  },
+  "editorGifQuickGifProjectTitle": "Sprite Sheet 快速 GIF",
+  "@editorGifQuickGifProjectTitle": {
+    "description": "图片编辑：快速 GIF 临时工程标题"
+  },
+  "editorGifExportSpriteSheetGifHistory": "导出 Sprite Sheet GIF",
+  "@editorGifExportSpriteSheetGifHistory": {
+    "description": "图片编辑：导出 Sprite Sheet GIF 历史动作"
+  },
+  "editorGifExportGifSavedMessage": "GIF 已生成：{fileName} · 目录：{directoryPath}",
+  "@editorGifExportGifSavedMessage": {
+    "description": "图片编辑：GIF 导出成功提示",
+    "placeholders": {
+      "fileName": {},
+      "directoryPath": {}
+    }
+  },
+  "editorGifExportGifFailedMessage": "导出 GIF 失败：{error}",
+  "@editorGifExportGifFailedMessage": {
+    "description": "图片编辑：GIF 导出失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editorGifExportSpriteSheetHistory": "导出 Sprite Sheet",
+  "@editorGifExportSpriteSheetHistory": {
+    "description": "图片编辑：导出 Sprite Sheet 历史动作"
+  },
+  "editorGifExportSpriteSheetSavedMessage": "已导出 Sprite Sheet：{fileName} · 目录：{directoryPath}",
+  "@editorGifExportSpriteSheetSavedMessage": {
+    "description": "图片编辑：Sprite Sheet 导出成功提示",
+    "placeholders": {
+      "fileName": {},
+      "directoryPath": {}
+    }
+  },
+  "editorGifPleaseSelectPatchForInsert": "请先选择要插入的单帧图片",
+  "@editorGifPleaseSelectPatchForInsert": {
+    "description": "图片编辑：替换帧前未选择单帧图片提示"
+  },
+  "editorGifReplaceFrameHistory": "替换第 {index} 帧",
+  "@editorGifReplaceFrameHistory": {
+    "description": "图片编辑：替换帧历史动作",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifReplaceFrameSavedMessage": "已替换第 {index} 帧：{fileName} · 目录：{directoryPath}",
+  "@editorGifReplaceFrameSavedMessage": {
+    "description": "图片编辑：替换帧成功提示",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "fileName": {},
+      "directoryPath": {}
+    }
+  },
+  "editorGifReplaceFrameFailedMessage": "单帧替换失败：{error}",
+  "@editorGifReplaceFrameFailedMessage": {
+    "description": "图片编辑：替换帧失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editorGifFirstFrameNoPrevious": "第 1 帧没有上一帧可复制",
+  "@editorGifFirstFrameNoPrevious": {
+    "description": "图片编辑：第一帧无法复制上一帧提示"
+  },
+  "editorGifCopyPreviousFrameHistory": "复制上一帧到第 {index} 帧",
+  "@editorGifCopyPreviousFrameHistory": {
+    "description": "图片编辑：复制上一帧历史动作",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifCopyPreviousFrameMessage": "已复制上一帧到第 {index} 帧",
+  "@editorGifCopyPreviousFrameMessage": {
+    "description": "图片编辑：复制上一帧成功提示",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifCopyFrameFailedMessage": "复制帧失败：{error}",
+  "@editorGifCopyFrameFailedMessage": {
+    "description": "图片编辑：复制帧失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editorGifClearFrameHistory": "清空第 {index} 帧",
+  "@editorGifClearFrameHistory": {
+    "description": "图片编辑：清空帧历史动作",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifClearFrameMessage": "已清空第 {index} 帧",
+  "@editorGifClearFrameMessage": {
+    "description": "图片编辑：清空帧成功提示",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifClearFrameFailedMessage": "清空帧失败：{error}",
+  "@editorGifClearFrameFailedMessage": {
+    "description": "图片编辑：清空帧失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editorGifPixelatedSpriteSheetTitle": "像素化 Sprite Sheet",
+  "@editorGifPixelatedSpriteSheetTitle": {
+    "description": "图片编辑：像素化 Sprite Sheet 作品标题"
+  },
+  "editorGifPixelatedFramePrompt": "像素化第 {index} 帧 · 像素块 {blockSize}px · {rows} x {columns}",
+  "@editorGifPixelatedFramePrompt": {
+    "description": "图片编辑：像素化单帧提示词摘要",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "blockSize": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifPixelateFrameHistory": "像素化第 {index} 帧",
+  "@editorGifPixelateFrameHistory": {
+    "description": "图片编辑：像素化单帧历史动作",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifPixelateFrameSavedMessage": "已像素化第 {index} 帧：{fileName} · 像素块 {blockSize}px",
+  "@editorGifPixelateFrameSavedMessage": {
+    "description": "图片编辑：像素化单帧成功提示",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "fileName": {},
+      "blockSize": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifPixelateCurrentFrameFailedMessage": "像素化当前帧失败：{error}",
+  "@editorGifPixelateCurrentFrameFailedMessage": {
+    "description": "图片编辑：像素化当前帧失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editorGifPixelatedWholeSheetPrompt": "像素化整张 · 像素块 {blockSize}px · {rows} x {columns}",
+  "@editorGifPixelatedWholeSheetPrompt": {
+    "description": "图片编辑：像素化整张 Sprite Sheet 提示词摘要",
+    "placeholders": {
+      "blockSize": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifPixelateWholeSheetHistory": "像素化整张 Sprite Sheet",
+  "@editorGifPixelateWholeSheetHistory": {
+    "description": "图片编辑：像素化整张 Sprite Sheet 历史动作"
+  },
+  "editorGifPixelateWholeSheetSavedMessage": "已像素化整张 Sprite Sheet：{fileName} · 像素块 {blockSize}px",
+  "@editorGifPixelateWholeSheetSavedMessage": {
+    "description": "图片编辑：像素化整张 Sprite Sheet 成功提示",
+    "placeholders": {
+      "fileName": {},
+      "blockSize": {
+        "type": "int"
+      }
+    }
+  },
+  "editorGifPixelateWholeSheetFailedMessage": "像素化整张失败：{error}",
+  "@editorGifPixelateWholeSheetFailedMessage": {
+    "description": "图片编辑：像素化整张 Sprite Sheet 失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editorGifSelectImageToEditTitle": "选择要编辑的图片",
+  "@editorGifSelectImageToEditTitle": {
+    "description": "图片编辑：选择通用编辑图片标题"
+  },
+  "editorGifGeneralImageLibraryEmpty": "作品库里保存的图片会显示在这里",
+  "@editorGifGeneralImageLibraryEmpty": {
+    "description": "图片编辑：通用图片作品库为空提示"
+  },
+  "editorGifGeneralImageLoadedMessage": "已载入图片：{fileName}",
+  "@editorGifGeneralImageLoadedMessage": {
+    "description": "图片编辑：通用图片载入成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "editorGifImageReadFailedMessage": "图片读取失败：{error}",
+  "@editorGifImageReadFailedMessage": {
+    "description": "图片编辑：通用图片读取失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "editorGifPleaseSelectImage": "请先选择一张图片",
+  "@editorGifPleaseSelectImage": {
+    "description": "图片编辑：未选择通用图片提示"
+  },
+  "editorGifEditedImageTitle": "编辑后的图片",
+  "@editorGifEditedImageTitle": {
+    "description": "图片编辑：通用编辑结果作品标题"
+  },
+  "editorGifEditImageHistory": "编辑图片",
+  "@editorGifEditImageHistory": {
+    "description": "图片编辑：通用图片编辑历史动作"
+  },
+  "editorGifEditImageSavedMessage": "已保存编辑结果：{fileName} · {summary}",
+  "@editorGifEditImageSavedMessage": {
+    "description": "图片编辑：通用图片编辑成功提示",
+    "placeholders": {
+      "fileName": {},
+      "summary": {}
+    }
+  },
+  "editorGifEditImageFailedMessage": "图片编辑失败：{error}",
+  "@editorGifEditImageFailedMessage": {
+    "description": "图片编辑：通用图片编辑失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "framePreviewProgressFailed": "Sprite Sheet 生成失败，可调整参数后重试。{message}",
+  "@framePreviewProgressFailed": {
+    "description": "Sprite Sheet 预览：生成失败进度提示",
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "framePreviewProgressGenerating": "正在生成 1 张 Sprite Sheet，完成后会按 {totalCount} 格切片预览。",
+  "@framePreviewProgressGenerating": {
+    "description": "Sprite Sheet 预览：生成中进度提示",
+    "placeholders": {
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "framePreviewProgressReady": "已生成 1 张 Sprite Sheet，并按 {totalCount} 格切片预览。",
+  "@framePreviewProgressReady": {
+    "description": "Sprite Sheet 预览：生成完成进度提示",
+    "placeholders": {
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "framePreviewZoomOutTooltip": "缩小播放帧",
+  "@framePreviewZoomOutTooltip": {
+    "description": "Sprite Sheet 预览：缩小播放帧 tooltip"
+  },
+  "framePreviewZoomInTooltip": "放大播放帧",
+  "@framePreviewZoomInTooltip": {
+    "description": "Sprite Sheet 预览：放大播放帧 tooltip"
+  },
+  "framePreviewResetZoomTooltip": "重置播放帧缩放",
+  "@framePreviewResetZoomTooltip": {
+    "description": "Sprite Sheet 预览：重置播放帧缩放 tooltip"
+  },
+  "framePreviewGeneratingSheet": "正在生成 Sprite Sheet",
+  "@framePreviewGeneratingSheet": {
+    "description": "Sprite Sheet 预览：生成中空状态"
+  },
+  "framePreviewGenerationFailedTitle": "生成失败",
+  "@framePreviewGenerationFailedTitle": {
+    "description": "Sprite Sheet 预览：生成失败标题"
+  },
+  "framePreviewBuildingSlices": "正在生成切片预览",
+  "@framePreviewBuildingSlices": {
+    "description": "Sprite Sheet 预览：切片预览生成中"
+  },
+  "framePreviewPreviewFailedTitle": "预览失败",
+  "@framePreviewPreviewFailedTitle": {
+    "description": "Sprite Sheet 预览：预览失败标题"
+  },
+  "framePreviewPreviewFailedMessage": "切片预览失败：{message}",
+  "@framePreviewPreviewFailedMessage": {
+    "description": "Sprite Sheet 预览：预览失败内容",
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "framePreviewNoPreviewData": "没有可用的预览数据",
+  "@framePreviewNoPreviewData": {
+    "description": "Sprite Sheet 预览：无预览数据兜底"
+  },
+  "framePreviewPlaybackModeLabel": "切片播放",
+  "@framePreviewPlaybackModeLabel": {
+    "description": "Sprite Sheet 预览：播放模式标签"
+  },
+  "framePreviewTargetSelectionModeLabel": "目标选择",
+  "@framePreviewTargetSelectionModeLabel": {
+    "description": "Sprite Sheet 预览：目标选择模式标签"
+  },
+  "framePreviewGridModeLabel": "网格检查",
+  "@framePreviewGridModeLabel": {
+    "description": "Sprite Sheet 预览：网格检查模式标签"
+  },
+  "framePreviewRowTitle": "第 {row} 行",
+  "@framePreviewRowTitle": {
+    "description": "Sprite Sheet 预览：行标题",
+    "placeholders": {
+      "row": {
+        "type": "int"
+      }
+    }
+  },
+  "framePreviewRowSubtitle": "第 {row} 行 · {columns} 列",
+  "@framePreviewRowSubtitle": {
+    "description": "Sprite Sheet 预览：行摘要",
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "framePreviewTargetFrameLabel": "目标帧",
+  "@framePreviewTargetFrameLabel": {
+    "description": "Sprite Sheet 预览：目标帧字段"
+  },
+  "framePreviewFrameNumberLabel": "帧号",
+  "@framePreviewFrameNumberLabel": {
+    "description": "Sprite Sheet 预览：帧号字段"
+  },
+  "framePreviewFrameOption": "第 {frame} 帧",
+  "@framePreviewFrameOption": {
+    "description": "Sprite Sheet 预览：帧选项",
+    "placeholders": {
+      "frame": {
+        "type": "int"
+      }
+    }
+  },
+  "framePreviewRowNumberLabel": "行号",
+  "@framePreviewRowNumberLabel": {
+    "description": "Sprite Sheet 预览：行号字段"
+  },
+  "framePreviewPlaybackSpeedLabel": "播放速度",
+  "@framePreviewPlaybackSpeedLabel": {
+    "description": "Sprite Sheet 预览：播放速度字段"
+  },
+  "framePreviewExportPng": "导出 PNG",
+  "@framePreviewExportPng": {
+    "description": "Sprite Sheet 预览：导出 PNG 按钮"
+  },
+  "framePreviewConvertGif": "转 GIF",
+  "@framePreviewConvertGif": {
+    "description": "Sprite Sheet 预览：转 GIF 按钮"
+  },
+  "framePreviewPixelEdit": "像素化编辑",
+  "@framePreviewPixelEdit": {
+    "description": "Sprite Sheet 预览：像素化编辑按钮"
+  },
+  "framePreviewPreviousFrameTooltip": "上一帧",
+  "@framePreviewPreviousFrameTooltip": {
+    "description": "Sprite Sheet 预览：上一帧 tooltip"
+  },
+  "framePreviewNextFrameTooltip": "下一帧",
+  "@framePreviewNextFrameTooltip": {
+    "description": "Sprite Sheet 预览：下一帧 tooltip"
+  },
+  "framePreviewPlaybackSingleFrameUnavailable": "当前行只有 1 帧，无法播放或切换帧",
+  "@framePreviewPlaybackSingleFrameUnavailable": {
+    "description": "Sprite Sheet 预览：单帧行播放和切换按钮不可用原因"
+  },
+  "framePreviewCurrentTargetPrefix": "当前目标",
+  "@framePreviewCurrentTargetPrefix": {
+    "description": "Sprite Sheet 预览：当前目标状态前缀"
+  },
+  "framePreviewCurrentPlaybackPrefix": "当前播放",
+  "@framePreviewCurrentPlaybackPrefix": {
+    "description": "Sprite Sheet 预览：当前播放状态前缀"
+  },
+  "framePreviewCurrentStatus": "{prefix}：第 {frame} 帧 · 第 {row} 行 · 第 {column} / {columns} 列",
+  "@framePreviewCurrentStatus": {
+    "description": "Sprite Sheet 预览：当前播放或目标状态",
+    "placeholders": {
+      "prefix": {},
+      "frame": {
+        "type": "int"
+      },
+      "row": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "framePreviewTargetSelectionHint": "点击右侧 Sprite Sheet 或网格切片，可以直接选择要替换的目标帧。",
+  "@framePreviewTargetSelectionHint": {
+    "description": "Sprite Sheet 预览：目标选择提示"
+  },
+  "framePreviewPlaybackHint": "点击右侧 Sprite Sheet 或网格切片，可以直接查看对应帧。",
+  "@framePreviewPlaybackHint": {
+    "description": "Sprite Sheet 预览：播放查看提示"
+  },
+  "framePreviewPlaybackFrameTitle": "播放帧",
+  "@framePreviewPlaybackFrameTitle": {
+    "description": "Sprite Sheet 预览：播放帧卡片标题"
+  },
+  "framePreviewSpriteSheetTitle": "Sprite Sheet",
+  "@framePreviewSpriteSheetTitle": {
+    "description": "Sprite Sheet 预览：Sprite Sheet 卡片标题"
+  },
+  "framePreviewSpriteSheetSubtitle": "{rows} 行 x {columns} 列，来源 {count} 张结果图",
+  "@framePreviewSpriteSheetSubtitle": {
+    "description": "Sprite Sheet 预览：Sprite Sheet 卡片摘要",
+    "placeholders": {
+      "rows": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backgroundTransparencyTitle": "背景转透明",
+  "@backgroundTransparencyTitle": {
+    "description": "背景转透明弹窗标题"
+  },
+  "backgroundTransparencyDescription": "从图片边缘识别近似纯色背景，生成一张新的透明 PNG。",
+  "@backgroundTransparencyDescription": {
+    "description": "背景转透明弹窗默认说明"
+  },
+  "backgroundTransparencyDescriptionForSource": "处理「{sourceTitle}」，生成一张新的透明 PNG。",
+  "@backgroundTransparencyDescriptionForSource": {
+    "description": "背景转透明弹窗带来源说明",
+    "placeholders": {
+      "sourceTitle": {}
+    }
+  },
+  "backgroundTransparencyDetail": "只会移除和边缘连通的近似背景色，内部同色细节会保留。",
+  "@backgroundTransparencyDetail": {
+    "description": "背景转透明弹窗细节说明"
+  },
+  "backgroundTransparencyTolerance": "容差 {tolerance}",
+  "@backgroundTransparencyTolerance": {
+    "description": "背景转透明弹窗容差标签",
+    "placeholders": {
+      "tolerance": {
+        "type": "int"
+      }
+    }
+  },
+  "backgroundTransparencyGenerate": "生成透明图",
+  "@backgroundTransparencyGenerate": {
+    "description": "背景转透明弹窗生成按钮"
+  },
+  "patchImageFramingTitle": "调整单帧取景",
+  "@patchImageFramingTitle": {
+    "description": "单帧取景弹窗标题"
+  },
+  "patchImageFramingContain": "完整显示",
+  "@patchImageFramingContain": {
+    "description": "单帧取景弹窗完整显示按钮"
+  },
+  "patchImageFramingCover": "填满格子",
+  "@patchImageFramingCover": {
+    "description": "单帧取景弹窗填满格子按钮"
+  },
+  "patchImageFramingCenter": "居中",
+  "@patchImageFramingCenter": {
+    "description": "单帧取景弹窗居中按钮"
+  },
+  "patchImageFramingScaleSemanticLabel": "缩放 {percent}%",
+  "@patchImageFramingScaleSemanticLabel": {
+    "description": "单帧取景缩放滑杆语义值",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "patchImageFramingViewportSemanticLabel": "单帧取景预览 · 目标 {width} x {height} · 缩放 {percent}% · 偏移 X {offsetX}，Y {offsetY}",
+  "@patchImageFramingViewportSemanticLabel": {
+    "description": "单帧取景预览区域语义标签",
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      },
+      "offsetX": {
+        "type": "int"
+      },
+      "offsetY": {
+        "type": "int"
+      }
+    }
+  },
+  "patchImageFramingGenerate": "生成取景单帧",
+  "@patchImageFramingGenerate": {
+    "description": "单帧取景弹窗生成按钮"
+  },
+  "spriteSheetEditorConfigTitle": "编辑配置",
+  "@spriteSheetEditorConfigTitle": {
+    "description": "Sprite Sheet 编辑器配置面板标题"
+  },
+  "spriteSheetEditorSheetImageTitle": "Sprite Sheet 图片",
+  "@spriteSheetEditorSheetImageTitle": {
+    "description": "Sprite Sheet 编辑器：整张 Sprite Sheet 图片选择标题"
+  },
+  "spriteSheetEditorClearSheetImageTooltip": "清除图片",
+  "@spriteSheetEditorClearSheetImageTooltip": {
+    "description": "Sprite Sheet 编辑器：清除 Sprite Sheet 图片 tooltip"
+  },
+  "spriteSheetEditorRowsLabel": "行数",
+  "@spriteSheetEditorRowsLabel": {
+    "description": "Sprite Sheet 编辑器：行数字段"
+  },
+  "spriteSheetEditorRowsValue": "{count} 行",
+  "@spriteSheetEditorRowsValue": {
+    "description": "Sprite Sheet 编辑器：行数下拉选项",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetEditorColumnsLabel": "列数",
+  "@spriteSheetEditorColumnsLabel": {
+    "description": "Sprite Sheet 编辑器：列数字段"
+  },
+  "spriteSheetEditorColumnsValue": "{count} 列",
+  "@spriteSheetEditorColumnsValue": {
+    "description": "Sprite Sheet 编辑器：列数下拉选项",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetEditorPatchImageTitle": "单帧图片",
+  "@spriteSheetEditorPatchImageTitle": {
+    "description": "Sprite Sheet 编辑器：单帧图片选择标题"
+  },
+  "spriteSheetEditorClearPatchImageTooltip": "清除单帧图片",
+  "@spriteSheetEditorClearPatchImageTooltip": {
+    "description": "Sprite Sheet 编辑器：清除单帧图片 tooltip"
+  },
+  "spriteSheetEditorReplacementTargetLabel": "替换目标",
+  "@spriteSheetEditorReplacementTargetLabel": {
+    "description": "Sprite Sheet 编辑器：替换目标字段"
+  },
+  "spriteSheetEditorFrameFitLabel": "适配方式",
+  "@spriteSheetEditorFrameFitLabel": {
+    "description": "Sprite Sheet 编辑器：单帧适配方式字段"
+  },
+  "spriteSheetEditorFrameFitContain": "完整放入",
+  "@spriteSheetEditorFrameFitContain": {
+    "description": "Sprite Sheet 编辑器：完整放入适配方式"
+  },
+  "spriteSheetEditorFrameFitCover": "裁剪填满",
+  "@spriteSheetEditorFrameFitCover": {
+    "description": "Sprite Sheet 编辑器：裁剪填满适配方式"
+  },
+  "spriteSheetEditorFrameFitStretch": "拉伸填满",
+  "@spriteSheetEditorFrameFitStretch": {
+    "description": "Sprite Sheet 编辑器：拉伸填满适配方式"
+  },
+  "editorFrameOptionLabel": "{index} 帧 · {row} 行 {column} 列",
+  "@editorFrameOptionLabel": {
+    "description": "Sprite Sheet 编辑器：帧下拉选项标签",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "row": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      }
+    }
+  },
+  "gifPlaybackModeNormal": "正向",
+  "@gifPlaybackModeNormal": {
+    "description": "GIF/动画播放模式：正向"
+  },
+  "gifPlaybackModeReverse": "反向",
+  "@gifPlaybackModeReverse": {
+    "description": "GIF/动画播放模式：反向"
+  },
+  "gifPlaybackModePingPong": "乒乓",
+  "@gifPlaybackModePingPong": {
+    "description": "GIF/动画播放模式：乒乓"
+  },
+  "spriteSheetEditorCopyPreviousFrame": "复制上一帧",
+  "@spriteSheetEditorCopyPreviousFrame": {
+    "description": "Sprite Sheet 编辑器：复制上一帧按钮"
+  },
+  "spriteSheetEditorClearCurrentCell": "清空当前格",
+  "@spriteSheetEditorClearCurrentCell": {
+    "description": "Sprite Sheet 编辑器：清空当前格按钮"
+  },
+  "spriteSheetEditorInsertReplaceCurrentCell": "插入 / 替换到当前格",
+  "@spriteSheetEditorInsertReplaceCurrentCell": {
+    "description": "Sprite Sheet 编辑器：插入或替换当前格按钮"
+  },
+  "spriteSheetEditorReplacing": "替换中",
+  "@spriteSheetEditorReplacing": {
+    "description": "Sprite Sheet 编辑器：替换中忙碌按钮文案"
+  },
+  "spriteSheetEditorTargetFrameHelper": "第 {row} 行 · 第 {column} 列 · 共 {totalCount} 帧",
+  "@spriteSheetEditorTargetFrameHelper": {
+    "description": "Sprite Sheet 编辑器：替换目标帧位置说明",
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      },
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetEditorToolFraming": "单帧取景",
+  "@spriteSheetEditorToolFraming": {
+    "description": "Sprite Sheet 编辑器：工具区单帧取景摘要"
+  },
+  "spriteSheetEditorToolTransparent": "透明背景",
+  "@spriteSheetEditorToolTransparent": {
+    "description": "Sprite Sheet 编辑器：工具区透明背景摘要"
+  },
+  "spriteSheetEditorToolPixelate": "像素化",
+  "@spriteSheetEditorToolPixelate": {
+    "description": "Sprite Sheet 编辑器：工具区像素化摘要"
+  },
+  "spriteSheetEditorToolsTitle": "编辑工具",
+  "@spriteSheetEditorToolsTitle": {
+    "description": "Sprite Sheet 编辑器：编辑工具折叠区标题"
+  },
+  "spriteSheetEditorToolsDisabledHint": "选择 Sprite Sheet 或单帧图片后可用",
+  "@spriteSheetEditorToolsDisabledHint": {
+    "description": "Sprite Sheet 编辑器：编辑工具不可用提示"
+  },
+  "spriteSheetEditorProcessing": "处理中",
+  "@spriteSheetEditorProcessing": {
+    "description": "Sprite Sheet 编辑器：处理中的短状态"
+  },
+  "spriteSheetEditorGenerateTransparentPatch": "生成透明背景单帧",
+  "@spriteSheetEditorGenerateTransparentPatch": {
+    "description": "Sprite Sheet 编辑器：生成透明背景单帧按钮"
+  },
+  "spriteSheetEditorPixelBlockLabel": "像素块",
+  "@spriteSheetEditorPixelBlockLabel": {
+    "description": "Sprite Sheet 编辑器：像素块字段"
+  },
+  "spriteSheetEditorPixelBlockHelper": "数值越大，颗粒越粗",
+  "@spriteSheetEditorPixelBlockHelper": {
+    "description": "Sprite Sheet 编辑器：像素块字段说明"
+  },
+  "spriteSheetEditorPixelateCurrentFrame": "像素化当前帧",
+  "@spriteSheetEditorPixelateCurrentFrame": {
+    "description": "Sprite Sheet 编辑器：像素化当前帧按钮"
+  },
+  "spriteSheetEditorPixelateWholeSheet": "像素化整张",
+  "@spriteSheetEditorPixelateWholeSheet": {
+    "description": "Sprite Sheet 编辑器：像素化整张 Sprite Sheet 按钮"
+  },
+  "spriteSheetGenerationConfigTitle": "序列帧生成配置",
+  "@spriteSheetGenerationConfigTitle": {
+    "description": "Sprite Sheet 生成面板标题"
+  },
+  "spriteSheetCell": "格",
+  "@spriteSheetCell": {
+    "description": "Sprite Sheet 生成：网格数量单位"
+  },
+  "spriteSheetPromptLabel": "提示词内容",
+  "@spriteSheetPromptLabel": {
+    "description": "Sprite Sheet 生成：提示词字段标签"
+  },
+  "spriteSheetPromptHint": "把主体、场景、风格、动作变化写在这里即可",
+  "@spriteSheetPromptHint": {
+    "description": "Sprite Sheet 生成：提示词字段提示"
+  },
+  "spriteSheetNegativePromptHint": "会应用到每一帧",
+  "@spriteSheetNegativePromptHint": {
+    "description": "Sprite Sheet 生成：负向提示词字段提示"
+  },
+  "spriteSheetRowsLabel": "行数",
+  "@spriteSheetRowsLabel": {
+    "description": "Sprite Sheet 生成：行数字段"
+  },
+  "spriteSheetRowShortLabel": "行",
+  "@spriteSheetRowShortLabel": {
+    "description": "Sprite Sheet：网格短标签，行"
+  },
+  "spriteSheetColumnShortLabel": "列",
+  "@spriteSheetColumnShortLabel": {
+    "description": "Sprite Sheet：网格短标签，列"
+  },
+  "spriteSheetFrameShortLabel": "帧",
+  "@spriteSheetFrameShortLabel": {
+    "description": "Sprite Sheet：网格短标签，帧"
+  },
+  "spriteSheetFrameGridLabel": "第 {frameIndex} 帧 · 第 {row} 行 · 第 {column} 列",
+  "@spriteSheetFrameGridLabel": {
+    "description": "Sprite Sheet：编辑器帧网格标签",
+    "placeholders": {
+      "frameIndex": {
+        "type": "int"
+      },
+      "row": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetRowsValue": "{count} 行",
+  "@spriteSheetRowsValue": {
+    "description": "Sprite Sheet 生成：行数选项值",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetColumnsLabel": "列数",
+  "@spriteSheetColumnsLabel": {
+    "description": "Sprite Sheet 生成：列数字段"
+  },
+  "spriteSheetColumnsValue": "{count} 列",
+  "@spriteSheetColumnsValue": {
+    "description": "Sprite Sheet 生成：列数选项值",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetGenerateButton": "生成 Sprite Sheet",
+  "@spriteSheetGenerateButton": {
+    "description": "Sprite Sheet 生成按钮"
+  },
+  "spriteSheetGeneratingButton": "生成 Sprite Sheet 中",
+  "@spriteSheetGeneratingButton": {
+    "description": "Sprite Sheet 生成忙碌状态"
+  },
+  "animationProjectWorkspaceDescription": "用工程、轨道和序列帧管理动画，Sprite Sheet 与 GIF 只作为导入和导出格式。",
+  "@animationProjectWorkspaceDescription": {
+    "description": "动画工程工作区说明"
+  },
+  "animationProjectNoImportSource": "暂无可导入来源",
+  "@animationProjectNoImportSource": {
+    "description": "动画工程：无可导入来源状态"
+  },
+  "animationProjectCreateTitle": "创建动画工程",
+  "@animationProjectCreateTitle": {
+    "description": "动画工程：创建态面板标题"
+  },
+  "animationProjectImportAsProject": "导入为动画工程",
+  "@animationProjectImportAsProject": {
+    "description": "动画工程：导入为工程按钮"
+  },
+  "animationProjectImportingProject": "正在导入工程",
+  "@animationProjectImportingProject": {
+    "description": "动画工程：导入工程忙碌状态"
+  },
+  "animationProjectImportLocalSequence": "导入本地图片序列",
+  "@animationProjectImportLocalSequence": {
+    "description": "动画工程：导入本地图片序列按钮"
+  },
+  "animationProjectImportLibrarySequence": "从作品库导入序列",
+  "@animationProjectImportLibrarySequence": {
+    "description": "动画工程：从作品库导入序列按钮"
+  },
+  "animationProjectExporting": "正在导出",
+  "@animationProjectExporting": {
+    "description": "动画工程：导出忙碌状态"
+  },
+  "animationProjectExportSourceSpriteSheet": "导出来源 Sprite Sheet",
+  "@animationProjectExportSourceSpriteSheet": {
+    "description": "动画工程：导出来源 Sprite Sheet 按钮"
+  },
+  "animationProjectSourceTitle": "工程来源",
+  "@animationProjectSourceTitle": {
+    "description": "动画工程：来源摘要标题"
+  },
+  "animationProjectGeneratingSource": "正在生成来源",
+  "@animationProjectGeneratingSource": {
+    "description": "动画工程：来源生成中状态"
+  },
+  "animationProjectControlsTitle": "工程控制",
+  "@animationProjectControlsTitle": {
+    "description": "动画工程：工程控制面板标题"
+  },
+  "animationProjectFrameUnit": "帧",
+  "@animationProjectFrameUnit": {
+    "description": "动画工程：帧数量单位"
+  },
+  "animationProjectTrackUnit": "轨道",
+  "@animationProjectTrackUnit": {
+    "description": "动画工程：轨道数量单位"
+  },
+  "animationProjectSummary": "{trackCount} 条轨道 · {frameCount} 帧 · {width} x {height}",
+  "@animationProjectSummary": {
+    "description": "动画工程：工程摘要",
+    "placeholders": {
+      "trackCount": {
+        "type": "int"
+      },
+      "frameCount": {
+        "type": "int"
+      },
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectAddTrack": "新建轨道",
+  "@animationProjectAddTrack": {
+    "description": "动画工程：新建轨道按钮"
+  },
+  "animationProjectExportCompositedSpriteSheet": "导出合成 Sprite Sheet",
+  "@animationProjectExportCompositedSpriteSheet": {
+    "description": "动画工程：导出合成 Sprite Sheet 按钮"
+  },
+  "animationProjectExportProjectGif": "导出工程 GIF",
+  "@animationProjectExportProjectGif": {
+    "description": "动画工程：导出工程 GIF 按钮"
+  },
+  "animationProjectExportProjectPngSequence": "导出工程 PNG 序列",
+  "@animationProjectExportProjectPngSequence": {
+    "description": "动画工程：导出工程 PNG 序列按钮"
+  },
+  "animationProjectExportTrackGif": "导出当前轨道 GIF",
+  "@animationProjectExportTrackGif": {
+    "description": "动画工程：导出当前轨道 GIF 按钮"
+  },
+  "animationProjectExportPngSequence": "导出 PNG 序列",
+  "@animationProjectExportPngSequence": {
+    "description": "动画工程：导出 PNG 序列按钮"
+  },
+  "animationProjectCloseProject": "关闭工程",
+  "@animationProjectCloseProject": {
+    "description": "动画工程：关闭工程按钮"
+  },
+  "animationProjectActionBusyUnavailable": "当前工程正在处理任务，完成后可继续操作",
+  "@animationProjectActionBusyUnavailable": {
+    "description": "动画工程：工程忙碌时操作按钮不可用原因"
+  },
+  "animationProjectTrackTimelineTitle": "轨道时间轴",
+  "@animationProjectTrackTimelineTitle": {
+    "description": "动画工程：轨道时间轴面板标题"
+  },
+  "animationProjectSettingsTitle": "工程设置",
+  "@animationProjectSettingsTitle": {
+    "description": "动画工程：工程设置区块标题"
+  },
+  "animationProjectDefaultFrameDelay": "工程默认帧时长",
+  "@animationProjectDefaultFrameDelay": {
+    "description": "动画工程：默认帧时长字段"
+  },
+  "animationProjectPlaybackMode": "工程播放方式",
+  "@animationProjectPlaybackMode": {
+    "description": "动画工程：工程播放方式字段"
+  },
+  "animationProjectGifLoopCount": "GIF 循环次数",
+  "@animationProjectGifLoopCount": {
+    "description": "动画工程：GIF 循环次数字段"
+  },
+  "animationProjectLoopCountSuffix": "次",
+  "@animationProjectLoopCountSuffix": {
+    "description": "动画工程：循环次数后缀"
+  },
+  "animationProjectIncludeHiddenTracks": "导出包含隐藏轨道",
+  "@animationProjectIncludeHiddenTracks": {
+    "description": "动画工程：导出包含隐藏轨道开关"
+  },
+  "animationProjectPreviewTitle": "动画工程预览",
+  "@animationProjectPreviewTitle": {
+    "description": "动画工程：预览面板标题"
+  },
+  "animationProjectRenderingComposite": "正在渲染工程合成",
+  "@animationProjectRenderingComposite": {
+    "description": "动画工程：工程合成渲染中"
+  },
+  "animationProjectRenderFailed": "渲染失败",
+  "@animationProjectRenderFailed": {
+    "description": "动画工程：渲染失败标题"
+  },
+  "animationProjectNoRenderData": "没有可用的渲染数据",
+  "@animationProjectNoRenderData": {
+    "description": "动画工程：无渲染数据错误"
+  },
+  "animationProjectRetryRender": "重新渲染",
+  "@animationProjectRetryRender": {
+    "description": "动画工程：重新渲染按钮"
+  },
+  "animationProjectNoVisibleFrames": "工程没有可见帧",
+  "@animationProjectNoVisibleFrames": {
+    "description": "动画工程：无可见帧空状态"
+  },
+  "animationProjectPlayPreview": "播放",
+  "@animationProjectPlayPreview": {
+    "description": "动画工程：播放预览按钮"
+  },
+  "animationProjectPausePreview": "暂停",
+  "@animationProjectPausePreview": {
+    "description": "动画工程：暂停预览按钮"
+  },
+  "animationProjectPreviousFrame": "上一帧",
+  "@animationProjectPreviousFrame": {
+    "description": "动画工程：上一帧 tooltip"
+  },
+  "animationProjectNextFrame": "下一帧",
+  "@animationProjectNextFrame": {
+    "description": "动画工程：下一帧 tooltip"
+  },
+  "animationProjectCompositeFrameStatus": "合成帧 {frameIndex} / {frameCount} · {delayMs} ms",
+  "@animationProjectCompositeFrameStatus": {
+    "description": "动画工程：合成帧状态",
+    "placeholders": {
+      "frameIndex": {
+        "type": "int"
+      },
+      "frameCount": {
+        "type": "int"
+      },
+      "delayMs": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectGeneratedSourceGrid": "{rows} x {columns} · {frameCount} 格",
+  "@animationProjectGeneratedSourceGrid": {
+    "description": "动画工程：来源为单张 Sprite Sheet 时的网格摘要",
+    "placeholders": {
+      "rows": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      },
+      "frameCount": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectGeneratedSequenceSource": "{count} 张序列帧",
+  "@animationProjectGeneratedSequenceSource": {
+    "description": "动画工程：来源为图片序列时的摘要",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectResizeControlsTooltip": "拖动调整工程控制宽度，双击复位",
+  "@animationProjectResizeControlsTooltip": {
+    "description": "动画工程：工程控制宽度拖拽把手 tooltip"
+  },
+  "animationProjectResizeTimelineTooltip": "拖动调整时间轴高度，双击复位",
+  "@animationProjectResizeTimelineTooltip": {
+    "description": "动画工程：时间轴高度拖拽把手 tooltip"
+  },
+  "animationProjectAssetDiagnosticsTitle": "资源诊断",
+  "@animationProjectAssetDiagnosticsTitle": {
+    "description": "动画工程：资源诊断区块标题"
+  },
+  "animationProjectRecheckAssets": "重新检查",
+  "@animationProjectRecheckAssets": {
+    "description": "动画工程：重新检查资源按钮"
+  },
+  "animationProjectCheckingFrameAssets": "正在检查帧资源",
+  "@animationProjectCheckingFrameAssets": {
+    "description": "动画工程：资源诊断检查中标题"
+  },
+  "animationProjectCheckingFrameAssetsMessage": "正在验证工程引用的帧文件。",
+  "@animationProjectCheckingFrameAssetsMessage": {
+    "description": "动画工程：资源诊断检查中说明"
+  },
+  "animationProjectAssetCheckFailed": "资源检查失败",
+  "@animationProjectAssetCheckFailed": {
+    "description": "动画工程：资源诊断失败标题"
+  },
+  "animationProjectNoAssetCheckResult": "没有可用的检查结果",
+  "@animationProjectNoAssetCheckResult": {
+    "description": "动画工程：资源诊断无结果兜底"
+  },
+  "animationProjectAssetsHealthy": "资源完整",
+  "@animationProjectAssetsHealthy": {
+    "description": "动画工程：资源完整标题"
+  },
+  "animationProjectAssetsHealthyMessage": "{totalCount} 个帧资源可用，{referencedCount} 个被时间轴引用。",
+  "@animationProjectAssetsHealthyMessage": {
+    "description": "动画工程：资源完整说明",
+    "placeholders": {
+      "totalCount": {
+        "type": "int"
+      },
+      "referencedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectMissingAssetsTitle": "缺失资源",
+  "@animationProjectMissingAssetsTitle": {
+    "description": "动画工程：资源缺失标题"
+  },
+  "animationProjectRepairableTitle": "工程可修复",
+  "@animationProjectRepairableTitle": {
+    "description": "动画工程：工程可修复标题"
+  },
+  "animationProjectMissingTimelineAssetsMessage": "{count} 个被时间轴引用的资源缺失，预览和导出会失败。",
+  "@animationProjectMissingTimelineAssetsMessage": {
+    "description": "动画工程：时间轴引用资源缺失说明",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectMissingUnusedAssetsMessage": "发现未引用的缺失资源，当前预览不受影响。",
+  "@animationProjectMissingUnusedAssetsMessage": {
+    "description": "动画工程：未引用资源缺失说明"
+  },
+  "animationProjectRepairableMessage": "发现可自动修复的工程一致性问题。",
+  "@animationProjectRepairableMessage": {
+    "description": "动画工程：工程可修复说明"
+  },
+  "animationProjectAssetPreviewExtraCount": " 等 {count} 个",
+  "@animationProjectAssetPreviewExtraCount": {
+    "description": "动画工程：自动修复资源预览超出数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectUnusedAssetsDetail": "未引用资源 {count} 个",
+  "@animationProjectUnusedAssetsDetail": {
+    "description": "动画工程：未引用资源数量明细",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectInvalidFrameRefsDetail": "空帧引用 {count} 个",
+  "@animationProjectInvalidFrameRefsDetail": {
+    "description": "动画工程：空帧引用数量明细",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectAutoRepairableCount": "可自动修复 {count} 项",
+  "@animationProjectAutoRepairableCount": {
+    "description": "动画工程：可自动修复数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectAutoRepairAction": "自动修复可处理项",
+  "@animationProjectAutoRepairAction": {
+    "description": "动画工程：自动修复按钮"
+  },
+  "animationProjectMissingRecordedPath": "未记录路径",
+  "@animationProjectMissingRecordedPath": {
+    "description": "动画工程：资源未记录路径兜底"
+  },
+  "animationProjectAssetIssueTimelineRefs": "{message} · 时间轴引用 {count} 次",
+  "@animationProjectAssetIssueTimelineRefs": {
+    "description": "动画工程：资源问题被时间轴引用次数",
+    "placeholders": {
+      "message": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectRebindAsset": "重新绑定",
+  "@animationProjectRebindAsset": {
+    "description": "动画工程：重新绑定资源按钮"
+  },
+  "animationProjectTracksSectionTitle": "轨道",
+  "@animationProjectTracksSectionTitle": {
+    "description": "动画工程：轨道列表标题"
+  },
+  "animationProjectMoveTrackUp": "上移轨道",
+  "@animationProjectMoveTrackUp": {
+    "description": "动画工程：上移轨道 tooltip"
+  },
+  "animationProjectMoveTrackDown": "下移轨道",
+  "@animationProjectMoveTrackDown": {
+    "description": "动画工程：下移轨道 tooltip"
+  },
+  "animationProjectDuplicateTrack": "复制轨道",
+  "@animationProjectDuplicateTrack": {
+    "description": "动画工程：复制轨道 tooltip"
+  },
+  "animationProjectDeleteTrack": "删除轨道",
+  "@animationProjectDeleteTrack": {
+    "description": "动画工程：删除轨道 tooltip"
+  },
+  "animationProjectHideTrack": "隐藏轨道",
+  "@animationProjectHideTrack": {
+    "description": "动画工程：隐藏轨道 tooltip"
+  },
+  "animationProjectShowTrack": "显示轨道",
+  "@animationProjectShowTrack": {
+    "description": "动画工程：显示轨道 tooltip"
+  },
+  "animationProjectUnlockTrack": "解锁轨道",
+  "@animationProjectUnlockTrack": {
+    "description": "动画工程：解锁轨道 tooltip"
+  },
+  "animationProjectLockTrack": "锁定轨道",
+  "@animationProjectLockTrack": {
+    "description": "动画工程：锁定轨道 tooltip"
+  },
+  "animationProjectTrackNameLabel": "轨道名称",
+  "@animationProjectTrackNameLabel": {
+    "description": "动画工程：轨道名称字段"
+  },
+  "animationProjectFrameDelayLabel": "帧时长",
+  "@animationProjectFrameDelayLabel": {
+    "description": "动画工程：轨道帧时长字段"
+  },
+  "animationProjectFrameCount": "{count} 帧",
+  "@animationProjectFrameCount": {
+    "description": "动画工程：帧数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectSelectTrackFirst": "先选择一条轨道",
+  "@animationProjectSelectTrackFirst": {
+    "description": "动画工程：未选择轨道空状态"
+  },
+  "animationProjectInsertBlankFrame": "插入空白帧",
+  "@animationProjectInsertBlankFrame": {
+    "description": "动画工程：插入空白帧按钮"
+  },
+  "animationProjectInsertImageFrame": "插入图片帧",
+  "@animationProjectInsertImageFrame": {
+    "description": "动画工程：插入图片帧按钮"
+  },
+  "animationProjectTrackLockedNoFrames": "轨道已锁定，当前没有序列帧",
+  "@animationProjectTrackLockedNoFrames": {
+    "description": "动画工程：锁定轨道无帧空状态"
+  },
+  "animationProjectTrackNoFrames": "当前轨道没有序列帧",
+  "@animationProjectTrackNoFrames": {
+    "description": "动画工程：轨道无帧空状态"
+  },
+  "animationProjectSequenceTimelineTitle": "序列帧时间轴",
+  "@animationProjectSequenceTimelineTitle": {
+    "description": "动画工程：序列帧时间轴标题"
+  },
+  "animationProjectTrackFrameStatus": "{trackName} · {frameCount} 帧",
+  "@animationProjectTrackFrameStatus": {
+    "description": "动画工程：当前轨道帧数量状态",
+    "placeholders": {
+      "trackName": {},
+      "frameCount": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectSingleFrameDelay": "单帧时长",
+  "@animationProjectSingleFrameDelay": {
+    "description": "动画工程：单帧时长字段"
+  },
+  "animationProjectCurrentFrame": "当前帧 {index}",
+  "@animationProjectCurrentFrame": {
+    "description": "动画工程：当前帧标签",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "animationProjectReplaceFrame": "替换帧",
+  "@animationProjectReplaceFrame": {
+    "description": "动画工程：替换帧按钮"
+  },
+  "animationProjectClearFrame": "清空帧",
+  "@animationProjectClearFrame": {
+    "description": "动画工程：清空帧按钮"
+  },
+  "animationProjectPixelateCurrentFrame": "像素化当前帧",
+  "@animationProjectPixelateCurrentFrame": {
+    "description": "动画工程：像素化当前帧 tooltip"
+  },
+  "animationProjectPixelateFrame": "像素化帧",
+  "@animationProjectPixelateFrame": {
+    "description": "动画工程：像素化帧按钮"
+  },
+  "animationProjectDuplicateFrame": "复制帧",
+  "@animationProjectDuplicateFrame": {
+    "description": "动画工程：复制帧按钮"
+  },
+  "animationProjectDeleteFrame": "删除帧",
+  "@animationProjectDeleteFrame": {
+    "description": "动画工程：删除帧按钮"
+  },
+  "animationProjectSingleFrameTransform": "单帧变换",
+  "@animationProjectSingleFrameTransform": {
+    "description": "动画工程：单帧变换标题"
+  },
+  "animationProjectFlipHorizontal": "水平翻转",
+  "@animationProjectFlipHorizontal": {
+    "description": "动画工程：水平翻转 tooltip"
+  },
+  "animationProjectFlipVertical": "垂直翻转",
+  "@animationProjectFlipVertical": {
+    "description": "动画工程：垂直翻转 tooltip"
+  },
+  "animationProjectResetFrameTransform": "重置单帧变换",
+  "@animationProjectResetFrameTransform": {
+    "description": "动画工程：重置单帧变换 tooltip"
+  },
+  "animationProjectOpacity": "不透明度",
+  "@animationProjectOpacity": {
+    "description": "动画工程：不透明度滑块"
+  },
+  "apiConfigDeleteLastMessage": "至少需要保留一个接口配置",
+  "@apiConfigDeleteLastMessage": {
+    "description": "接口配置：阻止删除最后一个配置的提示"
+  },
+  "batchGenerationMissingApiKey": "请先在接口配置页填写 API Key",
+  "@batchGenerationMissingApiKey": {
+    "description": "批量生成：缺少 API Key 提示"
+  },
+  "batchGenerationMissingModel": "请先在接口配置页获取模型列表并选择模型",
+  "@batchGenerationMissingModel": {
+    "description": "批量生成：缺少模型提示"
+  },
+  "batchGenerationMissingPrompts": "请先填写至少一行批量提示词",
+  "@batchGenerationMissingPrompts": {
+    "description": "批量生成：批量提示词为空提示"
+  },
+  "batchGenerationJobsAdded": "已拆分并加入 {count} 个批量任务",
+  "@batchGenerationJobsAdded": {
+    "description": "批量生成：批量任务加入队列提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchGenerationAutoRetryMessage": "上次失败，已移到队尾自动重试 ({retryAttempt}/{maxRetryAttempts})：{errorMessage}",
+  "@batchGenerationAutoRetryMessage": {
+    "description": "批量生成：任务自动重试错误提示",
+    "placeholders": {
+      "retryAttempt": {
+        "type": "int"
+      },
+      "maxRetryAttempts": {
+        "type": "int"
+      },
+      "errorMessage": {}
+    }
+  },
+  "batchGenerationRetryBlockedRunning": "队列运行中，请等待当前队列停止后再重试失败任务",
+  "@batchGenerationRetryBlockedRunning": {
+    "description": "批量生成：队列运行中禁止重试提示"
+  },
+  "batchGenerationNoFailedJobsToRetry": "没有失败任务可重试",
+  "@batchGenerationNoFailedJobsToRetry": {
+    "description": "批量生成：没有可重试失败任务提示"
+  },
+  "batchGenerationFailedJobsRequeued": "已将 {count} 个失败任务重新加入等待队列",
+  "@batchGenerationFailedJobsRequeued": {
+    "description": "批量生成：多个失败任务重新入队提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchGenerationFailedJobRequeued": "已将失败任务重新加入等待队列",
+  "@batchGenerationFailedJobRequeued": {
+    "description": "批量生成：单个失败任务重新入队提示"
+  },
+  "batchGenerationQueuePaused": "队列已暂停，可继续执行剩余 {count} 个任务",
+  "@batchGenerationQueuePaused": {
+    "description": "批量生成：队列暂停后剩余任务提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchGenerationQueueStopped": "批量队列已停止",
+  "@batchGenerationQueueStopped": {
+    "description": "批量生成：队列停止提示"
+  },
+  "batchGenerationPauseRequested": "已暂停后续任务；正在请求的一批会等待接口返回",
+  "@batchGenerationPauseRequested": {
+    "description": "批量生成：请求暂停提示"
+  },
+  "batchGenerationResumed": "已恢复后续任务",
+  "@batchGenerationResumed": {
+    "description": "批量生成：恢复队列提示"
+  },
+  "batchGenerationNoQueuedJobsToCancel": "没有等待中的任务可取消",
+  "@batchGenerationNoQueuedJobsToCancel": {
+    "description": "批量生成：没有可取消等待任务提示"
+  },
+  "batchGenerationUserCanceledQueuedJob": "用户取消等待任务",
+  "@batchGenerationUserCanceledQueuedJob": {
+    "description": "批量生成：等待任务被用户取消的错误信息"
+  },
+  "batchGenerationCancelQueuedRunningHint": "；当前正在请求的一批会等待接口返回",
+  "@batchGenerationCancelQueuedRunningHint": {
+    "description": "批量生成：取消等待任务时仍有请求中的补充提示"
+  },
+  "batchGenerationQueuedJobsCanceled": "已取消 {count} 个等待任务{runningHint}",
+  "@batchGenerationQueuedJobsCanceled": {
+    "description": "批量生成：取消等待任务提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "runningHint": {}
+    }
+  },
+  "batchGenerationResultTitle": "批量结果 {index}",
+  "@batchGenerationResultTitle": {
+    "description": "批量生成：批量结果默认标题",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "batchGenerationSourceName": "批量生成",
+  "@batchGenerationSourceName": {
+    "description": "批量生成：作品来源名称"
+  },
+  "batchGenerationLibraryTitlePrefix": "批量生图",
+  "@batchGenerationLibraryTitlePrefix": {
+    "description": "批量生成：作品库结果标题前缀"
+  },
+  "batchGenerationLibrarySource": "批量生成",
+  "@batchGenerationLibrarySource": {
+    "description": "批量生成：作品库来源字段"
+  },
+  "backgroundTransparencyNoEdgeDetected": "没有检测到可透明化的边缘背景，可尝试调高容差",
+  "@backgroundTransparencyNoEdgeDetected": {
+    "description": "背景转透明：没有可透明化边缘背景提示"
+  },
+  "batchGenerationTransparentImageSaved": "已生成透明背景图片：{title} · 透明化 {count} 个像素",
+  "@batchGenerationTransparentImageSaved": {
+    "description": "批量生成：透明背景图片生成成功提示",
+    "placeholders": {
+      "title": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backgroundTransparencyFailed": "背景转透明失败：{error}",
+  "@backgroundTransparencyFailed": {
+    "description": "背景转透明：处理失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "copyImageFailed": "复制图片失败：{error}",
+  "@copyImageFailed": {
+    "description": "通用：复制图片失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "retryGenerationAction": "重试生成",
+  "@retryGenerationAction": {
+    "description": "通用预览：重试生成按钮"
+  },
+  "previewPanelTitle": "结果预览",
+  "@previewPanelTitle": {
+    "description": "结果预览面板标题"
+  },
+  "previewGeneratingImage": "正在生成图片",
+  "@previewGeneratingImage": {
+    "description": "结果预览：生成中提示"
+  },
+  "previewGenerationFailed": "生成失败",
+  "@previewGenerationFailed": {
+    "description": "结果预览：生成失败标题"
+  },
+  "previewEmptyMessage": "生成后的图片会显示在这里",
+  "@previewEmptyMessage": {
+    "description": "结果预览：空状态提示"
+  },
+  "previewResultTitle": "结果 {index}",
+  "@previewResultTitle": {
+    "description": "结果预览：单张结果标题",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "copyImageTooltip": "复制图片",
+  "@copyImageTooltip": {
+    "description": "通用：复制图片 tooltip"
+  },
+  "exportImageTooltip": "导出图片",
+  "@exportImageTooltip": {
+    "description": "通用：导出图片 tooltip"
+  },
+  "makeBackgroundTransparentTooltip": "背景转透明",
+  "@makeBackgroundTransparentTooltip": {
+    "description": "通用：背景转透明 tooltip"
+  },
+  "previewPendingImage": "等待 {index}",
+  "@previewPendingImage": {
+    "description": "结果预览：等待中的图片占位",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "previewImageLoadFailed": "图片加载失败：{error}",
+  "@previewImageLoadFailed": {
+    "description": "结果预览：图片加载失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "firstRunSetupTitle": "完成首次接口配置",
+  "@firstRunSetupTitle": {
+    "description": "首次启动：接口配置弹窗标题"
+  },
+  "firstRunSetupMessage": "开始生成前需要先配置供应商、Base URL、API Key 和模型。你可以现在打开接口配置页，也可以稍后从侧边栏的设置入口进入。",
+  "@firstRunSetupMessage": {
+    "description": "首次启动：接口配置弹窗说明"
+  },
+  "firstRunSetupLater": "稍后配置",
+  "@firstRunSetupLater": {
+    "description": "首次启动：稍后配置按钮"
+  },
+  "firstRunSetupOpenApiSettings": "打开接口配置",
+  "@firstRunSetupOpenApiSettings": {
+    "description": "首次启动：打开接口配置按钮"
+  },
+  "resetDefaultsTitle": "恢复默认表单",
+  "@resetDefaultsTitle": {
+    "description": "恢复默认表单弹窗标题"
+  },
+  "resetDefaultsMessage": "会清空当前接口配置、提示词、预览结果和本地临时选择，作品库中的已保存文件不会被删除。",
+  "@resetDefaultsMessage": {
+    "description": "恢复默认表单弹窗说明"
+  },
+  "resetDefaultsAction": "恢复默认",
+  "@resetDefaultsAction": {
+    "description": "恢复默认表单确认按钮"
+  },
+  "spriteSheetReplaceFrameTitle": "确认替换第 {frameNumber} 帧",
+  "@spriteSheetReplaceFrameTitle": {
+    "description": "Sprite Sheet：替换帧确认弹窗标题",
+    "placeholders": {
+      "frameNumber": {
+        "type": "int"
+      }
+    }
+  },
+  "spriteSheetReplaceFrameTarget": "目标位置：第 {row} 行 · 第 {column} 列 · {width} x {height} · {fitLabel}",
+  "@spriteSheetReplaceFrameTarget": {
+    "description": "Sprite Sheet：替换帧目标位置说明",
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      },
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      },
+      "fitLabel": {}
+    }
+  },
+  "spriteSheetOriginalFrame": "原帧",
+  "@spriteSheetOriginalFrame": {
+    "description": "Sprite Sheet：替换预览原帧标题"
+  },
+  "spriteSheetPatchFrame": "单帧图片",
+  "@spriteSheetPatchFrame": {
+    "description": "Sprite Sheet：替换预览单帧图片标题"
+  },
+  "spriteSheetReplacementResult": "替换后",
+  "@spriteSheetReplacementResult": {
+    "description": "Sprite Sheet：替换预览结果标题"
+  },
+  "spriteSheetConfirmReplace": "确认替换",
+  "@spriteSheetConfirmReplace": {
+    "description": "Sprite Sheet：确认替换按钮"
+  },
+  "imageLabel": "图片",
+  "@imageLabel": {
+    "description": "通用：图片兜底名称"
+  },
+  "imageLibraryStateNoAvailableImages": "作品库还没有可用图片",
+  "@imageLibraryStateNoAvailableImages": {
+    "description": "作品库状态：没有可用图片提示"
+  },
+  "imageLibraryStateSpriteSheetMissingGrid": "该 Sprite Sheet 缺少行列元数据，无法切片",
+  "@imageLibraryStateSpriteSheetMissingGrid": {
+    "description": "作品库状态：Sprite Sheet 缺少行列元数据提示"
+  },
+  "imageLibraryStateSpriteSheetMissingGroup": "该 Sprite Sheet 缺少 groupId，无法保存切片",
+  "@imageLibraryStateSpriteSheetMissingGroup": {
+    "description": "作品库状态：Sprite Sheet 缺少 groupId 提示"
+  },
+  "imageLibraryGifPrompt": "{count} 张图片合成",
+  "@imageLibraryGifPrompt": {
+    "description": "作品库条目：GIF 帧数摘要",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySpriteSheetGifTitle": "Sprite Sheet GIF",
+  "@imageLibrarySpriteSheetGifTitle": {
+    "description": "作品库条目：从 Sprite Sheet 导出的 GIF 标题"
+  },
+  "imageLibraryAnimationProjectGifTitle": "动画工程 GIF",
+  "@imageLibraryAnimationProjectGifTitle": {
+    "description": "作品库条目：动画工程导出 GIF 标题"
+  },
+  "imageLibraryAnimationTrackGifTitle": "动画轨道 GIF",
+  "@imageLibraryAnimationTrackGifTitle": {
+    "description": "作品库条目：动画轨道导出 GIF 标题"
+  },
+  "imageLibraryAnimationProjectPrompt": "{trackCount} 条轨道 · {frameCount} 帧 · {width} x {height}",
+  "@imageLibraryAnimationProjectPrompt": {
+    "description": "作品库条目：动画工程摘要",
+    "placeholders": {
+      "trackCount": {
+        "type": "int"
+      },
+      "frameCount": {
+        "type": "int"
+      },
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryExportedSpriteSheetTitle": "导出 Sprite Sheet",
+  "@imageLibraryExportedSpriteSheetTitle": {
+    "description": "作品库条目：导出的 Sprite Sheet 标题"
+  },
+  "imageLibraryExportedSpriteSheetSource": "Sprite Sheet 导出",
+  "@imageLibraryExportedSpriteSheetSource": {
+    "description": "作品库条目：导出的 Sprite Sheet 来源"
+  },
+  "imageLibraryAnimationProjectSpriteSheetTitle": "动画工程 Sprite Sheet",
+  "@imageLibraryAnimationProjectSpriteSheetTitle": {
+    "description": "作品库条目：动画工程导出的 Sprite Sheet 标题"
+  },
+  "imageLibraryAnimationProjectSpriteSheetSource": "动画工程导出",
+  "@imageLibraryAnimationProjectSpriteSheetSource": {
+    "description": "作品库条目：动画工程导出的 Sprite Sheet 来源"
+  },
+  "imageLibrarySpriteSheetPrompt": "{rows} x {columns}",
+  "@imageLibrarySpriteSheetPrompt": {
+    "description": "作品库条目：Sprite Sheet 行列摘要",
+    "placeholders": {
+      "rows": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryEditedSpriteSheetTitle": "编辑后的 Sprite Sheet",
+  "@imageLibraryEditedSpriteSheetTitle": {
+    "description": "作品库条目：编辑后的 Sprite Sheet 标题"
+  },
+  "imageLibraryEditedSpriteSheetPrompt": "替换第 {frameIndex} 帧 · {rows} x {columns}",
+  "@imageLibraryEditedSpriteSheetPrompt": {
+    "description": "作品库条目：编辑后的 Sprite Sheet 摘要",
+    "placeholders": {
+      "frameIndex": {
+        "type": "int"
+      },
+      "rows": {
+        "type": "int"
+      },
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibrarySpriteFrameTitle": "{sheetTitle} · 帧 {frameIndex}",
+  "@imageLibrarySpriteFrameTitle": {
+    "description": "作品库条目：保存切片帧标题",
+    "placeholders": {
+      "sheetTitle": {},
+      "frameIndex": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryStateSaveSliceHistory": "保存「{title}」第 {index} 帧",
+  "@imageLibraryStateSaveSliceHistory": {
+    "description": "作品库状态：保存单个切片历史动作",
+    "placeholders": {
+      "title": {},
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryStateSaveSliceFailed": "保存切片失败：{error}",
+  "@imageLibraryStateSaveSliceFailed": {
+    "description": "作品库状态：保存切片失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageLibraryStateSaveSlicesHistory": "保存「{title}」{count} 个切片帧",
+  "@imageLibraryStateSaveSlicesHistory": {
+    "description": "作品库状态：批量保存切片历史动作",
+    "placeholders": {
+      "title": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryStateSavedSlicesMessage": "已保存 {count} 个切片帧到作品集",
+  "@imageLibraryStateSavedSlicesMessage": {
+    "description": "作品库状态：切片保存成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryStateItemMissingGrid": "该作品缺少行列元数据，无法切片",
+  "@imageLibraryStateItemMissingGrid": {
+    "description": "作品库状态：作品缺少行列元数据提示"
+  },
+  "imageLibraryStateEditMetadataHistory": "编辑「{title}」",
+  "@imageLibraryStateEditMetadataHistory": {
+    "description": "作品库状态：编辑作品信息历史动作",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageLibraryStateMetadataUpdated": "作品信息已更新",
+  "@imageLibraryStateMetadataUpdated": {
+    "description": "作品库状态：作品信息更新成功提示"
+  },
+  "imageLibraryStatePathCopied": "作品路径已复制",
+  "@imageLibraryStatePathCopied": {
+    "description": "作品库状态：作品路径复制成功提示"
+  },
+  "imageLibraryStateFileMissing": "作品文件不存在",
+  "@imageLibraryStateFileMissing": {
+    "description": "作品库状态：作品文件不存在提示"
+  },
+  "imageLibraryStateImageCopied": "图片已复制到剪贴板",
+  "@imageLibraryStateImageCopied": {
+    "description": "作品库状态：图片复制成功提示"
+  },
+  "imageLibraryStateImagePathCopied": "当前平台暂不支持直接复制图片，已复制图片路径",
+  "@imageLibraryStateImagePathCopied": {
+    "description": "作品库状态：图片复制退化为路径复制提示"
+  },
+  "imageLibraryStateAnimationProjectExported": "动画工程文件已导出：{fileName}",
+  "@imageLibraryStateAnimationProjectExported": {
+    "description": "作品库状态：动画工程文件导出成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageLibraryStateImageExported": "图片已导出：{fileName}",
+  "@imageLibraryStateImageExported": {
+    "description": "作品库状态：图片导出成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageLibraryStateSelectItemsToExport": "请先选择要导出的作品",
+  "@imageLibraryStateSelectItemsToExport": {
+    "description": "作品库状态：导出前未选择作品提示"
+  },
+  "imageLibraryStateExportHere": "导出到这里",
+  "@imageLibraryStateExportHere": {
+    "description": "作品库状态：目录选择确认按钮"
+  },
+  "imageLibraryStateSelectedFilesMissing": "选中的作品文件都不存在",
+  "@imageLibraryStateSelectedFilesMissing": {
+    "description": "作品库状态：选中作品文件全部缺失提示"
+  },
+  "imageLibraryStateSkippedMissingFiles": "，跳过 {count} 个缺失文件",
+  "@imageLibraryStateSkippedMissingFiles": {
+    "description": "作品库状态：导出时跳过缺失文件提示后缀",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryStateExportedSelected": "已导出 {count} 个作品{skipped}",
+  "@imageLibraryStateExportedSelected": {
+    "description": "作品库状态：批量导出成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {}
+    }
+  },
+  "imageLibraryStateExportSelectedFailed": "导出已选作品失败：{error}",
+  "@imageLibraryStateExportSelectedFailed": {
+    "description": "作品库状态：批量导出失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageLibraryStateLocationOpened": "已打开作品所在位置",
+  "@imageLibraryStateLocationOpened": {
+    "description": "作品库状态：打开作品所在位置成功提示"
+  },
+  "imageLibraryStateDirectoryMissing": "作品所在目录不存在",
+  "@imageLibraryStateDirectoryMissing": {
+    "description": "作品库状态：作品目录不存在提示"
+  },
+  "imageLibraryStateDirectoryPathCopied": "已复制作品目录路径",
+  "@imageLibraryStateDirectoryPathCopied": {
+    "description": "作品库状态：作品目录路径已复制提示"
+  },
+  "imageLibraryStateDirectoryOpenFailedPathCopied": "无法打开目录，已复制作品目录路径",
+  "@imageLibraryStateDirectoryOpenFailedPathCopied": {
+    "description": "作品库状态：打开目录失败后复制路径提示"
+  },
+  "imageLibraryStateNotAnimationProject": "这个作品不是动画工程",
+  "@imageLibraryStateNotAnimationProject": {
+    "description": "作品库状态：作品不是动画工程提示"
+  },
+  "imageLibraryStateAnimationProjectFileMissingDetail": "动画工程文件不存在：{path}",
+  "@imageLibraryStateAnimationProjectFileMissingDetail": {
+    "description": "作品库状态：动画工程文件不存在详细错误",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "imageLibraryStateAnimationProjectFileMissing": "动画工程文件不存在",
+  "@imageLibraryStateAnimationProjectFileMissing": {
+    "description": "作品库状态：动画工程文件不存在提示"
+  },
+  "imageLibraryStateOpenAnimationProjectHistory": "打开动画工程「{title}」",
+  "@imageLibraryStateOpenAnimationProjectHistory": {
+    "description": "作品库状态：打开动画工程历史动作",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageLibraryStateAnimationProjectOpened": "已打开动画工程：{title}",
+  "@imageLibraryStateAnimationProjectOpened": {
+    "description": "作品库状态：打开动画工程成功提示",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageLibraryStateOpenAnimationProjectFailed": "打开动画工程失败：{error}",
+  "@imageLibraryStateOpenAnimationProjectFailed": {
+    "description": "作品库状态：打开动画工程失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "imageLibraryStateTransparentBackgroundTitle": "透明背景：{title}",
+  "@imageLibraryStateTransparentBackgroundTitle": {
+    "description": "作品库状态：透明背景生成作品标题",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageLibraryStateTransparentBackgroundPrompt": "背景转透明 · 容差 {tolerance} · {width} x {height}",
+  "@imageLibraryStateTransparentBackgroundPrompt": {
+    "description": "作品库状态：透明背景生成作品提示词摘要",
+    "placeholders": {
+      "tolerance": {
+        "type": "int"
+      },
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryStateNotProcessableStaticImage": "该作品不是可处理的静态图片",
+  "@imageLibraryStateNotProcessableStaticImage": {
+    "description": "作品库状态：作品不能背景转透明提示"
+  },
+  "imageLibraryStateDeleteOneHistory": "删除「{title}」",
+  "@imageLibraryStateDeleteOneHistory": {
+    "description": "作品库状态：删除单个作品历史动作",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageLibraryStateDeleteManyHistory": "删除 {count} 个作品",
+  "@imageLibraryStateDeleteManyHistory": {
+    "description": "作品库状态：批量删除作品历史动作",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryStateDeletedOne": "作品已删除",
+  "@imageLibraryStateDeletedOne": {
+    "description": "作品库状态：删除单个作品成功提示"
+  },
+  "imageLibraryStateDeletedMany": "已删除 {count} 个作品",
+  "@imageLibraryStateDeletedMany": {
+    "description": "作品库状态：批量删除作品成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLibraryStateUnsupportedEditorSource": "这类作品不能作为图片编辑源",
+  "@imageLibraryStateUnsupportedEditorSource": {
+    "description": "作品库状态：作品不能作为图片编辑源提示"
+  },
+  "imageLibraryStateOpenedInEditor": "已在图片编辑器中打开：{title}",
+  "@imageLibraryStateOpenedInEditor": {
+    "description": "作品库状态：普通图片已在编辑器打开提示",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageLibraryStateOpenInEditorHistory": "在编辑器中打开「{title}」",
+  "@imageLibraryStateOpenInEditorHistory": {
+    "description": "作品库状态：在编辑器打开作品历史动作",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageLibraryStateNoReusableGeneration": "这个作品没有可复用的生成参数",
+  "@imageLibraryStateNoReusableGeneration": {
+    "description": "作品库状态：没有可复用生成参数提示"
+  },
+  "imageLibraryStateReuseGenerationHistory": "复用「{title}」生成参数",
+  "@imageLibraryStateReuseGenerationHistory": {
+    "description": "作品库状态：复用生成参数历史动作",
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "imageLibraryStateGenerationLoadedNeedsApiConfig": "已载入作品参数，接口配置需要手动选择",
+  "@imageLibraryStateGenerationLoadedNeedsApiConfig": {
+    "description": "作品库状态：已载入生成参数但需手动选择接口配置"
+  },
+  "imageLibraryStateGenerationLoaded": "已载入作品参数",
+  "@imageLibraryStateGenerationLoaded": {
+    "description": "作品库状态：已载入生成参数提示"
+  },
+  "imageLibraryStateNoCopyableGeneration": "这个作品没有可复制的生成参数",
+  "@imageLibraryStateNoCopyableGeneration": {
+    "description": "作品库状态：没有可复制生成参数提示"
+  },
+  "imageLibraryStateGenerationCopied": "作品参数已复制",
+  "@imageLibraryStateGenerationCopied": {
+    "description": "作品库状态：生成参数复制成功提示"
+  },
+  "localSettingsStateAdjustSizeHistory": "调整分辨率为 {size}",
+  "@localSettingsStateAdjustSizeHistory": {
+    "description": "本地设置状态：调整分辨率历史动作",
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "localSettingsStateAdjustImageCountHistory": "调整生成数量为 {count} 张",
+  "@localSettingsStateAdjustImageCountHistory": {
+    "description": "本地设置状态：调整生成数量历史动作",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localSettingsStateEditPositivePromptHistory": "修改正向提示词",
+  "@localSettingsStateEditPositivePromptHistory": {
+    "description": "本地设置状态：修改正向提示词历史动作"
+  },
+  "localSettingsStateEditAnimationPromptHistory": "修改动画工程提示词",
+  "@localSettingsStateEditAnimationPromptHistory": {
+    "description": "本地设置状态：修改动画工程提示词历史动作"
+  },
+  "localSettingsStateEditNegativePromptHistory": "修改负向提示词",
+  "@localSettingsStateEditNegativePromptHistory": {
+    "description": "本地设置状态：修改负向提示词历史动作"
+  },
+  "localSettingsStateAdjustQualityHistory": "调整质量为 {label}",
+  "@localSettingsStateAdjustQualityHistory": {
+    "description": "本地设置状态：调整质量历史动作",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "localSettingsStateAdjustBackgroundHistory": "调整背景为 {label}",
+  "@localSettingsStateAdjustBackgroundHistory": {
+    "description": "本地设置状态：调整背景历史动作",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "localSettingsStateAdjustOutputFormatHistory": "调整输出格式为 {label}",
+  "@localSettingsStateAdjustOutputFormatHistory": {
+    "description": "本地设置状态：调整输出格式历史动作",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "localSettingsStateAdjustOutputCompressionHistory": "调整输出压缩率为 {value}%",
+  "@localSettingsStateAdjustOutputCompressionHistory": {
+    "description": "本地设置状态：调整输出压缩率历史动作",
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "localSettingsStateAdjustModerationHistory": "调整审核强度为 {label}",
+  "@localSettingsStateAdjustModerationHistory": {
+    "description": "本地设置状态：调整审核强度历史动作",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "localSettingsStateAdjustInputFidelityHistory": "调整参考图保真度为 {label}",
+  "@localSettingsStateAdjustInputFidelityHistory": {
+    "description": "本地设置状态：调整参考图保真度历史动作",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "localSettingsStateEditFinalUserHistory": "修改最终用户 ID",
+  "@localSettingsStateEditFinalUserHistory": {
+    "description": "本地设置状态：修改最终用户 ID 历史动作"
+  },
+  "localSettingsStateAdjustAdvancedSettingsHistory": "调整高级输出参数",
+  "@localSettingsStateAdjustAdvancedSettingsHistory": {
+    "description": "本地设置状态：调整高级输出参数历史动作"
+  },
+  "localSettingsStateTextPresetName": "文本生图 {index}",
+  "@localSettingsStateTextPresetName": {
+    "description": "本地设置状态：文本生图预设默认名称",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "localSettingsStateAnimationPresetName": "动画工程 {index}",
+  "@localSettingsStateAnimationPresetName": {
+    "description": "本地设置状态：动画工程预设默认名称",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "localSettingsStatePresetSaved": "已保存预设：{name}",
+  "@localSettingsStatePresetSaved": {
+    "description": "本地设置状态：预设保存成功提示",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "localSettingsStateApplyPresetHistory": "应用预设：{name}",
+  "@localSettingsStateApplyPresetHistory": {
+    "description": "本地设置状态：应用预设历史动作",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "localSettingsStatePresetApplied": "已应用预设：{name}",
+  "@localSettingsStatePresetApplied": {
+    "description": "本地设置状态：预设应用成功提示",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "localSettingsStatePresetDeleted": "已删除预设：{name}",
+  "@localSettingsStatePresetDeleted": {
+    "description": "本地设置状态：预设删除成功提示",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "localSettingsStateCleanupDone": "已清理 {count} 个文件，释放 {size}",
+  "@localSettingsStateCleanupDone": {
+    "description": "本地设置状态：存储清理成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {}
+    }
+  },
+  "localSettingsStateCleanupFailed": "清理失败：{error}",
+  "@localSettingsStateCleanupFailed": {
+    "description": "本地设置状态：存储清理失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "localSettingsStateLibraryArchiveExported": "已导出 {count} 个作品{skipped}：{fileName}",
+  "@localSettingsStateLibraryArchiveExported": {
+    "description": "本地设置状态：作品库归档导出成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {},
+      "fileName": {}
+    }
+  },
+  "localSettingsStateExportLibraryFailed": "导出作品库失败：{error}",
+  "@localSettingsStateExportLibraryFailed": {
+    "description": "本地设置状态：作品库导出失败提示",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "localSettingsStateImportLibraryHistory": "导入作品库",
+  "@localSettingsStateImportLibraryHistory": {
+    "description": "本地设置状态：导入作品库历史动作"
+  },
+  "localSettingsStateSkippedInvalidItems": "，跳过 {count} 个无效条目",
+  "@localSettingsStateSkippedInvalidItems": {
+    "description": "本地设置状态：导入作品库时跳过无效条目提示后缀",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localSettingsStateLibraryArchiveImported": "已导入 {count} 个作品{skipped}",
+  "@localSettingsStateLibraryArchiveImported": {
+    "description": "本地设置状态：作品库归档导入成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {}
+    }
+  },
+  "localSettingsStateImportLibraryFailed": "导入作品库失败：{error}",
+  "@localSettingsStateImportLibraryFailed": {
+    "description": "本地设置状态：作品库导入失败提示",
+    "placeholders": {
+      "error": {}
+    }
   }
 }

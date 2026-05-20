@@ -24,8 +24,29 @@ String animationFrameGridLabel(int index, {required int columns}) {
   return '第 ${row + 1} 行 · 第 $column 列';
 }
 
+String animationFrameGridLabelWithText(
+  int index, {
+  required int columns,
+  required String rowLabel,
+  required String columnLabel,
+}) {
+  final row = index ~/ columns;
+  final column = index % columns + 1;
+  return '$rowLabel ${row + 1} · $columnLabel $column';
+}
+
 String editorFrameGridLabel(int index, {required int columns}) {
   final row = index ~/ columns;
   final column = index % columns + 1;
   return '第 ${index + 1} 帧 · 第 ${row + 1} 行 · 第 $column 列';
+}
+
+String editorFrameGridLabelWithText(
+  int index, {
+  required int columns,
+  required String Function(int frameIndex, int row, int column) labelBuilder,
+}) {
+  final row = index ~/ columns;
+  final column = index % columns + 1;
+  return labelBuilder(index + 1, row + 1, column);
 }

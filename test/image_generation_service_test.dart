@@ -55,6 +55,8 @@ void main() {
         imageCount: 1,
         advancedSettings: const ImageAdvancedSettings(user: 'ignored'),
         user: 'user-123',
+        titlePrefix: '文本生图',
+        source: '文本生图',
         onDebugRecord: (record) => debugRecord = record,
       );
 
@@ -124,6 +126,7 @@ void main() {
       columns: 2,
       advancedSettings: const ImageAdvancedSettings(),
       user: '',
+      source: '帧动',
     );
 
     expect(result.groupId, startsWith('animation_'));

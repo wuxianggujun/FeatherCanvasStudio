@@ -59,8 +59,8 @@ class ImageGenerationService {
     required ImageAdvancedSettings advancedSettings,
     required String user,
     ImageAssetKind libraryKind = ImageAssetKind.generatedImage,
-    String titlePrefix = '文本生图',
-    String source = '文本生图',
+    required String titlePrefix,
+    required String source,
     void Function(ImageRequestDebugRecord record)? onDebugRecord,
   }) async {
     final groupId = DateTime.now().microsecondsSinceEpoch.toString();
@@ -136,7 +136,7 @@ class ImageGenerationService {
     required String user,
     String? templateImagePath,
     String title = 'Sprite Sheet',
-    String source = '帧动',
+    required String source,
     void Function(ImageRequestDebugRecord record)? onDebugRecord,
   }) async {
     final groupId = 'animation_${DateTime.now().microsecondsSinceEpoch}';

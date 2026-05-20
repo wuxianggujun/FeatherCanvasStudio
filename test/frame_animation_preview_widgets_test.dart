@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'dart:ui' show Tristate;
 
 import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +38,22 @@ void main() {
 
     expect(find.byType(InteractiveViewer), findsOneWidget);
     expect(find.text('100%'), findsOneWidget);
+    final zoomInSemantics = tester.getSemantics(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == '放大播放帧',
+      ),
+    );
+    expect(zoomInSemantics.flagsCollection.isButton, isTrue);
+    expect(zoomInSemantics.flagsCollection.isEnabled, Tristate.isTrue);
+
+    final disabledControlSemantics = tester.getSemantics(
+      _semanticsWithValue('当前行只有 1 帧，无法播放或切换帧').first,
+    );
+    expect(disabledControlSemantics.flagsCollection.isButton, isTrue);
+    expect(
+      disabledControlSemantics.flagsCollection.isEnabled,
+      Tristate.isFalse,
+    );
 
     await tester.ensureVisible(find.byTooltip('放大播放帧'));
     await tester.tap(find.byTooltip('放大播放帧'));
@@ -122,6 +139,10 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining('当前播放：第 1 帧'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Sprite Sheet · 当前播放：第 1 帧 · 第 1 行 · 第 1 / 2 列'),
+      findsOneWidget,
+    );
 
     final canvas = find.byKey(const ValueKey('sprite-sheet-preview-canvas'));
     await tester.ensureVisible(canvas);
@@ -133,6 +154,10 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining('当前播放：第 4 帧'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Sprite Sheet · 当前播放：第 4 帧 · 第 2 行 · 第 2 / 2 列'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('mouse wheel zoom does not scroll the parent page', (
@@ -303,6 +328,12 @@ void main() {
     expect(find.text('正在生成切片预览'), findsNothing);
     expect(find.textContaining('当前目标：第 4 帧'), findsOneWidget);
   });
+}
+
+Finder _semanticsWithValue(String value) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Semantics && widget.properties.value == value,
+  );
 }
 
 Uint8List _pngOfColor(int red, int green, int blue) {

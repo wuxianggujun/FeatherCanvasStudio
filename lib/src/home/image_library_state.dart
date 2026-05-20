@@ -148,8 +148,6 @@ mixin _ImageLibraryStateMixin
   set _editorErrorMessage(String? value);
   String? get _errorMessage;
   set _errorMessage(String? value);
-  List<GifSourceFrame> get _gifSourceFrames;
-  set _gifSourceFrames(List<GifSourceFrame> value);
   AnimationProjectStore get _animationProjectStore;
   AnimationProject? get _animationProject;
   set _animationProject(AnimationProject? value);
@@ -300,7 +298,7 @@ mixin _ImageLibraryStateMixin
 
     final candidates = _availableImageLibraryItems(allowedKinds: allowedKinds);
     if (candidates.isEmpty) {
-      _showMessage('作品库还没有可用图片');
+      _showMessage(appL10nOf(context).imageLibraryStateNoAvailableImages);
       return null;
     }
 
@@ -328,7 +326,7 @@ mixin _ImageLibraryStateMixin
     String? title,
   }) async {
     if (!sheet.isSpriteSheetWithMetadata) {
-      _showMessage('该 Sprite Sheet 缺少行列元数据，无法切片');
+      _showMessage(appL10nOf(context).imageLibraryStateSpriteSheetMissingGrid);
       return null;
     }
     return showSpriteSheetSlicePicker(
@@ -347,7 +345,7 @@ mixin _ImageLibraryStateMixin
   }) async {
     final groupId = sheet.groupId;
     if (groupId == null) {
-      _showMessage('该 Sprite Sheet 缺少 groupId，无法保存切片');
+      _showMessage(appL10nOf(context).imageLibraryStateSpriteSheetMissingGroup);
       return null;
     }
     if (savedSpriteFrameIndexesForSheet(
@@ -362,6 +360,11 @@ mixin _ImageLibraryStateMixin
         sheet: sheet,
         frameIndex: frameIndex,
         bytes: bytes,
+        labels: imageLibrarySpriteFrameLabels(
+          appL10nOf(context),
+          sheetTitle: sheet.displayTitle,
+          frameIndex: frameIndex + 1,
+        ),
       );
       if (!mounted) {
         return null;
@@ -370,13 +373,16 @@ mixin _ImageLibraryStateMixin
       if (pushHistory) {
         _pushImageLibraryAppendHistory(
           feature: WorkspaceFeature.imageLibrary,
-          label: '保存「${sheet.displayTitle}」第 ${frameIndex + 1} 帧',
+          label: appL10nOf(context).imageLibraryStateSaveSliceHistory(
+            sheet.displayTitle,
+            frameIndex + 1,
+          ),
           appendedItems: [item],
         );
       }
       return item;
     } catch (error) {
-      _showMessage('保存切片失败：$error');
+      _showMessage(appL10nOf(context).imageLibraryStateSaveSliceFailed(error));
       return null;
     }
   }
@@ -394,6 +400,7 @@ mixin _ImageLibraryStateMixin
     ImageLibraryItem sheet,
     List<MapEntry<int, Uint8List>> framesToSave,
   ) async {
+    final l10n = appL10nOf(context);
     final savedItems = <ImageLibraryItem>[];
     for (final entry in framesToSave) {
       final item = await _saveSingleSliceItem(
@@ -410,18 +417,18 @@ mixin _ImageLibraryStateMixin
     final saved = savedItems.length;
     _pushImageLibraryAppendHistory(
       feature: WorkspaceFeature.imageLibrary,
-      label: '保存「${sheet.displayTitle}」$saved 个切片帧',
+      label: l10n.imageLibraryStateSaveSlicesHistory(sheet.displayTitle, saved),
       appendedItems: savedItems,
     );
     if (mounted) {
-      _showMessage('已保存 $saved 个切片帧到作品集');
+      _showMessage(l10n.imageLibraryStateSavedSlicesMessage(saved));
     }
     return saved;
   }
 
   Future<void> _openSliceExplorer(ImageLibraryItem sheet) async {
     if (!sheet.isSpriteSheetWithMetadata) {
-      _showMessage('该作品缺少行列元数据，无法切片');
+      _showMessage(appL10nOf(context).imageLibraryStateItemMissingGrid);
       return;
     }
     await showSpriteSheetSliceExplorer(
@@ -470,7 +477,9 @@ mixin _ImageLibraryStateMixin
       _pushHistory(
         WorkspaceFeature.imageLibrary,
         HistoryAction(
-          label: '编辑「${updated.displayTitle}」',
+          label: appL10nOf(
+            context,
+          ).imageLibraryStateEditMetadataHistory(updated.displayTitle),
           apply: () async {
             if (!mounted) return;
             final redoLibrary = await _imageLibraryService.updateItemMetadata(
@@ -503,7 +512,7 @@ mixin _ImageLibraryStateMixin
         ),
       );
     }
-    _showMessage('作品信息已更新');
+    _showMessage(appL10nOf(context).imageLibraryStateMetadataUpdated);
   }
 
   bool _stringListEquals(List<String> a, List<String> b) {
@@ -611,15 +620,16 @@ mixin _ImageLibraryStateMixin
     if (!mounted) {
       return;
     }
-    _showMessage('作品路径已复制');
+    _showMessage(appL10nOf(context).imageLibraryStatePathCopied);
   }
 
   Future<void> _copyImageLibraryItemImage(ImageLibraryItem item) async {
+    final l10n = appL10nOf(context);
     if (!await _fileService.fileExists(item.path)) {
       if (!mounted) {
         return;
       }
-      _showMessage('作品文件不存在');
+      _showMessage(l10n.imageLibraryStateFileMissing);
       return;
     }
 
@@ -630,24 +640,25 @@ mixin _ImageLibraryStateMixin
       }
       switch (result.status) {
         case ImageClipboardCopyStatus.imageCopied:
-          _showMessage('图片已复制到剪贴板');
+          _showMessage(l10n.imageLibraryStateImageCopied);
         case ImageClipboardCopyStatus.pathCopied:
-          _showMessage('当前平台暂不支持直接复制图片，已复制图片路径');
+          _showMessage(l10n.imageLibraryStateImagePathCopied);
       }
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showMessage('复制图片失败：$error');
+      _showMessage(l10n.copyImageFailed(error));
     }
   }
 
   Future<void> _exportImageLibraryItemImage(ImageLibraryItem item) async {
+    final l10n = appL10nOf(context);
     if (!await _fileService.fileExists(item.path)) {
       if (!mounted) {
         return;
       }
-      _showMessage('作品文件不存在');
+      _showMessage(l10n.imageLibraryStateFileMissing);
       return;
     }
 
@@ -672,25 +683,30 @@ mixin _ImageLibraryStateMixin
       }
       _showMessage(
         isAnimationProject
-            ? '动画工程文件已导出：${fileNameFromPath(result.destinationPath)}'
-            : '图片已导出：${fileNameFromPath(result.destinationPath)}',
+            ? l10n.imageLibraryStateAnimationProjectExported(
+                fileNameFromPath(result.destinationPath),
+              )
+            : l10n.imageLibraryStateImageExported(
+                fileNameFromPath(result.destinationPath),
+              ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showMessage('导出图片失败：$error');
+      _showMessage(l10n.imageGenerationExportImageFailedMessage(error));
     }
   }
 
   Future<void> _exportSelectedImageLibraryItems() async {
+    final l10n = appL10nOf(context);
     final selectedIds = _selectedImageLibraryItemIds;
     final selectedItems = [
       for (final item in _imageLibrary)
         if (selectedIds.contains(item.id)) item,
     ];
     if (selectedItems.isEmpty) {
-      _showMessage('请先选择要导出的作品');
+      _showMessage(l10n.imageLibraryStateSelectItemsToExport);
       return;
     }
 
@@ -699,7 +715,9 @@ mixin _ImageLibraryStateMixin
       return;
     }
 
-    final directoryPath = await getDirectoryPath(confirmButtonText: '导出到这里');
+    final directoryPath = await getDirectoryPath(
+      confirmButtonText: l10n.imageLibraryStateExportHere,
+    );
     if (directoryPath == null || !mounted) {
       return;
     }
@@ -714,7 +732,7 @@ mixin _ImageLibraryStateMixin
       }
     }
     if (existingItems.isEmpty) {
-      _showMessage('选中的作品文件都不存在');
+      _showMessage(l10n.imageLibraryStateSelectedFilesMissing);
       return;
     }
 
@@ -726,13 +744,17 @@ mixin _ImageLibraryStateMixin
       if (!mounted) {
         return;
       }
-      final skipped = missingCount == 0 ? '' : '，跳过 $missingCount 个缺失文件';
-      _showMessage('已导出 ${results.length} 个作品$skipped');
+      final skipped = missingCount == 0
+          ? ''
+          : l10n.imageLibraryStateSkippedMissingFiles(missingCount);
+      _showMessage(
+        l10n.imageLibraryStateExportedSelected(results.length, skipped),
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showMessage('导出已选作品失败：$error');
+      _showMessage(l10n.imageLibraryStateExportSelectedFailed(error));
     }
   }
 
@@ -743,13 +765,15 @@ mixin _ImageLibraryStateMixin
     }
     switch (result.status) {
       case OpenFileLocationStatus.opened:
-        _showMessage('已打开作品所在位置');
+        _showMessage(appL10nOf(context).imageLibraryStateLocationOpened);
       case OpenFileLocationStatus.directoryMissing:
-        _showMessage('作品所在目录不存在');
+        _showMessage(appL10nOf(context).imageLibraryStateDirectoryMissing);
       case OpenFileLocationStatus.copiedUnsupportedPlatform:
-        _showMessage('已复制作品目录路径');
+        _showMessage(appL10nOf(context).imageLibraryStateDirectoryPathCopied);
       case OpenFileLocationStatus.copiedAfterFailure:
-        _showMessage('无法打开目录，已复制作品目录路径');
+        _showMessage(
+          appL10nOf(context).imageLibraryStateDirectoryOpenFailedPathCopied,
+        );
     }
   }
 
@@ -766,17 +790,19 @@ mixin _ImageLibraryStateMixin
   }
 
   Future<void> _openAnimationProjectFromLibrary(ImageLibraryItem item) async {
+    final l10n = appL10nOf(context);
     if (item.kind != ImageAssetKind.animationProject) {
-      _showMessage('这个作品不是动画工程');
+      _showMessage(l10n.imageLibraryStateNotAnimationProject);
       return;
     }
     if (!await _fileService.fileExists(item.path)) {
       if (mounted) {
         setState(() {
-          _animationProjectErrorMessage = '动画工程文件不存在：${item.path}';
+          _animationProjectErrorMessage = l10n
+              .imageLibraryStateAnimationProjectFileMissingDetail(item.path);
         });
       }
-      _showMessage('动画工程文件不存在');
+      _showMessage(l10n.imageLibraryStateAnimationProjectFileMissing);
       return;
     }
 
@@ -802,7 +828,9 @@ mixin _ImageLibraryStateMixin
       _pushHistory(
         WorkspaceFeature.animationProject,
         HistoryAction(
-          label: '打开动画工程「${project.title}」',
+          label: l10n.imageLibraryStateOpenAnimationProjectHistory(
+            project.title,
+          ),
           apply: () async {
             if (!mounted) return;
             setState(() {
@@ -821,7 +849,7 @@ mixin _ImageLibraryStateMixin
           },
         ),
       );
-      _showMessage('已打开动画工程：${project.title}');
+      _showMessage(l10n.imageLibraryStateAnimationProjectOpened(project.title));
     } on ImageGenerationException catch (error) {
       if (!mounted) {
         return;
@@ -829,15 +857,18 @@ mixin _ImageLibraryStateMixin
       setState(() {
         _animationProjectErrorMessage = error.message;
       });
-      _showMessage('打开动画工程失败：${error.message}');
+      _showMessage(
+        l10n.imageLibraryStateOpenAnimationProjectFailed(error.message),
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _animationProjectErrorMessage = '打开动画工程失败：$error';
+        _animationProjectErrorMessage = l10n
+            .imageLibraryStateOpenAnimationProjectFailed(error);
       });
-      _showMessage('打开动画工程失败：$error');
+      _showMessage(l10n.imageLibraryStateOpenAnimationProjectFailed(error));
     }
   }
 
@@ -846,8 +877,9 @@ mixin _ImageLibraryStateMixin
     required int tolerance,
     ImageLibraryItem? sourceItem,
     String? fallbackTitle,
-    String source = '背景转透明',
+    String? source,
   }) async {
+    final l10n = appL10nOf(context);
     final result =
         await BackgroundTransparencyService.makeBackgroundTransparentInBackground(
           sourceBytes,
@@ -867,7 +899,8 @@ mixin _ImageLibraryStateMixin
       return null;
     }
 
-    final titleSource = sourceItem?.displayTitle ?? fallbackTitle ?? '图片';
+    final titleSource =
+        sourceItem?.displayTitle ?? fallbackTitle ?? l10n.imageLabel;
     final item = await _imageLibraryService.addItem(
       store: _store,
       path: file.path,
@@ -878,11 +911,13 @@ mixin _ImageLibraryStateMixin
           : sourceItem?.kind == ImageAssetKind.spriteFrame
           ? ImageAssetKind.spriteFrame
           : ImageAssetKind.generatedImage,
-      title: '透明背景：$titleSource',
-      source: source,
-      prompt:
-          '背景转透明 · 容差 $tolerance · '
-          '${result.width} x ${result.height}',
+      title: l10n.imageLibraryStateTransparentBackgroundTitle(titleSource),
+      source: source ?? l10n.backgroundTransparencyTitle,
+      prompt: l10n.imageLibraryStateTransparentBackgroundPrompt(
+        tolerance,
+        result.width,
+        result.height,
+      ),
       generation: sourceItem?.generation,
       groupId: sourceItem?.kind == ImageAssetKind.spriteSheet ? groupId : null,
       rows: sourceItem?.rows,
@@ -906,8 +941,9 @@ mixin _ImageLibraryStateMixin
   Future<void> _makeImageLibraryItemBackgroundTransparent(
     ImageLibraryItem item,
   ) async {
+    final l10n = appL10nOf(context);
     if (!item.canMakeBackgroundTransparent) {
-      _showMessage('该作品不是可处理的静态图片');
+      _showMessage(l10n.imageLibraryStateNotProcessableStaticImage);
       return;
     }
 
@@ -930,23 +966,27 @@ mixin _ImageLibraryStateMixin
         return;
       }
       if (saved == null) {
-        _showMessage('没有检测到可透明化的边缘背景，可尝试调高容差');
+        _showMessage(l10n.backgroundTransparencyNoEdgeDetected);
         return;
       }
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.imageLibrary,
-        label: '背景转透明：${item.displayTitle}',
+        label: l10n.imageGenerationTransparentBackgroundHistory(
+          item.displayTitle,
+        ),
         appendedItems: [saved.item],
       );
       _showMessage(
-        '已生成透明背景图片：${saved.item.displayTitle} · '
-        '透明化 ${saved.transparentPixelCount} 个像素',
+        l10n.imageGenerationTransparentBackgroundSavedMessage(
+          saved.item.displayTitle,
+          saved.transparentPixelCount,
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showMessage('背景转透明失败：$error');
+      _showMessage(l10n.backgroundTransparencyFailed(error));
     }
   }
 
@@ -1066,7 +1106,6 @@ mixin _ImageLibraryStateMixin
     final beforeEditorImagePath = _editorImagePath;
     final beforeEditorPatchImagePath = _editorPatchImagePath;
     final beforeAnimationTemplateImagePath = _animationTemplateImagePath;
-    final beforeGifSourceFrames = _gifSourceFrames;
     final beforeAnimationProject = _animationProject;
     final beforeSelectedAnimationTrackId = _selectedAnimationTrackId;
 
@@ -1087,7 +1126,6 @@ mixin _ImageLibraryStateMixin
       editorImagePath: _editorImagePath,
       editorPatchImagePath: _editorPatchImagePath,
       animationTemplateImagePath: _animationTemplateImagePath,
-      gifSourceFrames: _gifSourceFrames,
     );
     final removesOpenAnimationProject =
         _animationProject != null &&
@@ -1102,7 +1140,6 @@ mixin _ImageLibraryStateMixin
       _editorImagePath = cleanup.editorImagePath;
       _editorPatchImagePath = cleanup.editorPatchImagePath;
       _animationTemplateImagePath = cleanup.animationTemplateImagePath;
-      _gifSourceFrames = cleanup.gifSourceFrames;
       if (removesOpenAnimationProject) {
         _animationProject = null;
         _selectedAnimationTrackId = null;
@@ -1119,8 +1156,12 @@ mixin _ImageLibraryStateMixin
         WorkspaceFeature.imageLibrary,
         HistoryAction(
           label: removedItems.length == 1
-              ? '删除「${removedItems.first.displayTitle}」'
-              : '删除 ${removedItems.length} 个作品',
+              ? appL10nOf(context).imageLibraryStateDeleteOneHistory(
+                  removedItems.first.displayTitle,
+                )
+              : appL10nOf(
+                  context,
+                ).imageLibraryStateDeleteManyHistory(removedItems.length),
           apply: () async {
             if (!mounted) return;
             final redoImpact = await _imageLibraryService.deleteItems(
@@ -1139,7 +1180,6 @@ mixin _ImageLibraryStateMixin
               editorImagePath: _editorImagePath,
               editorPatchImagePath: _editorPatchImagePath,
               animationTemplateImagePath: _animationTemplateImagePath,
-              gifSourceFrames: _gifSourceFrames,
             );
             trashPaths = redoImpact.trashPaths;
             setState(() {
@@ -1149,7 +1189,6 @@ mixin _ImageLibraryStateMixin
               _editorPatchImagePath = redoCleanup.editorPatchImagePath;
               _animationTemplateImagePath =
                   redoCleanup.animationTemplateImagePath;
-              _gifSourceFrames = redoCleanup.gifSourceFrames;
               if (removesOpenAnimationProject) {
                 _animationProject = null;
                 _selectedAnimationTrackId = null;
@@ -1173,7 +1212,6 @@ mixin _ImageLibraryStateMixin
               _editorImagePath = beforeEditorImagePath;
               _editorPatchImagePath = beforeEditorPatchImagePath;
               _animationTemplateImagePath = beforeAnimationTemplateImagePath;
-              _gifSourceFrames = beforeGifSourceFrames;
               _animationProject = beforeAnimationProject;
               _selectedAnimationTrackId = beforeSelectedAnimationTrackId;
               _animationProjectErrorMessage = null;
@@ -1185,15 +1223,18 @@ mixin _ImageLibraryStateMixin
 
     _showMessage(
       impact.removedItems.length == 1
-          ? '作品已删除'
-          : '已删除 ${impact.removedItems.length} 个作品',
+          ? appL10nOf(context).imageLibraryStateDeletedOne
+          : appL10nOf(
+              context,
+            ).imageLibraryStateDeletedMany(impact.removedItems.length),
     );
   }
 
   Future<void> _useImageLibraryItemInEditor(ImageLibraryItem item) async {
+    final l10n = appL10nOf(context);
     if (!item.canUseAsSpriteSheet) {
       if (!item.isImageFile || item.kind == ImageAssetKind.gif) {
-        _showMessage('这类作品不能作为图片编辑源');
+        _showMessage(l10n.imageLibraryStateUnsupportedEditorSource);
         return;
       }
       await _selectFeature(WorkspaceFeature.imageEditor);
@@ -1213,7 +1254,7 @@ mixin _ImageLibraryStateMixin
           _generalEditorImageInfo = info;
           _generalEditorErrorMessage = null;
         });
-        _showMessage('已在图片编辑器中打开：${item.displayTitle}');
+        _showMessage(l10n.imageLibraryStateOpenedInEditor(item.displayTitle));
       } catch (error) {
         if (!mounted) {
           return;
@@ -1221,7 +1262,9 @@ mixin _ImageLibraryStateMixin
         setState(() {
           _generalEditorImagePath = item.path;
           _generalEditorImageInfo = null;
-          _generalEditorErrorMessage = '图片读取失败：$error';
+          _generalEditorErrorMessage = l10n.editorGifImageReadFailedMessage(
+            error,
+          );
         });
       }
       return;
@@ -1242,7 +1285,7 @@ mixin _ImageLibraryStateMixin
       _editorErrorMessage = null;
     });
     _pushEditorSourceHistory(
-      label: '在编辑器中打开「${item.displayTitle}」',
+      label: l10n.imageLibraryStateOpenInEditorHistory(item.displayTitle),
       before: before,
     );
   }
@@ -1340,9 +1383,10 @@ mixin _ImageLibraryStateMixin
   }
 
   Future<void> _reuseImageLibraryGeneration(ImageLibraryItem item) async {
+    final l10n = appL10nOf(context);
     final generation = item.generation;
     if (generation == null) {
-      _showMessage('这个作品没有可复用的生成参数');
+      _showMessage(l10n.imageLibraryStateNoReusableGeneration);
       return;
     }
 
@@ -1406,16 +1450,21 @@ mixin _ImageLibraryStateMixin
     }
     await _saveSettings();
     _pushGenerationReuseHistory(
-      label: '复用「${item.displayTitle}」生成参数',
+      label: l10n.imageLibraryStateReuseGenerationHistory(item.displayTitle),
       before: before,
     );
-    _showMessage(matchingConfigId == null ? '已载入作品参数，接口配置需要手动选择' : '已载入作品参数');
+    _showMessage(
+      matchingConfigId == null
+          ? l10n.imageLibraryStateGenerationLoadedNeedsApiConfig
+          : l10n.imageLibraryStateGenerationLoaded,
+    );
   }
 
   Future<void> _copyImageLibraryGeneration(ImageLibraryItem item) async {
+    final l10n = appL10nOf(context);
     final generation = item.generation;
     if (generation == null) {
-      _showMessage('这个作品没有可复制的生成参数');
+      _showMessage(l10n.imageLibraryStateNoCopyableGeneration);
       return;
     }
 
@@ -1425,7 +1474,7 @@ mixin _ImageLibraryStateMixin
     if (!mounted) {
       return;
     }
-    _showMessage('作品参数已复制');
+    _showMessage(l10n.imageLibraryStateGenerationCopied);
   }
 
   Widget _buildImageLibraryWorkspace() {

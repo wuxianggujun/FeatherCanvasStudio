@@ -3,27 +3,18 @@
 part of 'package:feather_canvas_studio/main.dart';
 
 class _AnimationConfigSnapshot {
-  const _AnimationConfigSnapshot({
-    required this.rows,
-    required this.columns,
-    required this.gridSpec,
-  });
+  const _AnimationConfigSnapshot({required this.config});
 
-  final int rows;
-  final int columns;
-  final SpriteSheetGridSpec gridSpec;
+  final SpriteSheetImportConfig config;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is _AnimationConfigSnapshot &&
-            rows == other.rows &&
-            columns == other.columns &&
-            gridSpec == other.gridSpec;
+        other is _AnimationConfigSnapshot && config == other.config;
   }
 
   @override
-  int get hashCode => Object.hash(rows, columns, gridSpec);
+  int get hashCode => config.hashCode;
 }
 
 const Duration _animationConfigHistoryMergeWindow = Duration(milliseconds: 800);
@@ -48,14 +39,14 @@ mixin _ImageGenerationStateMixin
   AnimationProjectImporter get _animationProjectImporter;
   AnimationProjectStore get _animationProjectStore;
   AnimationProjectExportService get _animationProjectExportService;
+  AnimationProjectFrameEditor get _animationProjectFrameEditor;
   ScrollController get _scrollController;
   TextEditingController get _animationPromptController;
+  SpriteSheetImportConfig get _spriteSheetImportConfig;
+  set _spriteSheetImportConfig(SpriteSheetImportConfig value);
   int get _animationRows;
-  set _animationRows(int value);
   int get _animationColumns;
-  set _animationColumns(int value);
   SpriteSheetGridSpec get _animationGridSpec;
-  set _animationGridSpec(SpriteSheetGridSpec value);
   int get _animationFrameCount;
   // ignore: unused_element
   bool get _isGenerating;
@@ -124,51 +115,46 @@ mixin _ImageGenerationStateMixin
   _AnimationConfigSnapshot? _lastAnimationConfigHistoryBefore;
 
   void _setAnimationRows(int value) {
+    final l10n = appL10nOf(context);
     final before = _captureAnimationConfig();
     setState(() {
-      _animationRows = value;
-      _animationGridSpec = _animationGridSpec.copyWith(rows: value);
+      _spriteSheetImportConfig = _spriteSheetImportConfig.withRows(value);
     });
     _pushAnimationConfigHistory(
-      label: '调整序列帧行数为 $value 行',
+      label: l10n.imageGenerationAdjustAnimationRowsHistory(value),
       before: before,
       mergeKey: _animationGridConfigHistoryKey,
     );
   }
 
   void _setAnimationColumns(int value) {
+    final l10n = appL10nOf(context);
     final before = _captureAnimationConfig();
     setState(() {
-      _animationColumns = value;
-      _animationGridSpec = _animationGridSpec.copyWith(columns: value);
+      _spriteSheetImportConfig = _spriteSheetImportConfig.withColumns(value);
     });
     _pushAnimationConfigHistory(
-      label: '调整序列帧列数为 $value 列',
+      label: l10n.imageGenerationAdjustAnimationColumnsHistory(value),
       before: before,
       mergeKey: _animationGridConfigHistoryKey,
     );
   }
 
   void _setAnimationGridSpec(SpriteSheetGridSpec value) {
+    final l10n = appL10nOf(context);
     final before = _captureAnimationConfig();
     setState(() {
-      _animationRows = value.rows;
-      _animationColumns = value.columns;
-      _animationGridSpec = value;
+      _spriteSheetImportConfig = _spriteSheetImportConfig.withGridSpec(value);
     });
     _pushAnimationConfigHistory(
-      label: '调整序列帧切片校准',
+      label: l10n.imageGenerationAdjustAnimationGridSpecHistory,
       before: before,
       mergeKey: _animationGridConfigHistoryKey,
     );
   }
 
   _AnimationConfigSnapshot _captureAnimationConfig() {
-    return _AnimationConfigSnapshot(
-      rows: _animationRows,
-      columns: _animationColumns,
-      gridSpec: _animationGridSpec,
-    );
+    return _AnimationConfigSnapshot(config: _spriteSheetImportConfig);
   }
 
   void _restoreAnimationConfig(_AnimationConfigSnapshot snapshot) {
@@ -177,9 +163,7 @@ mixin _ImageGenerationStateMixin
     }
 
     setState(() {
-      _animationRows = snapshot.rows;
-      _animationColumns = snapshot.columns;
-      _animationGridSpec = snapshot.gridSpec;
+      _spriteSheetImportConfig = snapshot.config;
     });
   }
 
@@ -264,6 +248,7 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _generateImage() async {
+    final l10n = appL10nOf(context);
     final apiConfig = await _prepareSelectedApiConfigForRequest();
     if (!mounted) {
       return;
@@ -274,17 +259,17 @@ mixin _ImageGenerationStateMixin
     final beforeDebugRecord = _imageRequestDebugRecord;
 
     if (apiConfig.apiKey.trim().isEmpty) {
-      _showMessage('请先在接口配置页填写 API Key');
+      _showMessage(l10n.imageGenerationMissingApiKeyMessage);
       return;
     }
 
     if (apiConfig.model.trim().isEmpty) {
-      _showMessage('请先在接口配置页获取模型列表并选择模型');
+      _showMessage(l10n.imageGenerationMissingModelMessage);
       return;
     }
 
     if (prompt.isEmpty) {
-      _showMessage('请先填写正向提示词');
+      _showMessage(l10n.imageGenerationMissingPositivePromptMessage);
       return;
     }
 
@@ -318,6 +303,8 @@ mixin _ImageGenerationStateMixin
           imageCount: batchCount,
           advancedSettings: _advancedSettings,
           user: user,
+          titlePrefix: l10n.imageGenerationTextImageSource,
+          source: l10n.imageGenerationTextImageSource,
           onDebugRecord: (record) => _imageRequestDebugRecord = record,
         );
 
@@ -333,14 +320,16 @@ mixin _ImageGenerationStateMixin
         });
       }
       _pushTextGenerationHistory(
-        label: '生成 ${allImages.length} 张图片',
+        label: l10n.imageGenerationGenerateImagesHistory(allImages.length),
         beforeImages: beforeImages,
         beforeDebugRecord: beforeDebugRecord,
         afterImages: List<GeneratedImage>.unmodifiable(allImages),
         afterDebugRecord: _imageRequestDebugRecord,
         appendedItems: List<ImageLibraryItem>.unmodifiable(allLibraryItems),
       );
-      _showMessage('图片生成完成，共 ${allImages.length} 张');
+      _showMessage(
+        l10n.imageGenerationImagesGeneratedMessage(allImages.length),
+      );
     } on ImageGenerationException catch (error) {
       if (!mounted) {
         return;
@@ -352,7 +341,7 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      _errorMessage = '请求超时，请检查接口地址或稍后重试';
+      _errorMessage = l10n.imageGenerationRequestTimeoutMessage;
     } catch (error, stackTrace) {
       if (!mounted) {
         return;
@@ -362,11 +351,11 @@ mixin _ImageGenerationStateMixin
           _imageRequestDebugRecord,
           error,
           stackTrace,
-          fallbackPrefix: '生成失败',
+          fallbackPrefix: l10n.imageGenerationFailedPrefix,
         );
         _errorMessage = _unexpectedGenerationErrorMessage(
           error,
-          fallbackPrefix: '生成失败',
+          fallbackPrefix: l10n.imageGenerationFailedPrefix,
         );
       });
     } finally {
@@ -403,15 +392,17 @@ mixin _ImageGenerationStateMixin
   }
 
   void _showImageClipboardCopyResult(ImageClipboardCopyResult result) {
+    final l10n = appL10nOf(context);
     switch (result.status) {
       case ImageClipboardCopyStatus.imageCopied:
-        _showMessage('图片已复制到剪贴板');
+        _showMessage(l10n.imageGenerationImageCopiedMessage);
       case ImageClipboardCopyStatus.pathCopied:
-        _showMessage('当前平台暂不支持直接复制图片，已复制图片路径');
+        _showMessage(l10n.imageGenerationImagePathCopiedMessage);
     }
   }
 
   Future<void> _copyGeneratedPreviewImage(GeneratedImage image) async {
+    final l10n = appL10nOf(context);
     try {
       final result = await _copyGeneratedImageToClipboard(image);
       if (!mounted) {
@@ -422,7 +413,7 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      _showMessage('复制图片失败：$error');
+      _showMessage(l10n.imageGenerationCopyImageFailedMessage(error));
     }
   }
 
@@ -430,6 +421,7 @@ mixin _ImageGenerationStateMixin
     int index,
     GeneratedImage image,
   ) async {
+    final l10n = appL10nOf(context);
     final location = await getSaveLocation(
       acceptedTypeGroups: imageTypeGroups,
       suggestedName: _suggestedGeneratedExportFileName(index, image),
@@ -452,12 +444,16 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      _showMessage('图片已导出：${fileNameFromPath(result.destinationPath)}');
+      _showMessage(
+        l10n.imageGenerationImageExportedMessage(
+          fileNameFromPath(result.destinationPath),
+        ),
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showMessage('导出图片失败：$error');
+      _showMessage(l10n.imageGenerationExportImageFailedMessage(error));
     }
   }
 
@@ -473,12 +469,14 @@ mixin _ImageGenerationStateMixin
     int index,
     GeneratedImage image,
   ) async {
+    final l10n = appL10nOf(context);
     final beforeImages = List<GeneratedImage>.unmodifiable(_generatedImages);
     final beforeDebugRecord = _imageRequestDebugRecord;
     final sourceItem = _findImageLibraryItemByPath(image.filePath);
+    final fallbackTitle = l10n.imageGenerationGeneratedResultTitle(index + 1);
     final tolerance = await showBackgroundTransparencyDialog(
       context,
-      sourceTitle: sourceItem?.displayTitle ?? '生成结果 ${index + 1}',
+      sourceTitle: sourceItem?.displayTitle ?? fallbackTitle,
     );
     if (tolerance == null || !mounted) {
       return;
@@ -490,14 +488,14 @@ mixin _ImageGenerationStateMixin
         sourceBytes: sourceBytes,
         tolerance: tolerance,
         sourceItem: sourceItem,
-        fallbackTitle: '生成结果 ${index + 1}',
-        source: '文本生图',
+        fallbackTitle: fallbackTitle,
+        source: l10n.imageGenerationTextImageSource,
       );
       if (!mounted) {
         return;
       }
       if (saved == null) {
-        _showMessage('没有检测到可透明化的边缘背景，可尝试调高容差');
+        _showMessage(l10n.editorGifNoTransparentEdgeMessage);
         return;
       }
 
@@ -512,7 +510,9 @@ mixin _ImageGenerationStateMixin
         }
       });
       _pushTextGenerationHistory(
-        label: '背景转透明：${sourceItem?.displayTitle ?? '生成结果 ${index + 1}'}',
+        label: l10n.imageGenerationTransparentBackgroundHistory(
+          sourceItem?.displayTitle ?? fallbackTitle,
+        ),
         beforeImages: beforeImages,
         beforeDebugRecord: beforeDebugRecord,
         afterImages: _generatedImages,
@@ -520,18 +520,21 @@ mixin _ImageGenerationStateMixin
         appendedItems: [saved.item],
       );
       _showMessage(
-        '已生成透明背景图片：${saved.item.displayTitle} · '
-        '透明化 ${saved.transparentPixelCount} 个像素',
+        l10n.imageGenerationTransparentBackgroundSavedMessage(
+          saved.item.displayTitle,
+          saved.transparentPixelCount,
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showMessage('背景转透明失败：$error');
+      _showMessage(l10n.editorGifTransparentBackgroundFailedMessage(error));
     }
   }
 
   Future<void> _generateAnimationFrames() async {
+    final l10n = appL10nOf(context);
     final apiConfig = await _prepareSelectedApiConfigForRequest();
     if (!mounted) {
       return;
@@ -544,27 +547,40 @@ mixin _ImageGenerationStateMixin
     final beforeDebugRecord = _animationRequestDebugRecord;
 
     if (apiConfig.apiKey.trim().isEmpty) {
-      setState(() => _animationErrorMessage = '请先在接口配置页填写 API Key。');
+      setState(
+        () => _animationErrorMessage = l10n.imageGenerationMissingApiKeyError,
+      );
       return;
     }
 
     if (apiConfig.model.trim().isEmpty) {
-      setState(() => _animationErrorMessage = '请先在接口配置页获取模型列表并选择模型。');
+      setState(
+        () => _animationErrorMessage = l10n.imageGenerationMissingModelError,
+      );
       return;
     }
 
     if (prompt.isEmpty) {
-      setState(() => _animationErrorMessage = '请先填写动画描述。');
+      setState(
+        () => _animationErrorMessage =
+            l10n.imageGenerationMissingAnimationPromptError,
+      );
       return;
     }
 
     if (totalFrames <= 0) {
-      setState(() => _animationErrorMessage = '请先设置有效的行列数量。');
+      setState(
+        () => _animationErrorMessage =
+            l10n.imageGenerationInvalidAnimationGridError,
+      );
       return;
     }
 
     if (templatePath != null && !await _fileService.fileExists(templatePath)) {
-      setState(() => _animationErrorMessage = '模板图片不存在，请重新选择。');
+      setState(
+        () => _animationErrorMessage =
+            l10n.imageGenerationTemplateImageMissingError,
+      );
       return;
     }
 
@@ -591,6 +607,7 @@ mixin _ImageGenerationStateMixin
         advancedSettings: _advancedSettings,
         user: user,
         templateImagePath: templatePath,
+        source: l10n.imageGenerationSpriteSheetSource,
         onDebugRecord: (record) => _animationRequestDebugRecord = record,
       );
       if (!mounted) {
@@ -605,14 +622,14 @@ mixin _ImageGenerationStateMixin
         }
       });
       _pushAnimationGenerationHistory(
-        label: '生成 Sprite Sheet',
+        label: l10n.imageGenerationGenerateSpriteSheetHistory,
         beforeFrames: beforeFrames,
         beforeDebugRecord: beforeDebugRecord,
         afterFrames: [result.cachedSheet],
         afterDebugRecord: _animationRequestDebugRecord,
         appendedItem: result.libraryItem,
       );
-      _showMessage('Sprite Sheet 已生成，正在导入动画工程');
+      _showMessage(l10n.imageGenerationSpriteSheetGeneratedImportingMessage);
       await _importCurrentAnimationSheetToProject();
     } on ImageGenerationException catch (error) {
       if (!mounted) {
@@ -623,7 +640,10 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      setState(() => _animationErrorMessage = '请求超时，请检查接口地址或稍后重试');
+      setState(
+        () =>
+            _animationErrorMessage = l10n.imageGenerationRequestTimeoutMessage,
+      );
     } catch (error, stackTrace) {
       if (!mounted) {
         return;
@@ -633,11 +653,11 @@ mixin _ImageGenerationStateMixin
           _animationRequestDebugRecord,
           error,
           stackTrace,
-          fallbackPrefix: 'Sprite Sheet 生成失败',
+          fallbackPrefix: l10n.imageGenerationSpriteSheetFailedPrefix,
         );
         _animationErrorMessage = _unexpectedGenerationErrorMessage(
           error,
-          fallbackPrefix: 'Sprite Sheet 生成失败',
+          fallbackPrefix: l10n.imageGenerationSpriteSheetFailedPrefix,
         );
       });
     } finally {
@@ -670,10 +690,13 @@ mixin _ImageGenerationStateMixin
     required String fallbackPrefix,
   }) {
     if (error is StackOverflowError) {
-      return '$fallbackPrefix：客户端发生 Stack Overflow，已写入调试详情。'
-          '如果调试详情里没有 HTTP 状态码，说明请求没有拿到接口响应。';
+      return appL10nOf(
+        context,
+      ).imageGenerationStackOverflowMessage(fallbackPrefix);
     }
-    return '$fallbackPrefix：$error';
+    return appL10nOf(
+      context,
+    ).imageGenerationUnexpectedErrorMessage(fallbackPrefix, error);
   }
 
   void _pushTextGenerationHistory({
@@ -763,48 +786,10 @@ mixin _ImageGenerationStateMixin
     );
   }
 
-  Future<void> _openAnimationPreviewInEditor(
-    SpriteSheetPreviewData previewData,
-  ) async {
-    final sourceFeature = _selectedFeature;
-    final output = await SpriteSheetFileService.exportPng(
-      store: _store,
-      pngBytes: previewData.sheetBytes,
-      rows: previewData.rows,
-      columns: previewData.columns,
-      gridSpec: previewData.gridSpec,
-    );
-    if (!mounted) {
-      return;
-    }
-
-    final item = await _imageLibraryService.addExportedSpriteSheet(
-      store: _store,
-      path: output.path,
-      rows: previewData.rows,
-      columns: previewData.columns,
-      gridSpec: previewData.gridSpec,
-    );
-    if (!mounted) {
-      return;
-    }
-
-    _imageLibrary = [item, ..._imageLibrary];
-    _pushImageLibraryAppendHistory(
-      feature: sourceFeature,
-      label: '打开 Sprite Sheet 到图片编辑器',
-      appendedItems: [item],
-    );
-    await _useImageLibraryItemInEditor(item);
-    if (!mounted) {
-      return;
-    }
-    _showMessage('已打开到图片编辑器，可在编辑工具中使用像素化');
-  }
-
   Future<void> _importCurrentAnimationSheetToProject() async {
+    final l10n = appL10nOf(context);
     if (_animationFrames.isEmpty) {
-      _showMessage('请先生成 Sprite Sheet，再导入动画工程');
+      _showMessage(l10n.imageGenerationImportSpriteSheetFirstMessage);
       return;
     }
 
@@ -819,7 +804,7 @@ mixin _ImageGenerationStateMixin
       final result = await _animationProjectImporter.importSpriteSheet(
         store: _store,
         sheetBytes: bytes,
-        title: '动画工程',
+        title: l10n.navAnimationProject,
         rows: _animationRows,
         columns: _animationColumns,
         defaultDelayMs: _gifDefaultFrameDelayMs,
@@ -830,6 +815,7 @@ mixin _ImageGenerationStateMixin
         store: _store,
         path: result.projectFile.path,
         project: result.project,
+        labels: imageLibraryAnimationProjectLabels(l10n, result.project),
       );
       if (!mounted) {
         return;
@@ -844,17 +830,24 @@ mixin _ImageGenerationStateMixin
         _imageLibrary = [item, ..._imageLibrary];
       });
       _pushAnimationProjectHistory(
-        label: '导入 Sprite Sheet 为动画工程',
+        label: l10n.imageGenerationImportSpriteSheetProjectHistory,
         beforeProject: beforeProject,
         beforeTrackId: beforeTrackId,
         afterProject: result.project,
         afterTrackId: _selectedAnimationTrackId,
         appendedItems: [item],
       );
-      _showMessage('已导入动画工程：${result.project.tracks.length} 条轨道');
+      _showMessage(
+        l10n.imageGenerationImportedAnimationProjectMessage(
+          result.project.tracks.length,
+        ),
+      );
     } catch (error) {
       if (mounted) {
-        setState(() => _animationProjectErrorMessage = '导入动画工程失败：$error');
+        setState(
+          () => _animationProjectErrorMessage = l10n
+              .imageGenerationImportAnimationProjectFailedMessage(error),
+        );
       }
     } finally {
       if (mounted) {
@@ -864,6 +857,7 @@ mixin _ImageGenerationStateMixin
   }
 
   void _clearAnimationProject() {
+    final l10n = appL10nOf(context);
     final beforeProject = _animationProject;
     final beforeTrackId = _selectedAnimationTrackId;
     if (beforeProject == null) {
@@ -875,7 +869,7 @@ mixin _ImageGenerationStateMixin
       _animationProjectErrorMessage = null;
     });
     _pushAnimationProjectHistory(
-      label: '关闭动画工程',
+      label: l10n.imageGenerationCloseAnimationProjectHistory,
       beforeProject: beforeProject,
       beforeTrackId: beforeTrackId,
       afterProject: null,
@@ -884,13 +878,14 @@ mixin _ImageGenerationStateMixin
   }
 
   void _selectAnimationTrack(String trackId) {
+    final l10n = appL10nOf(context);
     if (_selectedAnimationTrackId == trackId) {
       return;
     }
     final beforeTrackId = _selectedAnimationTrackId;
     setState(() => _selectedAnimationTrackId = trackId);
     _pushAnimationProjectHistory(
-      label: '选择动画轨道',
+      label: l10n.imageGenerationSelectAnimationTrackHistory,
       beforeProject: _animationProject,
       beforeTrackId: beforeTrackId,
       afterProject: _animationProject,
@@ -899,6 +894,7 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _renameAnimationTrack(String trackId, String name) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
@@ -917,19 +913,20 @@ mixin _ImageGenerationStateMixin
         )
         .touch();
     await _applyAnimationProjectChange(
-      label: '重命名动画轨道',
+      label: l10n.imageGenerationRenameAnimationTrackHistory,
       beforeProject: before,
       afterProject: next,
     );
   }
 
   Future<void> _setAnimationTrackDelay(String trackId, int delayMs) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '调整轨道帧时长',
+      label: l10n.imageGenerationAdjustTrackFrameDelayHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setTrackDelay(
         project: project,
@@ -943,12 +940,13 @@ mixin _ImageGenerationStateMixin
     String trackId,
     AnimationPlaybackMode mode,
   ) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '调整轨道播放方式',
+      label: l10n.imageGenerationAdjustTrackPlaybackHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setTrackPlaybackMode(
         project: project,
@@ -959,12 +957,13 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _setAnimationProjectDefaultDelay(int delayMs) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '调整工程默认帧时长',
+      label: l10n.imageGenerationAdjustProjectDefaultDelayHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setProjectDefaultDelay(
         project: project,
@@ -976,12 +975,13 @@ mixin _ImageGenerationStateMixin
   Future<void> _setAnimationProjectPlaybackMode(
     AnimationPlaybackMode mode,
   ) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '调整工程播放方式',
+      label: l10n.imageGenerationAdjustProjectPlaybackHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setProjectPlaybackMode(
         project: project,
@@ -991,12 +991,13 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _setAnimationProjectLoopCount(int loopCount) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '调整工程 GIF 循环次数',
+      label: l10n.imageGenerationAdjustProjectGifLoopHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setProjectLoopCount(
         project: project,
@@ -1008,12 +1009,15 @@ mixin _ImageGenerationStateMixin
   Future<void> _setAnimationProjectIncludeHiddenTracks(
     bool includeHiddenTracks,
   ) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: includeHiddenTracks ? '导出包含隐藏轨道' : '导出排除隐藏轨道',
+      label: includeHiddenTracks
+          ? l10n.imageGenerationExportIncludeHiddenTracksHistory
+          : l10n.imageGenerationExportExcludeHiddenTracksHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setProjectIncludeHiddenTracks(
         project: project,
@@ -1023,8 +1027,54 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _importLocalImagesToAnimationProject() async {
+    final l10n = appL10nOf(context);
     final files = await openFiles(acceptedTypeGroups: templateImageTypeGroups);
     if (files.isEmpty) {
+      return;
+    }
+    final paths = [for (final file in files) file.path];
+    await _importImagePathsToAnimationProject(
+      paths,
+      sourceLabel: l10n.imageGenerationLocalSourceLabel,
+    );
+  }
+
+  Future<void> _importLibraryImagesToAnimationProject() async {
+    final l10n = appL10nOf(context);
+    final items = await _showImageLibraryPicker<List<ImageLibraryItem>>(
+      title: l10n.imageGenerationSelectLibrarySequenceTitle,
+      allowMultiple: true,
+      allowedKinds: const [
+        ImageAssetKind.generatedImage,
+        ImageAssetKind.spriteSheet,
+        ImageAssetKind.spriteFrame,
+        ImageAssetKind.editedImage,
+      ],
+    );
+    if (items == null || items.isEmpty) {
+      return;
+    }
+    final paths = [
+      for (final item in items)
+        if (item.isImageFile && !item.path.toLowerCase().endsWith('.gif'))
+          item.path,
+    ];
+    if (paths.isEmpty) {
+      _showMessage(l10n.imageGenerationLibraryNoImportableImagesMessage);
+      return;
+    }
+    await _importImagePathsToAnimationProject(
+      paths,
+      sourceLabel: l10n.imageGenerationLibrarySourceLabel,
+    );
+  }
+
+  Future<void> _importImagePathsToAnimationProject(
+    List<String> paths, {
+    required String sourceLabel,
+  }) async {
+    final l10n = appL10nOf(context);
+    if (paths.isEmpty) {
       return;
     }
     setState(() {
@@ -1033,19 +1083,19 @@ mixin _ImageGenerationStateMixin
     });
 
     try {
-      final paths = [for (final file in files) file.path];
       final currentProject = _animationProject;
       if (currentProject == null) {
         final result = await _animationProjectImporter.importImagesAsTrack(
           store: _store,
           imagePaths: paths,
-          title: '动画工程',
+          title: l10n.navAnimationProject,
           defaultDelayMs: _gifDefaultFrameDelayMs,
         );
         final item = await _imageLibraryService.addAnimationProject(
           store: _store,
           path: result.projectFile.path,
           project: result.project,
+          labels: imageLibraryAnimationProjectLabels(l10n, result.project),
         );
         if (!mounted) {
           return;
@@ -1058,14 +1108,19 @@ mixin _ImageGenerationStateMixin
           _imageLibrary = [item, ..._imageLibrary];
         });
         _pushAnimationProjectHistory(
-          label: '导入图片序列为动画工程',
+          label: l10n.imageGenerationImportImageSequenceProjectHistory,
           beforeProject: beforeProject,
           beforeTrackId: beforeTrackId,
           afterProject: result.project,
           afterTrackId: _selectedAnimationTrackId,
           appendedItems: [item],
         );
-        _showMessage('已导入 ${paths.length} 张图片为动画工程');
+        _showMessage(
+          l10n.imageGenerationImportedImagesAsProjectMessage(
+            paths.length,
+            sourceLabel,
+          ),
+        );
         return;
       }
 
@@ -1074,21 +1129,31 @@ mixin _ImageGenerationStateMixin
         store: _store,
         project: currentProject,
         imagePaths: paths,
-        trackName: '导入序列 ${currentProject.tracks.length + 1}',
+        trackName: l10n.imageGenerationImportedSequenceTrackName(
+          currentProject.tracks.length + 1,
+        ),
         defaultDelayMs: _gifDefaultFrameDelayMs,
       );
       final selectedTrackId = next.tracks.last.id;
       await _applyAnimationProjectChange(
-        label: '导入图片序列为轨道',
+        label: l10n.imageGenerationImportImageSequenceTrackHistory,
         beforeProject: before,
         afterProject: next,
         updateSelectedTrack: true,
         selectedTrackId: selectedTrackId,
       );
-      _showMessage('已导入 ${paths.length} 张图片为新轨道');
+      _showMessage(
+        l10n.imageGenerationImportedImagesAsTrackMessage(
+          paths.length,
+          sourceLabel,
+        ),
+      );
     } catch (error) {
       if (mounted) {
-        setState(() => _animationProjectErrorMessage = '导入图片序列失败：$error');
+        setState(
+          () => _animationProjectErrorMessage = l10n
+              .imageGenerationImportImageSequenceFailedMessage(error),
+        );
       }
     } finally {
       if (mounted) {
@@ -1098,12 +1163,13 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _addAnimationTrack() async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '新建动画轨道',
+      label: l10n.imageGenerationAddAnimationTrackHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().addTrack(
         project: project,
@@ -1113,12 +1179,13 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _duplicateAnimationTrack(String trackId) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '复制动画轨道',
+      label: l10n.imageGenerationDuplicateAnimationTrackHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().duplicateTrack(
         project: project,
@@ -1128,12 +1195,13 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _deleteAnimationTrack(String trackId) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '删除动画轨道',
+      label: l10n.imageGenerationDeleteAnimationTrackHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().deleteTrack(
         project: project,
@@ -1143,12 +1211,13 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _moveAnimationTrack(String trackId, int delta) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '调整动画轨道顺序',
+      label: l10n.imageGenerationMoveAnimationTrackHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().moveTrack(
         project: project,
@@ -1159,12 +1228,15 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _setAnimationTrackVisible(String trackId, bool visible) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: visible ? '显示动画轨道' : '隐藏动画轨道',
+      label: visible
+          ? l10n.imageGenerationShowAnimationTrackHistory
+          : l10n.imageGenerationHideAnimationTrackHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setTrackVisible(
         project: project,
@@ -1175,12 +1247,15 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _setAnimationTrackLocked(String trackId, bool locked) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: locked ? '锁定动画轨道' : '解锁动画轨道',
+      label: locked
+          ? l10n.imageGenerationLockAnimationTrackHistory
+          : l10n.imageGenerationUnlockAnimationTrackHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setTrackLocked(
         project: project,
@@ -1195,12 +1270,13 @@ mixin _ImageGenerationStateMixin
     int fromIndex,
     int toIndex,
   ) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '调整序列帧顺序',
+      label: l10n.imageGenerationMoveAnimationFrameHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().moveFrame(
         project: project,
@@ -1212,12 +1288,13 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _duplicateAnimationFrame(String trackId, int frameIndex) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '复制序列帧',
+      label: l10n.imageGenerationDuplicateAnimationFrameHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().duplicateFrame(
         project: project,
@@ -1228,12 +1305,13 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _deleteAnimationFrame(String trackId, int frameIndex) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '删除序列帧',
+      label: l10n.imageGenerationDeleteAnimationFrameHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().deleteFrame(
         project: project,
@@ -1248,12 +1326,13 @@ mixin _ImageGenerationStateMixin
     int frameIndex,
     int delayMs,
   ) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '调整单帧时长',
+      label: l10n.imageGenerationAdjustFrameDelayHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setFrameDelay(
         project: project,
@@ -1269,12 +1348,13 @@ mixin _ImageGenerationStateMixin
     int frameIndex,
     FrameTransform transform,
   ) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '调整单帧变换',
+      label: l10n.imageGenerationAdjustFrameTransformHistory,
       beforeProject: project,
       result: const AnimationProjectEditor().setFrameTransform(
         project: project,
@@ -1286,6 +1366,7 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _rebindAnimationFrameAsset(String assetId) async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
@@ -1307,14 +1388,199 @@ mixin _ImageGenerationStateMixin
         imagePath: file.path,
       );
       await _applyAnimationProjectChange(
-        label: '重新绑定动画帧资源',
+        label: l10n.imageGenerationRebindFrameAssetHistory,
         beforeProject: project,
         afterProject: next,
       );
-      _showMessage('已重新绑定帧资源：${fileNameFromPath(file.path)}');
+      _showMessage(
+        l10n.imageGenerationReboundFrameAssetMessage(
+          fileNameFromPath(file.path),
+        ),
+      );
     } catch (error) {
       if (mounted) {
-        setState(() => _animationProjectErrorMessage = '重新绑定帧资源失败：$error');
+        setState(
+          () => _animationProjectErrorMessage = l10n
+              .imageGenerationRebindFrameAssetFailedMessage(error),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAnimationProjectBusy = false);
+      }
+    }
+  }
+
+  Future<void> _replaceAnimationFrameAsset(
+    String trackId,
+    int frameIndex,
+  ) async {
+    final l10n = appL10nOf(context);
+    final project = _animationProject;
+    if (project == null) {
+      return;
+    }
+    final file = await openFile(acceptedTypeGroups: templateImageTypeGroups);
+    if (file == null) {
+      return;
+    }
+
+    await _editAnimationFrameAsset(
+      label: l10n.imageGenerationReplaceAnimationFrameHistory,
+      beforeProject: project,
+      edit: () => _animationProjectFrameEditor.replaceFrameWithImage(
+        store: _store,
+        project: project,
+        trackId: trackId,
+        frameIndex: frameIndex,
+        imagePath: file.path,
+      ),
+      successMessage: l10n.imageGenerationReplacedAnimationFrameMessage(
+        frameIndex + 1,
+        fileNameFromPath(file.path),
+      ),
+      errorPrefix: l10n.imageGenerationReplaceAnimationFrameFailedPrefix,
+    );
+  }
+
+  Future<void> _insertBlankAnimationFrame(
+    String trackId,
+    int insertIndex,
+  ) async {
+    final l10n = appL10nOf(context);
+    final project = _animationProject;
+    if (project == null) {
+      return;
+    }
+    await _editAnimationFrameAsset(
+      label: l10n.imageGenerationInsertBlankFrameHistory,
+      beforeProject: project,
+      edit: () => _animationProjectFrameEditor.insertBlankFrame(
+        store: _store,
+        project: project,
+        trackId: trackId,
+        insertIndex: insertIndex,
+      ),
+      successMessage: l10n.imageGenerationInsertedBlankFrameMessage(
+        insertIndex + 1,
+      ),
+      errorPrefix: l10n.imageGenerationInsertBlankFrameFailedPrefix,
+    );
+  }
+
+  Future<void> _insertAnimationFrameFromImage(
+    String trackId,
+    int insertIndex,
+  ) async {
+    final l10n = appL10nOf(context);
+    final project = _animationProject;
+    if (project == null) {
+      return;
+    }
+    final file = await openFile(acceptedTypeGroups: templateImageTypeGroups);
+    if (file == null) {
+      return;
+    }
+
+    await _editAnimationFrameAsset(
+      label: l10n.imageGenerationInsertImageFrameHistory,
+      beforeProject: project,
+      edit: () => _animationProjectFrameEditor.insertFrameWithImage(
+        store: _store,
+        project: project,
+        trackId: trackId,
+        insertIndex: insertIndex,
+        imagePath: file.path,
+      ),
+      successMessage: l10n.imageGenerationInsertedImageFrameMessage(
+        insertIndex + 1,
+        fileNameFromPath(file.path),
+      ),
+      errorPrefix: l10n.imageGenerationInsertImageFrameFailedPrefix,
+    );
+  }
+
+  Future<void> _clearAnimationFrameAsset(String trackId, int frameIndex) async {
+    final l10n = appL10nOf(context);
+    final project = _animationProject;
+    if (project == null) {
+      return;
+    }
+    await _editAnimationFrameAsset(
+      label: l10n.imageGenerationClearAnimationFrameHistory,
+      beforeProject: project,
+      edit: () => _animationProjectFrameEditor.clearFrame(
+        store: _store,
+        project: project,
+        trackId: trackId,
+        frameIndex: frameIndex,
+      ),
+      successMessage: l10n.editorGifClearFrameMessage(frameIndex + 1),
+      errorPrefix: l10n.imageGenerationClearAnimationFrameFailedPrefix,
+    );
+  }
+
+  Future<void> _pixelateAnimationFrameAsset(
+    String trackId,
+    int frameIndex,
+    int blockSize,
+  ) async {
+    final l10n = appL10nOf(context);
+    final project = _animationProject;
+    if (project == null) {
+      return;
+    }
+    await _editAnimationFrameAsset(
+      label: l10n.imageGenerationPixelateAnimationFrameHistory,
+      beforeProject: project,
+      edit: () => _animationProjectFrameEditor.pixelateFrame(
+        store: _store,
+        project: project,
+        trackId: trackId,
+        frameIndex: frameIndex,
+        blockSize: blockSize,
+      ),
+      successMessage: l10n.imageGenerationPixelatedAnimationFrameMessage(
+        frameIndex + 1,
+        blockSize,
+      ),
+      errorPrefix: l10n.imageGenerationPixelateAnimationFrameFailedPrefix,
+    );
+  }
+
+  Future<void> _editAnimationFrameAsset({
+    required String label,
+    required AnimationProject beforeProject,
+    required Future<AnimationProjectEditResult?> Function() edit,
+    required String successMessage,
+    required String errorPrefix,
+  }) async {
+    final l10n = appL10nOf(context);
+    setState(() {
+      _isAnimationProjectBusy = true;
+      _animationProjectErrorMessage = null;
+    });
+    try {
+      final result = await edit();
+      if (!mounted) {
+        return;
+      }
+      if (result == null) {
+        _showMessage(l10n.imageGenerationCurrentFrameNotEditableMessage);
+        return;
+      }
+      await _applyAnimationProjectEdit(
+        label: label,
+        beforeProject: beforeProject,
+        result: result,
+      );
+      _showMessage(successMessage);
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _animationProjectErrorMessage = l10n
+              .imageGenerationPrefixedErrorMessage(errorPrefix, error),
+        );
       }
     } finally {
       if (mounted) {
@@ -1324,6 +1590,7 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _repairAnimationProjectConsistency() async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
       return;
@@ -1332,15 +1599,15 @@ mixin _ImageGenerationStateMixin
       project: project,
     );
     if (result == null) {
-      _showMessage('没有可自动修复的工程问题');
+      _showMessage(l10n.imageGenerationNoRepairableProjectIssuesMessage);
       return;
     }
     await _applyAnimationProjectEdit(
-      label: '自动修复动画工程一致性',
+      label: l10n.imageGenerationRepairProjectConsistencyHistory,
       beforeProject: project,
       result: result,
     );
-    _showMessage('已自动修复工程一致性问题');
+    _showMessage(l10n.imageGenerationRepairedProjectConsistencyMessage);
   }
 
   Future<void> _applyAnimationProjectEdit({
@@ -1453,9 +1720,10 @@ mixin _ImageGenerationStateMixin
   }
 
   Future<void> _exportAnimationProjectSpriteSheet() async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
-      _showMessage('请先导入动画工程');
+      _showMessage(l10n.imageGenerationPleaseImportAnimationProjectMessage);
       return;
     }
     try {
@@ -1467,6 +1735,14 @@ mixin _ImageGenerationStateMixin
         rows: output.rows ?? 1,
         columns:
             output.columns ?? _animationProjectCompositeFrameCount(project),
+        labels: imageLibrarySpriteSheetLabels(
+          l10n,
+          title: l10n.imageLibraryAnimationProjectSpriteSheetTitle,
+          source: l10n.imageLibraryAnimationProjectSpriteSheetSource,
+          rows: output.rows ?? 1,
+          columns:
+              output.columns ?? _animationProjectCompositeFrameCount(project),
+        ),
         gridSpec:
             output.gridSpec ??
             SpriteSheetGridSpec(
@@ -1480,21 +1756,29 @@ mixin _ImageGenerationStateMixin
       _imageLibrary = [item, ..._imageLibrary];
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.animationProject,
-        label: '导出动画工程 Sprite Sheet',
+        label: l10n.imageGenerationExportAnimationProjectSpriteSheetHistory,
         appendedItems: [item],
       );
-      _showMessage('动画工程 Sprite Sheet 已导出：${fileNameFromPath(output.path)}');
+      _showMessage(
+        l10n.imageGenerationExportedProjectSpriteSheetMessage(
+          fileNameFromPath(output.path),
+        ),
+      );
     } catch (error) {
       if (mounted) {
-        setState(() => _animationProjectErrorMessage = '导出失败：$error');
+        setState(
+          () => _animationProjectErrorMessage = l10n
+              .imageGenerationExportFailedMessage(error),
+        );
       }
     }
   }
 
   Future<void> _exportAnimationProjectGif() async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
-      _showMessage('请先导入动画工程');
+      _showMessage(l10n.imageGenerationPleaseImportAnimationProjectMessage);
       return;
     }
     try {
@@ -1506,7 +1790,12 @@ mixin _ImageGenerationStateMixin
       final item = await _imageLibraryService.addGif(
         store: _store,
         path: output.path,
-        frameCount: frameCount,
+        labels: imageLibraryGifLabels(
+          l10n,
+          title: l10n.imageLibraryAnimationProjectGifTitle,
+          source: l10n.navAnimationProject,
+          frameCount: frameCount,
+        ),
       );
       if (!mounted) {
         return;
@@ -1514,22 +1803,30 @@ mixin _ImageGenerationStateMixin
       _imageLibrary = [item, ..._imageLibrary];
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.animationProject,
-        label: '导出动画工程 GIF',
+        label: l10n.imageGenerationExportAnimationProjectGifHistory,
         appendedItems: [item],
       );
-      _showMessage('动画工程 GIF 已导出：${fileNameFromPath(output.path)}');
+      _showMessage(
+        l10n.imageGenerationExportedProjectGifMessage(
+          fileNameFromPath(output.path),
+        ),
+      );
     } catch (error) {
       if (mounted) {
-        setState(() => _animationProjectErrorMessage = '导出工程 GIF 失败：$error');
+        setState(
+          () => _animationProjectErrorMessage = l10n
+              .imageGenerationExportProjectGifFailedMessage(error),
+        );
       }
     }
   }
 
   Future<void> _exportAnimationTrackGif() async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     final trackId = _selectedAnimationTrackId;
     if (project == null || trackId == null) {
-      _showMessage('请先选择动画轨道');
+      _showMessage(l10n.imageGenerationPleaseSelectAnimationTrackMessage);
       return;
     }
     try {
@@ -1542,7 +1839,12 @@ mixin _ImageGenerationStateMixin
       final item = await _imageLibraryService.addGif(
         store: _store,
         path: output.path,
-        frameCount: frameCount,
+        labels: imageLibraryGifLabels(
+          l10n,
+          title: l10n.imageLibraryAnimationTrackGifTitle,
+          source: l10n.navAnimationProject,
+          frameCount: frameCount,
+        ),
       );
       if (!mounted) {
         return;
@@ -1550,21 +1852,29 @@ mixin _ImageGenerationStateMixin
       _imageLibrary = [item, ..._imageLibrary];
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.animationProject,
-        label: '导出动画轨道 GIF',
+        label: l10n.imageGenerationExportAnimationTrackGifHistory,
         appendedItems: [item],
       );
-      _showMessage('当前轨道 GIF 已导出：${fileNameFromPath(output.path)}');
+      _showMessage(
+        l10n.imageGenerationExportedTrackGifMessage(
+          fileNameFromPath(output.path),
+        ),
+      );
     } catch (error) {
       if (mounted) {
-        setState(() => _animationProjectErrorMessage = '导出 GIF 失败：$error');
+        setState(
+          () => _animationProjectErrorMessage = l10n
+              .editorGifExportGifFailedMessage(error),
+        );
       }
     }
   }
 
   Future<void> _exportAnimationProjectPngSequence() async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     if (project == null) {
-      _showMessage('请先导入动画工程');
+      _showMessage(l10n.imageGenerationPleaseImportAnimationProjectMessage);
       return;
     }
     try {
@@ -1573,19 +1883,25 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      _showMessage('已导出 ${files.length} 张工程合成 PNG 序列帧');
+      _showMessage(
+        l10n.imageGenerationExportedProjectPngSequenceMessage(files.length),
+      );
     } catch (error) {
       if (mounted) {
-        setState(() => _animationProjectErrorMessage = '导出工程 PNG 序列失败：$error');
+        setState(
+          () => _animationProjectErrorMessage = l10n
+              .imageGenerationExportProjectPngSequenceFailedMessage(error),
+        );
       }
     }
   }
 
   Future<void> _exportAnimationTrackPngSequence() async {
+    final l10n = appL10nOf(context);
     final project = _animationProject;
     final trackId = _selectedAnimationTrackId;
     if (project == null || trackId == null) {
-      _showMessage('请先选择动画轨道');
+      _showMessage(l10n.imageGenerationPleaseSelectAnimationTrackMessage);
       return;
     }
     try {
@@ -1597,10 +1913,15 @@ mixin _ImageGenerationStateMixin
       if (!mounted) {
         return;
       }
-      _showMessage('已导出 ${files.length} 张 PNG 序列帧');
+      _showMessage(
+        l10n.imageGenerationExportedTrackPngSequenceMessage(files.length),
+      );
     } catch (error) {
       if (mounted) {
-        setState(() => _animationProjectErrorMessage = '导出 PNG 序列失败：$error');
+        setState(
+          () => _animationProjectErrorMessage = l10n
+              .imageGenerationExportPngSequenceFailedMessage(error),
+        );
       }
     }
   }
@@ -1631,17 +1952,6 @@ mixin _ImageGenerationStateMixin
     return maxCount;
   }
 
-  void _exportRenderedAnimationSpriteSheet(AnimationSpriteSheetRender render) {
-    unawaited(
-      _exportSpriteSheet(
-        pngBytes: render.bytes,
-        rows: render.rows,
-        columns: render.columns,
-        gridSpec: render.gridSpec,
-      ),
-    );
-  }
-
   void _exportSourceAnimationSpriteSheet(Uint8List bytes) {
     unawaited(
       _exportSpriteSheet(
@@ -1651,26 +1961,6 @@ mixin _ImageGenerationStateMixin
         gridSpec: _animationGridSpec,
       ),
     );
-  }
-
-  void _sendRenderedAnimationToGif(AnimationSpriteSheetRender render) {
-    final previewData = SpriteSheetPreviewComposer.buildFromSheetBytes(
-      render.bytes,
-      rows: render.rows,
-      columns: render.columns,
-      gridSpec: render.gridSpec,
-    );
-    unawaited(_sendPreviewDataToGif(previewData));
-  }
-
-  void _openRenderedAnimationInEditor(AnimationSpriteSheetRender render) {
-    final previewData = SpriteSheetPreviewComposer.buildFromSheetBytes(
-      render.bytes,
-      rows: render.rows,
-      columns: render.columns,
-      gridSpec: render.gridSpec,
-    );
-    unawaited(_openAnimationPreviewInEditor(previewData));
   }
 
   Widget _buildImageGenerationWorkspace() {
@@ -1738,6 +2028,8 @@ mixin _ImageGenerationStateMixin
           unawaited(_importCurrentAnimationSheetToProject()),
       onImportImageSequence: () =>
           unawaited(_importLocalImagesToAnimationProject()),
+      onImportLibraryImageSequence: () =>
+          unawaited(_importLibraryImagesToAnimationProject()),
       onClearProject: _clearAnimationProject,
       onTrackSelected: _selectAnimationTrack,
       onTrackAdded: () => unawaited(_addAnimationTrack()),
@@ -1769,12 +2061,23 @@ mixin _ImageGenerationStateMixin
           unawaited(_moveAnimationFrame(trackId, fromIndex, toIndex)),
       onFrameDuplicated: (trackId, frameIndex) =>
           unawaited(_duplicateAnimationFrame(trackId, frameIndex)),
+      onBlankFrameInserted: (trackId, insertIndex) =>
+          unawaited(_insertBlankAnimationFrame(trackId, insertIndex)),
+      onImageFrameInserted: (trackId, insertIndex) =>
+          unawaited(_insertAnimationFrameFromImage(trackId, insertIndex)),
       onFrameDeleted: (trackId, frameIndex) =>
           unawaited(_deleteAnimationFrame(trackId, frameIndex)),
       onFrameDelayChanged: (trackId, frameIndex, delayMs) =>
           unawaited(_setAnimationFrameDelay(trackId, frameIndex, delayMs)),
       onFrameTransformChanged: (trackId, frameIndex, transform) => unawaited(
         _setAnimationFrameTransform(trackId, frameIndex, transform),
+      ),
+      onFrameReplaced: (trackId, frameIndex) =>
+          unawaited(_replaceAnimationFrameAsset(trackId, frameIndex)),
+      onFrameCleared: (trackId, frameIndex) =>
+          unawaited(_clearAnimationFrameAsset(trackId, frameIndex)),
+      onFramePixelated: (trackId, frameIndex, blockSize) => unawaited(
+        _pixelateAnimationFrameAsset(trackId, frameIndex, blockSize),
       ),
       onFrameAssetRebound: (assetId) =>
           unawaited(_rebindAnimationFrameAsset(assetId)),
@@ -1789,9 +2092,6 @@ mixin _ImageGenerationStateMixin
       onExportTrackPngSequence: () =>
           unawaited(_exportAnimationTrackPngSequence()),
       onExportSourceSpriteSheet: _exportSourceAnimationSpriteSheet,
-      onExportRenderedSpriteSheet: _exportRenderedAnimationSpriteSheet,
-      onSendRenderedToGif: _sendRenderedAnimationToGif,
-      onOpenRenderedInEditor: _openRenderedAnimationInEditor,
     );
   }
 }

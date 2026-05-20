@@ -158,6 +158,61 @@ void main() {
     expect(viewData.availableItems, [visible]);
     expect(viewData.filteredItems, [visible]);
   });
+
+  test('memoizes image library view data for unchanged inputs', () {
+    final first = _item(
+      id: 'first',
+      path: 'virtual-first.png',
+      kind: ImageAssetKind.generatedImage,
+      createdAt: DateTime.parse('2026-05-15T12:00:00Z'),
+    );
+    final second = _item(
+      id: 'second',
+      path: 'virtual-second.png',
+      kind: ImageAssetKind.generatedImage,
+      createdAt: DateTime.parse('2026-05-15T12:01:00Z'),
+    );
+    final library = [first, second];
+    var existenceChecks = 0;
+    bool itemExists(ImageLibraryItem item) {
+      existenceChecks++;
+      return true;
+    }
+
+    final memoizer = ImageLibraryViewDataMemoizer();
+    final firstBuild = memoizer.build(
+      library: library,
+      filter: ImageLibraryKindFilter.all,
+      sortOrder: ImageLibrarySortOrder.newest,
+      searchQuery: '',
+      showStandaloneFrames: true,
+      itemExists: itemExists,
+    );
+    final cachedBuild = memoizer.build(
+      library: library,
+      filter: ImageLibraryKindFilter.all,
+      sortOrder: ImageLibrarySortOrder.newest,
+      searchQuery: '',
+      showStandaloneFrames: true,
+      itemExists: itemExists,
+    );
+
+    expect(identical(firstBuild, cachedBuild), isTrue);
+    expect(existenceChecks, library.length);
+
+    final filteredBuild = memoizer.build(
+      library: library,
+      filter: ImageLibraryKindFilter.all,
+      sortOrder: ImageLibrarySortOrder.newest,
+      searchQuery: 'second',
+      showStandaloneFrames: true,
+      itemExists: itemExists,
+    );
+
+    expect(identical(firstBuild, filteredBuild), isFalse);
+    expect(filteredBuild.filteredItems, [second]);
+    expect(existenceChecks, library.length * 2);
+  });
 }
 
 ImageLibraryItem _item({

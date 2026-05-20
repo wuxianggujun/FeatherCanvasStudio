@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_l10n.dart';
 import '../models/generated_image.dart';
 import '../services/image_api_client.dart';
 import '../theme/layout_constants.dart';
@@ -36,51 +37,52 @@ class PreviewPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     return PreviewPanelShell(
-      title: '结果预览',
+      title: l10n.previewPanelTitle,
       debugRecord: debugRecord,
       showDebugButton: true,
-      child: _buildContent(),
+      child: _buildContent(context),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
+    final l10n = appL10nOf(context);
+    final previewCount = generatedImages.length;
     final effectiveTargetCount = targetImageCount == null
-        ? generatedImages.length
+        ? previewCount
         : targetImageCount!.clamp(0, 10000).toInt();
     final pendingCount = isGenerating
-        ? (effectiveTargetCount - generatedImages.length)
-              .clamp(0, 10000)
-              .toInt()
+        ? (effectiveTargetCount - previewCount).clamp(0, 10000).toInt()
         : 0;
 
-    if (isGenerating && generatedImages.isEmpty && pendingCount == 0) {
-      return const PreviewStateSurface.loading(
-        key: ValueKey('loading'),
-        message: '正在生成图片',
+    if (isGenerating && previewCount == 0 && pendingCount == 0) {
+      return PreviewStateSurface.loading(
+        key: const ValueKey('loading'),
+        message: l10n.previewGeneratingImage,
       );
     }
 
     if (errorMessage != null) {
       return PreviewStateSurface.error(
         key: const ValueKey('error'),
-        title: '生成失败',
+        title: l10n.previewGenerationFailed,
         message: errorMessage!,
         onRetry: onRetry,
       );
     }
 
-    if (generatedImages.isEmpty && pendingCount == 0) {
-      return const PreviewStateSurface.empty(
-        key: ValueKey('empty'),
-        message: '生成后的图片会显示在这里',
+    if (previewCount == 0 && pendingCount == 0) {
+      return PreviewStateSurface.empty(
+        key: const ValueKey('empty'),
+        message: l10n.previewEmptyMessage,
       );
     }
 
     return LayoutBuilder(
       key: const ValueKey('images'),
       builder: (context, constraints) {
-        final totalCount = generatedImages.length + pendingCount;
+        final totalCount = previewCount + pendingCount;
         final tileAspectRatio = _normalizedPreviewAspectRatio(
           targetAspectRatio,
         );
@@ -89,40 +91,52 @@ class PreviewPanel extends StatelessWidget {
         final columns = totalCount <= 1 || constraints.maxWidth < minTileWidth
             ? 1
             : (constraints.maxWidth / minTileWidth).floor().clamp(1, 6);
-        final width = columns == 1
-            ? constraints.maxWidth
-            : (constraints.maxWidth - layoutGap * (columns - 1)) / columns;
+        final tileWidth =
+            (constraints.maxWidth - layoutGap * (columns - 1)) / columns;
+        final imageHeight = tileWidth / tileAspectRatio;
+        final hasCaption = generatedImages.any(
+          (image) =>
+              image.revisedPrompt != null && image.revisedPrompt!.isNotEmpty,
+        );
+        final captionHeight = hasCaption ? 96.0 : 0.0;
+        final tileHeight = imageHeight + captionHeight;
+        final rowCount = (totalCount / columns).ceil();
+        final gridHeight = (rowCount * tileHeight + (rowCount - 1) * layoutGap)
+            .clamp(180.0, 620.0)
+            .toDouble();
 
-        return Wrap(
-          spacing: layoutGap,
-          runSpacing: layoutGap,
-          children: [
-            for (var index = 0; index < generatedImages.length; index++)
-              SizedBox(
-                width: width,
-                child: _GeneratedImageTile(
-                  image: generatedImages[index],
-                  previewIndex: index,
+        return SizedBox(
+          height: gridHeight,
+          child: GridView.builder(
+            key: const ValueKey('preview-grid'),
+            primary: false,
+            itemCount: totalCount,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: layoutGap,
+              mainAxisSpacing: layoutGap,
+              childAspectRatio: tileWidth / tileHeight,
+            ),
+            itemBuilder: (context, index) {
+              if (index >= previewCount) {
+                return _PendingImageTile(
+                  index: index,
                   aspectRatio: tileAspectRatio,
-                  onCopyImage: () => onCopyImage(index, generatedImages[index]),
-                  onExportImage: () =>
-                      onExportImage(index, generatedImages[index]),
-                  onMakeBackgroundTransparent: () =>
-                      onMakeBackgroundTransparent(
-                        index,
-                        generatedImages[index],
-                      ),
-                ),
-              ),
-            for (var index = 0; index < pendingCount; index++)
-              SizedBox(
-                width: width,
-                child: _PendingImageTile(
-                  index: generatedImages.length + index,
-                  aspectRatio: tileAspectRatio,
-                ),
-              ),
-          ],
+                );
+              }
+
+              final image = generatedImages[index];
+              return _GeneratedImageTile(
+                image: image,
+                previewIndex: index,
+                aspectRatio: tileAspectRatio,
+                onCopyImage: () => onCopyImage(index, image),
+                onExportImage: () => onExportImage(index, image),
+                onMakeBackgroundTransparent: () =>
+                    onMakeBackgroundTransparent(index, image),
+              );
+            },
+          ),
         );
       },
     );
@@ -149,6 +163,7 @@ class _GeneratedImageTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = appL10nOf(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,11 +181,14 @@ class _GeneratedImageTile extends StatelessWidget {
                     onTap: () => showGeneratedImagePreviewDialog(
                       context,
                       image: image,
-                      title: '结果 ${previewIndex + 1}',
+                      title: l10n.previewResultTitle(previewIndex + 1),
                       onCopyImage: onCopyImage,
                       onExportImage: onExportImage,
                     ),
-                    child: _GeneratedImageContent(image: image),
+                    child: _GeneratedImageContent(
+                      image: image,
+                      semanticLabel: l10n.previewResultTitle(previewIndex + 1),
+                    ),
                   ),
                 ),
               ),
@@ -184,7 +202,7 @@ class _GeneratedImageTile extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        tooltip: '复制图片',
+                        tooltip: l10n.copyImageTooltip,
                         onPressed: onCopyImage,
                         icon: const Icon(Icons.content_copy_outlined),
                         iconSize: 18,
@@ -196,7 +214,7 @@ class _GeneratedImageTile extends StatelessWidget {
                         visualDensity: VisualDensity.compact,
                       ),
                       IconButton(
-                        tooltip: '导出图片',
+                        tooltip: l10n.exportImageTooltip,
                         onPressed: onExportImage,
                         icon: const Icon(Icons.file_download_outlined),
                         iconSize: 18,
@@ -208,7 +226,7 @@ class _GeneratedImageTile extends StatelessWidget {
                         visualDensity: VisualDensity.compact,
                       ),
                       IconButton(
-                        tooltip: '背景转透明',
+                        tooltip: l10n.makeBackgroundTransparentTooltip,
                         onPressed: onMakeBackgroundTransparent,
                         icon: const Icon(Icons.auto_fix_high_outlined),
                         iconSize: 18,
@@ -250,6 +268,7 @@ class _PendingImageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = appL10nOf(context);
 
     return AspectRatio(
       aspectRatio: aspectRatio,
@@ -281,7 +300,7 @@ class _PendingImageTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '等待 ${index + 1}',
+                  l10n.previewPendingImage(index + 1),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(
@@ -301,10 +320,12 @@ class _GeneratedImageContent extends StatelessWidget {
   const _GeneratedImageContent({
     required this.image,
     this.fit = BoxFit.contain,
+    this.semanticLabel,
   });
 
   final GeneratedImage image;
   final BoxFit fit;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -324,6 +345,7 @@ class _GeneratedImageContent extends StatelessWidget {
           return Image.file(
             File(image.filePath!),
             fit: fit,
+            semanticLabel: semanticLabel,
             cacheWidth: cacheWidth,
             cacheHeight: cacheHeight,
             filterQuality: FilterQuality.medium,
@@ -335,6 +357,7 @@ class _GeneratedImageContent extends StatelessWidget {
           return Image.memory(
             image.bytes!,
             fit: fit,
+            semanticLabel: semanticLabel,
             cacheWidth: cacheWidth,
             cacheHeight: cacheHeight,
             filterQuality: FilterQuality.medium,
@@ -345,14 +368,16 @@ class _GeneratedImageContent extends StatelessWidget {
         return Image.network(
           image.url!,
           fit: fit,
+          semanticLabel: semanticLabel,
           cacheWidth: cacheWidth,
           cacheHeight: cacheHeight,
           filterQuality: FilterQuality.medium,
           errorBuilder: (context, error, stackTrace) {
+            final l10n = appL10nOf(context);
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('图片加载失败：$error'),
+                child: Text(l10n.previewImageLoadFailed(error)),
               ),
             );
           },
@@ -386,70 +411,75 @@ Future<void> showGeneratedImagePreviewDialog(
   return showDialog<void>(
     context: context,
     builder: (context) {
+      final l10n = appL10nOf(context);
       return Dialog(
         insetPadding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 980, maxHeight: 820),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium,
+        child: FocusTraversalGroup(
+          policy: ReadingOrderTraversalPolicy(),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 980, maxHeight: 820),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
-                    ),
-                    if (onCopyImage != null)
+                      if (onCopyImage != null)
+                        IconButton(
+                          tooltip: l10n.copyImageTooltip,
+                          onPressed: onCopyImage,
+                          icon: const Icon(Icons.content_copy_outlined),
+                        ),
+                      if (onExportImage != null)
+                        IconButton(
+                          tooltip: l10n.exportImageTooltip,
+                          onPressed: onExportImage,
+                          icon: const Icon(Icons.file_download_outlined),
+                        ),
                       IconButton(
-                        tooltip: '复制图片',
-                        onPressed: onCopyImage,
-                        icon: const Icon(Icons.content_copy_outlined),
+                        tooltip: l10n.closeAction,
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close),
                       ),
-                    if (onExportImage != null)
-                      IconButton(
-                        tooltip: '导出图片',
-                        onPressed: onExportImage,
-                        icon: const Icon(Icons.file_download_outlined),
-                      ),
-                    IconButton(
-                      tooltip: '关闭',
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: ColoredBox(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      child: InteractiveViewer(
-                        minScale: 0.5,
-                        maxScale: 5,
-                        child: Center(
-                          child: _GeneratedImageContent(
-                            image: image,
-                            fit: BoxFit.contain,
+                Flexible(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: ColoredBox(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        child: InteractiveViewer(
+                          minScale: 0.5,
+                          maxScale: 5,
+                          child: Center(
+                            child: _GeneratedImageContent(
+                              image: image,
+                              fit: BoxFit.contain,
+                              semanticLabel: title,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );

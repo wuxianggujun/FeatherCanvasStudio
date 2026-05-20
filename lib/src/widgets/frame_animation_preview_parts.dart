@@ -13,12 +13,13 @@ class _FramePreviewProgressBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final hasError = errorMessage != null;
     final message = hasError
-        ? 'Sprite Sheet 生成失败，可调整参数后重试。$errorMessage'
+        ? l10n.framePreviewProgressFailed(errorMessage!)
         : isGenerating
-        ? '正在生成 1 张 Sprite Sheet，完成后会按 $totalCount 格切片预览。'
-        : '已生成 1 张 Sprite Sheet，并按 $totalCount 格切片预览。';
+        ? l10n.framePreviewProgressGenerating(totalCount)
+        : l10n.framePreviewProgressReady(totalCount);
 
     return _FramePreviewStatusBanner(message: message, isError: hasError);
   }
@@ -182,93 +183,101 @@ class _ZoomableFramePreviewState extends State<_ZoomableFramePreview> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return SizedBox.expand(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ColoredBox(
-            color: colorScheme.surfaceContainerHighest,
-            child: Listener(
-              onPointerSignal: _reserveMouseWheelSignal,
-              child: InteractiveViewer(
-                transformationController: _transformationController,
-                minScale: _minScale,
-                maxScale: _maxScale,
-                boundaryMargin: const EdgeInsets.all(96),
-                clipBehavior: Clip.hardEdge,
-                trackpadScrollCausesScale: true,
-                onInteractionUpdate: (_) => _syncScale(),
-                onInteractionEnd: (_) => _syncScale(),
-                child: SizedBox.expand(
-                  child: Center(
-                    child: Image.memory(
-                      widget.frameBytes,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.none,
-                      gaplessPlayback: true,
+      child: Semantics(
+        label: l10n.framePreviewPlaybackFrameTitle,
+        image: true,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(
+              color: colorScheme.surfaceContainerHighest,
+              child: Listener(
+                onPointerSignal: _reserveMouseWheelSignal,
+                child: InteractiveViewer(
+                  transformationController: _transformationController,
+                  minScale: _minScale,
+                  maxScale: _maxScale,
+                  boundaryMargin: const EdgeInsets.all(96),
+                  clipBehavior: Clip.hardEdge,
+                  trackpadScrollCausesScale: true,
+                  onInteractionUpdate: (_) => _syncScale(),
+                  onInteractionEnd: (_) => _syncScale(),
+                  child: SizedBox.expand(
+                    child: Center(
+                      child: Image.memory(
+                        widget.frameBytes,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.none,
+                        gaplessPlayback: true,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: colorScheme.surface.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: colorScheme.outlineVariant),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _FrameZoomButton(
-                    tooltip: '缩小播放帧',
-                    icon: Icons.remove,
-                    onPressed: _scale <= _minScale + 0.01
-                        ? null
-                        : () => _setScale(_scale / _scaleStep),
-                  ),
-                  _FrameZoomButton(
-                    tooltip: '放大播放帧',
-                    icon: Icons.add,
-                    onPressed: _scale >= _maxScale - 0.01
-                        ? null
-                        : () => _setScale(_scale * _scaleStep),
-                  ),
-                  _FrameZoomButton(
-                    tooltip: '重置播放帧缩放',
-                    icon: Icons.fit_screen_outlined,
-                    onPressed: _resetZoom,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 8,
-            bottom: 8,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: colorScheme.surface.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                child: Text(
-                  '${(_scale * 100).round()}%',
-                  style: theme.textTheme.labelSmall,
+            Positioned(
+              top: 8,
+              right: 8,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.surface.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _FrameZoomButton(
+                      tooltip: l10n.framePreviewZoomOutTooltip,
+                      icon: Icons.remove,
+                      onPressed: _scale <= _minScale + 0.01
+                          ? null
+                          : () => _setScale(_scale / _scaleStep),
+                    ),
+                    _FrameZoomButton(
+                      tooltip: l10n.framePreviewZoomInTooltip,
+                      icon: Icons.add,
+                      onPressed: _scale >= _maxScale - 0.01
+                          ? null
+                          : () => _setScale(_scale * _scaleStep),
+                    ),
+                    _FrameZoomButton(
+                      tooltip: l10n.framePreviewResetZoomTooltip,
+                      icon: Icons.fit_screen_outlined,
+                      onPressed: _resetZoom,
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              left: 8,
+              bottom: 8,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.surface.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  child: Text(
+                    '${(_scale * 100).round()}%',
+                    style: theme.textTheme.labelSmall,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -287,14 +296,20 @@ class _FrameZoomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: 34,
-      child: IconButton(
-        tooltip: tooltip,
-        onPressed: onPressed,
-        icon: Icon(icon, size: 18),
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
+    return Semantics(
+      container: true,
+      label: tooltip,
+      button: true,
+      enabled: onPressed != null,
+      child: SizedBox.square(
+        dimension: 34,
+        child: IconButton(
+          tooltip: tooltip,
+          onPressed: onPressed,
+          icon: Icon(icon, size: 18),
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+        ),
       ),
     );
   }
@@ -316,30 +331,42 @@ class _SpriteSheetPreviewCanvas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = appL10nOf(context);
+    final selectedFrame =
+        selectedRow * previewData.columns + selectedColumn + 1;
+    final canvasLabel =
+        '${l10n.framePreviewSpriteSheetTitle} · '
+        '${l10n.framePreviewCurrentStatus(l10n.framePreviewCurrentPlaybackPrefix, selectedFrame, selectedRow + 1, selectedColumn + 1, previewData.columns)}';
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final canvas = SizedBox(
-          key: const ValueKey('sprite-sheet-preview-canvas'),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.memory(
-                previewData.sheetBytes,
-                fit: BoxFit.fill,
-                filterQuality: FilterQuality.none,
-              ),
-              CustomPaint(
-                painter: _SpriteSheetHighlightPainter(
-                  previewData: previewData,
-                  selectedRow: selectedRow,
-                  selectedColumn: selectedColumn,
-                  rowColor: colorScheme.primary.withValues(alpha: 0.18),
-                  rowBorderColor: colorScheme.primary,
-                  cellBorderColor: colorScheme.tertiary,
+        final canvas = Semantics(
+          label: canvasLabel,
+          image: true,
+          button: onFrameSelected != null,
+          enabled: true,
+          child: SizedBox(
+            key: const ValueKey('sprite-sheet-preview-canvas'),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.memory(
+                  previewData.sheetBytes,
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.none,
                 ),
-              ),
-            ],
+                CustomPaint(
+                  painter: _SpriteSheetHighlightPainter(
+                    previewData: previewData,
+                    selectedRow: selectedRow,
+                    selectedColumn: selectedColumn,
+                    rowColor: colorScheme.primary.withValues(alpha: 0.18),
+                    rowBorderColor: colorScheme.primary,
+                    cellBorderColor: colorScheme.tertiary,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
 
@@ -508,12 +535,14 @@ class _SpriteSheetFrameTile extends StatelessWidget {
     super.key,
     required this.frameBytes,
     required this.aspectRatio,
+    required this.semanticsLabel,
     this.isSelected = false,
     this.onTap,
   });
 
   final Uint8List frameBytes;
   final double aspectRatio;
+  final String semanticsLabel;
   final bool isSelected;
   final VoidCallback? onTap;
 
@@ -522,32 +551,39 @@ class _SpriteSheetFrameTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.outlineVariant,
-              width: isSelected ? 2 : 1,
+    return Semantics(
+      label: semanticsLabel,
+      image: true,
+      button: onTap != null,
+      selected: isSelected,
+      enabled: onTap != null,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            foregroundDecoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.outlineVariant,
+                width: isSelected ? 2 : 1,
+              ),
             ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: AspectRatio(
-              aspectRatio: aspectRatio,
-              child: ColoredBox(
-                color: colorScheme.surfaceContainerHighest,
-                child: Image.memory(
-                  frameBytes,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.none,
-                  gaplessPlayback: true,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: AspectRatio(
+                aspectRatio: aspectRatio,
+                child: ColoredBox(
+                  color: colorScheme.surfaceContainerHighest,
+                  child: Image.memory(
+                    frameBytes,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.none,
+                    gaplessPlayback: true,
+                  ),
                 ),
               ),
             ),

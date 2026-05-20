@@ -81,41 +81,9 @@ class _EditorSourceSnapshot {
   );
 }
 
-class _GifConfigSnapshot {
-  const _GifConfigSnapshot({
-    required this.defaultFrameDelayMs,
-    required this.loopCount,
-    required this.playbackMode,
-  });
-
-  final int defaultFrameDelayMs;
-  final int loopCount;
-  final GifPlaybackMode playbackMode;
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is _GifConfigSnapshot &&
-            defaultFrameDelayMs == other.defaultFrameDelayMs &&
-            loopCount == other.loopCount &&
-            playbackMode == other.playbackMode;
-  }
-
-  @override
-  int get hashCode => Object.hash(defaultFrameDelayMs, loopCount, playbackMode);
-}
-
 const Duration _editorConfigHistoryMergeWindow = Duration(milliseconds: 800);
 const String _editorGridConfigHistoryKey = 'editor-grid-config';
 const String _editorFrameFitHistoryKey = 'editor-frame-fit';
-const Duration _gifHistoryMergeWindow = Duration(milliseconds: 800);
-const String _gifDefaultDelayHistoryKey = 'gif-default-delay';
-const String _gifLoopCountHistoryKey = 'gif-loop-count';
-const String _gifPlaybackModeHistoryKey = 'gif-playback-mode';
-const String _gifApplyDelayToAllHistoryKey = 'gif-apply-delay-to-all';
-const String _gifClearFramesHistoryKey = 'gif-clear-frames';
-const String _gifLoadSourceFramesHistoryKey = 'gif-load-source-frames';
-const String _gifLoadPreviewFramesHistoryKey = 'gif-load-preview-frames';
 
 mixin _EditorGifStateMixin
     on
@@ -139,7 +107,8 @@ mixin _EditorGifStateMixin
   int get _editorColumns => _imageEditorNotifier.editorColumns;
   set _editorColumns(int value) => _imageEditorNotifier.editorColumns = value;
   // ignore: unused_element
-  SpriteSheetGridSpec get _editorGridSpec => _imageEditorNotifier.editorGridSpec;
+  SpriteSheetGridSpec get _editorGridSpec =>
+      _imageEditorNotifier.editorGridSpec;
   set _editorGridSpec(SpriteSheetGridSpec value) =>
       _imageEditorNotifier.editorGridSpec = value;
   // ignore: unused_element
@@ -158,7 +127,8 @@ mixin _EditorGifStateMixin
   set _editorImagePath(String? value) =>
       _imageEditorNotifier.editorImagePath = value;
   // ignore: unused_element
-  String? get _editorPatchImagePath => _imageEditorNotifier.editorPatchImagePath;
+  String? get _editorPatchImagePath =>
+      _imageEditorNotifier.editorPatchImagePath;
   set _editorPatchImagePath(String? value) =>
       _imageEditorNotifier.editorPatchImagePath = value;
   // ignore: unused_element
@@ -192,32 +162,9 @@ mixin _EditorGifStateMixin
       _imageEditorNotifier.isProcessingGeneralImage = value;
   bool get _isImageEditorFocusMode;
   set _isImageEditorFocusMode(bool value);
-  GifComposerNotifier get _gifComposerNotifier;
-  // ignore: unused_element
-  List<GifSourceFrame> get _gifSourceFrames => _gifComposerNotifier.frames;
-  set _gifSourceFrames(List<GifSourceFrame> value) =>
-      _gifComposerNotifier.frames = value;
-  // ignore: unused_element
-  int get _gifDefaultFrameDelayMs => _gifComposerNotifier.defaultFrameDelayMs;
-  set _gifDefaultFrameDelayMs(int value) =>
-      _gifComposerNotifier.defaultFrameDelayMs = value;
-  // ignore: unused_element
-  int get _gifLoopCount => _gifComposerNotifier.loopCount;
-  set _gifLoopCount(int value) => _gifComposerNotifier.loopCount = value;
-  // ignore: unused_element
-  GifPlaybackMode get _gifPlaybackMode => _gifComposerNotifier.playbackMode;
-  set _gifPlaybackMode(GifPlaybackMode value) =>
-      _gifComposerNotifier.playbackMode = value;
-  // ignore: unused_element
-  bool get _isComposingGif => _gifComposerNotifier.isComposing;
-  set _isComposingGif(bool value) => _gifComposerNotifier.isComposing = value;
-  // ignore: unused_element
-  String? get _gifOutputPath => _gifComposerNotifier.outputPath;
-  set _gifOutputPath(String? value) => _gifComposerNotifier.outputPath = value;
-  // ignore: unused_element
-  String? get _gifErrorMessage => _gifComposerNotifier.errorMessage;
-  set _gifErrorMessage(String? value) =>
-      _gifComposerNotifier.errorMessage = value;
+  int _gifDefaultFrameDelayMs = defaultGifFrameDelayMs;
+  int _gifLoopCount = defaultGifLoopCount;
+  GifPlaybackMode _gifPlaybackMode = defaultGifPlaybackMode;
   WorkspaceFeature get _selectedFeature;
   set _selectedFeature(WorkspaceFeature value);
   @override
@@ -234,24 +181,17 @@ mixin _EditorGifStateMixin
   String? _lastEditorConfigHistoryKey;
   DateTime? _lastEditorConfigHistoryAt;
   _EditorConfigSnapshot? _lastEditorConfigHistoryBefore;
-  HistoryAction? _lastGifConfigHistoryAction;
-  String? _lastGifConfigHistoryKey;
-  DateTime? _lastGifConfigHistoryAt;
-  _GifConfigSnapshot? _lastGifConfigHistoryBefore;
-  HistoryAction? _lastGifFramesHistoryAction;
-  String? _lastGifFramesHistoryKey;
-  DateTime? _lastGifFramesHistoryAt;
-  List<GifSourceFrame>? _lastGifFramesHistoryBefore;
 
   void _setEditorRows(int value) {
     final before = _captureEditorConfig();
+    final l10n = appL10nOf(context);
     setState(() {
       _editorRows = value;
       _editorGridSpec = _editorGridSpec.copyWith(rows: value);
       _normalizeEditorTargetFrameIndex();
     });
     _pushEditorConfigHistory(
-      label: '调整行数为 $value 行',
+      label: l10n.editorGifAdjustRowsHistory(value),
       before: before,
       mergeKey: _editorGridConfigHistoryKey,
     );
@@ -259,13 +199,14 @@ mixin _EditorGifStateMixin
 
   void _setEditorColumns(int value) {
     final before = _captureEditorConfig();
+    final l10n = appL10nOf(context);
     setState(() {
       _editorColumns = value;
       _editorGridSpec = _editorGridSpec.copyWith(columns: value);
       _normalizeEditorTargetFrameIndex();
     });
     _pushEditorConfigHistory(
-      label: '调整列数为 $value 列',
+      label: l10n.editorGifAdjustColumnsHistory(value),
       before: before,
       mergeKey: _editorGridConfigHistoryKey,
     );
@@ -273,6 +214,7 @@ mixin _EditorGifStateMixin
 
   void _setEditorGridSpec(SpriteSheetGridSpec value) {
     final before = _captureEditorConfig();
+    final l10n = appL10nOf(context);
     setState(() {
       _editorRows = value.rows;
       _editorColumns = value.columns;
@@ -280,7 +222,7 @@ mixin _EditorGifStateMixin
       _normalizeEditorTargetFrameIndex();
     });
     _pushEditorConfigHistory(
-      label: '调整切片校准',
+      label: l10n.editorGifAdjustGridSpecHistory,
       before: before,
       mergeKey: _editorGridConfigHistoryKey,
     );
@@ -294,12 +236,17 @@ mixin _EditorGifStateMixin
 
   void _setEditorFrameFit(SpriteSheetFrameFit value) {
     final before = _captureEditorConfig();
+    final l10n = appL10nOf(context);
     if (before.frameFit == value) {
       return;
     }
     _editorFrameFit = value;
     _pushEditorConfigHistory(
-      label: '调整适配方式为 ${spriteSheetFrameFitLabel(value)}',
+      label: l10n.editorGifAdjustFrameFitHistory(switch (value) {
+        SpriteSheetFrameFit.contain => l10n.spriteSheetEditorFrameFitContain,
+        SpriteSheetFrameFit.cover => l10n.spriteSheetEditorFrameFitCover,
+        SpriteSheetFrameFit.stretch => l10n.spriteSheetEditorFrameFitStretch,
+      }),
       before: before,
       mergeKey: _editorFrameFitHistoryKey,
     );
@@ -515,9 +462,10 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _pickEditorImage() async {
+    final l10n = appL10nOf(context);
     final imagePath = await _pickSingleImagePathFromSource(
-      title: '选择 Sprite Sheet 图片',
-      libraryEmptyMessage: '生成或导出 Sprite Sheet 后可从这里复用',
+      title: l10n.editorGifSelectSpriteSheetTitle,
+      libraryEmptyMessage: l10n.editorGifSpriteSheetLibraryEmpty,
       allowedLibraryKinds: spriteSheetLibraryKinds,
     );
 
@@ -530,11 +478,15 @@ mixin _EditorGifStateMixin
       _editorImagePath = imagePath;
       _editorErrorMessage = null;
     });
-    _pushEditorSourceHistory(label: '载入 Sprite Sheet', before: before);
-    _showMessage('已载入图片：${fileNameFromPath(imagePath)}');
+    _pushEditorSourceHistory(
+      label: l10n.editorGifLoadSpriteSheetHistory,
+      before: before,
+    );
+    _showMessage(l10n.editorGifLoadedImageMessage(fileNameFromPath(imagePath)));
   }
 
   void _clearEditorImage() {
+    final l10n = appL10nOf(context);
     final before = _captureEditorSource();
     if (before.sheetPath == null && before.errorMessage == null) {
       return;
@@ -544,13 +496,17 @@ mixin _EditorGifStateMixin
       _editorImagePath = null;
       _editorErrorMessage = null;
     });
-    _pushEditorSourceHistory(label: '清空 Sprite Sheet', before: before);
+    _pushEditorSourceHistory(
+      label: l10n.editorGifClearSpriteSheetHistory,
+      before: before,
+    );
   }
 
   Future<void> _pickEditorPatchImage() async {
+    final l10n = appL10nOf(context);
     final imagePath = await _pickSingleImagePathFromSource(
-      title: '选择单帧图片',
-      libraryEmptyMessage: '保存到作品库后的单帧图片会显示在这里',
+      title: l10n.editorGifSelectSingleFrameTitle,
+      libraryEmptyMessage: l10n.editorGifSingleFrameLibraryEmpty,
       allowedLibraryKinds: singleFrameLibraryKinds,
     );
 
@@ -563,11 +519,17 @@ mixin _EditorGifStateMixin
       _editorPatchImagePath = imagePath;
       _editorErrorMessage = null;
     });
-    _pushEditorSourceHistory(label: '选择单帧图片', before: before);
-    _showMessage('已选择单帧图片：${fileNameFromPath(imagePath)}');
+    _pushEditorSourceHistory(
+      label: l10n.editorGifSelectSingleFrameHistory,
+      before: before,
+    );
+    _showMessage(
+      l10n.editorGifLoadedSingleFrameMessage(fileNameFromPath(imagePath)),
+    );
   }
 
   void _clearEditorPatchImage() {
+    final l10n = appL10nOf(context);
     final before = _captureEditorSource();
     if (before.patchPath == null && before.errorMessage == null) {
       return;
@@ -577,13 +539,17 @@ mixin _EditorGifStateMixin
       _editorPatchImagePath = null;
       _editorErrorMessage = null;
     });
-    _pushEditorSourceHistory(label: '清空单帧图片', before: before);
+    _pushEditorSourceHistory(
+      label: l10n.editorGifClearSingleFrameHistory,
+      before: before,
+    );
   }
 
   Future<void> _makeEditorPatchBackgroundTransparent(int tolerance) async {
+    final l10n = appL10nOf(context);
     final patchPath = _editorPatchImagePath;
     if (patchPath == null) {
-      _showMessage('请先选择一张单帧图片');
+      _showMessage(l10n.editorGifPleaseSelectSingleFrame);
       return;
     }
 
@@ -602,7 +568,7 @@ mixin _EditorGifStateMixin
         return;
       }
       if (result.transparentPixelCount == 0) {
-        _showMessage('没有检测到可透明化的边缘背景，可尝试调高容差');
+        _showMessage(l10n.editorGifNoTransparentEdgeMessage);
         return;
       }
 
@@ -619,11 +585,13 @@ mixin _EditorGifStateMixin
         store: _store,
         path: file.path,
         kind: ImageAssetKind.generatedImage,
-        title: '透明背景单帧',
-        source: '图片编辑',
-        prompt:
-            '背景转透明 · 容差 $tolerance · '
-            '${result.width} x ${result.height}',
+        title: l10n.editorGifTransparentBackgroundTitle,
+        source: l10n.editorGifImageEditorSource,
+        prompt: l10n.editorGifTransparentBackgroundPrompt(
+          tolerance,
+          result.width,
+          result.height,
+        ),
       );
       if (!mounted) {
         return;
@@ -634,20 +602,24 @@ mixin _EditorGifStateMixin
         _imageLibrary = [item, ..._imageLibrary];
       });
       _pushEditorPatchImageHistory(
-        label: '背景转透明单帧',
+        label: l10n.editorGifTransparentBackgroundHistory,
         beforePatchPath: patchPath,
         afterPatchPath: file.path,
         appendedItem: item,
       );
       _showMessage(
-        '已生成透明背景单帧：${fileNameFromPath(file.path)} · '
-        '透明化 ${result.transparentPixelCount} 个像素',
+        l10n.editorGifTransparentBackgroundSavedMessage(
+          fileNameFromPath(file.path),
+          result.transparentPixelCount,
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _editorErrorMessage = '背景转透明失败：$error';
+      _editorErrorMessage = l10n.editorGifTransparentBackgroundFailedMessage(
+        error,
+      );
     } finally {
       if (mounted) {
         _isReplacingEditorFrame = false;
@@ -656,14 +628,15 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _adjustEditorPatchFraming() async {
+    final l10n = appL10nOf(context);
     final sheetPath = _editorImagePath;
     final patchPath = _editorPatchImagePath;
     if (sheetPath == null) {
-      _showMessage('请先选择一张 Sprite Sheet');
+      _showMessage(l10n.editorGifPleaseSelectSpriteSheet);
       return;
     }
     if (patchPath == null) {
-      _showMessage('请先选择一张单帧图片');
+      _showMessage(l10n.editorGifPleaseSelectSingleFrame);
       return;
     }
 
@@ -719,11 +692,12 @@ mixin _EditorGifStateMixin
         store: _store,
         path: file.path,
         kind: ImageAssetKind.generatedImage,
-        title: '取景单帧',
-        source: '图片编辑',
-        prompt:
-            '单帧取景 · ${previewData.frameWidth} x '
-            '${previewData.frameHeight}',
+        title: l10n.editorGifFramedSingleFrameTitle,
+        source: l10n.editorGifImageEditorSource,
+        prompt: l10n.editorGifFramedSingleFramePrompt(
+          previewData.frameWidth,
+          previewData.frameHeight,
+        ),
       );
       if (!mounted) {
         return;
@@ -735,20 +709,23 @@ mixin _EditorGifStateMixin
         _imageLibrary = [item, ..._imageLibrary];
       });
       _pushEditorPatchImageHistory(
-        label: '调整单帧取景',
+        label: l10n.editorGifAdjustFramingHistory,
         beforePatchPath: patchPath,
         afterPatchPath: file.path,
         appendedItem: item,
       );
       _showMessage(
-        '已生成取景单帧：${fileNameFromPath(file.path)} · '
-        '${previewData.frameWidth} x ${previewData.frameHeight}',
+        l10n.editorGifFramedSingleFrameSavedMessage(
+          fileNameFromPath(file.path),
+          previewData.frameWidth,
+          previewData.frameHeight,
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _editorErrorMessage = '调整取景失败：$error';
+      _editorErrorMessage = l10n.editorGifAdjustFramingFailedMessage(error);
     } finally {
       if (mounted) {
         _isReplacingEditorFrame = false;
@@ -757,13 +734,14 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _pickAnimationTemplateImage() async {
+    final l10n = appL10nOf(context);
     final candidates = _availableImageLibraryItems(
       allowedKinds: templateLibraryKinds,
     );
     final source = await _selectImagePickSource(
-      title: '选择模板图片',
+      title: l10n.editorGifSelectTemplateTitle,
       allowLibrary: candidates.isNotEmpty,
-      libraryEmptyMessage: '保存到作品库后的图片会显示在这里',
+      libraryEmptyMessage: l10n.editorGifTemplateLibraryEmpty,
     );
     if (source == null || !mounted) {
       return;
@@ -776,7 +754,7 @@ mixin _EditorGifStateMixin
       imagePath = image?.path;
     } else {
       final item = await _showImageLibraryPicker<ImageLibraryItem>(
-        title: '选择模板图片',
+        title: l10n.editorGifSelectTemplateTitle,
         allowedKinds: templateLibraryKinds,
       );
       if (item == null || !mounted) {
@@ -794,7 +772,10 @@ mixin _EditorGifStateMixin
         );
         _ephemeralTemplatePaths.add(file.path);
         imagePath = file.path;
-        sliceLabel = '${item.displayTitle} · 帧 ${entry.key + 1}';
+        sliceLabel = l10n.editorGifTemplateSliceLabel(
+          item.displayTitle,
+          entry.key + 1,
+        );
       } else {
         imagePath = item.path;
       }
@@ -816,8 +797,10 @@ mixin _EditorGifStateMixin
     }
     _showMessage(
       sliceLabel != null
-          ? '已选择模板切片：$sliceLabel'
-          : '已选择模板图片：${fileNameFromPath(imagePath)}',
+          ? l10n.editorGifSelectedTemplateSliceMessage(sliceLabel)
+          : l10n.editorGifSelectedTemplateImageMessage(
+              fileNameFromPath(imagePath),
+            ),
     );
   }
 
@@ -829,608 +812,67 @@ mixin _EditorGifStateMixin
     }
   }
 
-  Future<void> _pickGifSourceImages() async {
-    final candidates = _availableImageLibraryItems(
-      allowedKinds: gifSourceLibraryKinds,
-    );
-    final source = await _selectImagePickSource(
-      title: '选择 GIF 图片序列',
-      allowLibrary: candidates.isNotEmpty,
-      libraryEmptyMessage: '保存到作品库后的图片会显示在这里',
-    );
-    if (source == null || !mounted) {
-      return;
-    }
-
-    final newFrames = <GifSourceFrame>[];
-    var seed = 0;
-
-    if (source == ImagePickSource.localFile) {
-      final images = await openFiles(acceptedTypeGroups: imageTypeGroups);
-      final paths = [for (final image in images) image.path];
-      newFrames.addAll(
-        buildGifFramesFromPaths(
-          paths,
-          delayMs: _gifDefaultFrameDelayMs,
-          seedStart: seed,
-        ),
-      );
-      seed += paths.length;
-    } else {
-      final items = await _showImageLibraryPicker<List<ImageLibraryItem>>(
-        title: '选择 GIF 图片序列',
-        allowMultiple: true,
-        allowedKinds: gifSourceLibraryKinds,
-      );
-      if (items == null || items.isEmpty || !mounted) {
-        return;
-      }
-      for (final item in items) {
-        if (item.isSpriteSheetWithMetadata) {
-          final picked = await _showSlicePicker(item, allowMultiple: true);
-          if (picked == null || !mounted) {
-            continue;
-          }
-          newFrames.addAll(
-            buildGifFramesFromSlices(
-              sheet: item,
-              slices: picked,
-              delayMs: _gifDefaultFrameDelayMs,
-              seedStart: seed,
-            ),
-          );
-          seed += picked.length;
-        } else {
-          newFrames.add(
-            buildGifFrameFromLibraryItem(
-              item,
-              delayMs: _gifDefaultFrameDelayMs,
-              seed: seed++,
-            ),
-          );
-        }
-      }
-    }
-
-    if (newFrames.isEmpty || !mounted) {
-      return;
-    }
-
-    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
-    setState(() {
-      _gifSourceFrames = newFrames;
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-    });
-    _pushGifFramesHistory(
-      label: '载入 GIF 图片序列',
-      before: before,
-      mergeKey: _gifLoadSourceFramesHistoryKey,
-    );
-  }
-
-  void _clearGifSourceImages() {
-    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
-    if (before.isEmpty) {
-      return;
-    }
-
-    setState(() {
-      _gifSourceFrames = const [];
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-    });
-    _pushGifFramesHistory(
-      label: '清空 GIF 帧',
-      before: before,
-      mergeKey: _gifClearFramesHistoryKey,
-    );
-  }
-
-  void _setGifDefaultFrameDelay(int value) {
-    final before = _captureGifConfig();
-    if (before.defaultFrameDelayMs == value) {
-      return;
-    }
-
-    _gifDefaultFrameDelayMs = value;
-    _pushGifConfigHistory(
-      label: '调整默认帧时长为 $value ms',
-      before: before,
-      mergeKey: _gifDefaultDelayHistoryKey,
-    );
-  }
-
-  void _applyGifFrameDelayToAll() {
-    if (_gifSourceFrames.isEmpty) {
-      return;
-    }
-
-    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
-    setState(() {
-      _gifSourceFrames = [
-        for (final frame in _gifSourceFrames)
-          frame.copyWith(delayMs: _gifDefaultFrameDelayMs),
-      ];
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-    });
-    _pushGifFramesHistory(
-      label: '应用默认帧时长到全部',
-      before: before,
-      mergeKey: _gifApplyDelayToAllHistoryKey,
-    );
-  }
-
-  void _setGifSourceFrameDelay(int index, int delayMs) {
-    if (index < 0 || index >= _gifSourceFrames.length) {
-      return;
-    }
-
-    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
-    if (_gifSourceFrames[index].delayMs == delayMs) {
-      return;
-    }
-
-    final nextFrames = [..._gifSourceFrames];
-    nextFrames[index] = nextFrames[index].copyWith(delayMs: delayMs);
-    setState(() {
-      _gifSourceFrames = nextFrames;
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-    });
-    final frame = before[index];
-    _pushGifFramesHistory(
-      label: '调整${frame.label ?? '第 ${index + 1} 帧'}时长为 $delayMs ms',
-      before: before,
-      mergeKey: 'gif-frame-delay-$index',
-    );
-  }
-
-  void _setGifLoopCount(int value) {
-    final before = _captureGifConfig();
-    if (before.loopCount == value) {
-      return;
-    }
-
-    _gifLoopCount = value;
-    _pushGifConfigHistory(
-      label: value == 0 ? '调整 GIF 为无限循环' : '调整 GIF 循环为 $value 次',
-      before: before,
-      mergeKey: _gifLoopCountHistoryKey,
-    );
-  }
-
-  void _setGifPlaybackMode(GifPlaybackMode value) {
-    final before = _captureGifConfig();
-    if (before.playbackMode == value) {
-      return;
-    }
-
-    _gifPlaybackMode = value;
-    _pushGifConfigHistory(
-      label: '调整播放模式为 ${gifPlaybackModeLabel(value)}',
-      before: before,
-      mergeKey: _gifPlaybackModeHistoryKey,
-    );
-  }
-
-  _GifConfigSnapshot _captureGifConfig() {
-    return _GifConfigSnapshot(
-      defaultFrameDelayMs: _gifDefaultFrameDelayMs,
-      loopCount: _gifLoopCount,
-      playbackMode: _gifPlaybackMode,
-    );
-  }
-
-  void _restoreGifConfig(_GifConfigSnapshot snapshot) {
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _gifDefaultFrameDelayMs = snapshot.defaultFrameDelayMs;
-      _gifLoopCount = snapshot.loopCount;
-      _gifPlaybackMode = snapshot.playbackMode;
-    });
-  }
-
-  void _pushGifConfigHistory({
-    required String label,
-    required _GifConfigSnapshot before,
-    required String mergeKey,
-  }) {
-    final after = _captureGifConfig();
-    if (before == after) {
-      return;
-    }
-
-    final now = DateTime.now();
-    final previousAction = _lastGifConfigHistoryAction;
-    final previousAt = _lastGifConfigHistoryAt;
-    final shouldMerge =
-        previousAction != null &&
-        previousAt != null &&
-        _lastGifConfigHistoryKey == mergeKey &&
-        now.difference(previousAt) <= _gifHistoryMergeWindow;
-
-    if (shouldMerge) {
-      final mergedBefore = _lastGifConfigHistoryBefore ?? before;
-      final replacement = _gifConfigHistoryAction(
-        label: label,
-        before: mergedBefore,
-        after: after,
-      );
-      final replaced = _replaceTopHistory(
-        WorkspaceFeature.gifComposer,
-        current: previousAction,
-        replacement: replacement,
-      );
-      if (replaced) {
-        _rememberGifConfigHistory(
-          action: replacement,
-          mergeKey: mergeKey,
-          before: mergedBefore,
-          now: now,
-        );
-        return;
-      }
-    }
-
-    final action = _gifConfigHistoryAction(
-      label: label,
-      before: before,
-      after: after,
-    );
-    _pushHistory(WorkspaceFeature.gifComposer, action);
-    _rememberGifConfigHistory(
-      action: action,
-      mergeKey: mergeKey,
-      before: before,
-      now: now,
-    );
-  }
-
-  HistoryAction _gifConfigHistoryAction({
-    required String label,
-    required _GifConfigSnapshot before,
-    required _GifConfigSnapshot after,
-  }) {
-    return HistoryAction(
-      label: label,
-      apply: () => _restoreGifConfig(after),
-      revert: () => _restoreGifConfig(before),
-    );
-  }
-
-  void _rememberGifConfigHistory({
-    required HistoryAction action,
-    required String mergeKey,
-    required _GifConfigSnapshot before,
-    required DateTime now,
-  }) {
-    _lastGifConfigHistoryAction = action;
-    _lastGifConfigHistoryKey = mergeKey;
-    _lastGifConfigHistoryBefore = before;
-    _lastGifConfigHistoryAt = now;
-  }
-
-  void _restoreGifFrames(List<GifSourceFrame> frames) {
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _gifSourceFrames = List<GifSourceFrame>.unmodifiable(frames);
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-    });
-  }
-
-  void _pushGifFramesHistory({
-    required String label,
-    required List<GifSourceFrame> before,
-    required String mergeKey,
-  }) {
-    final after = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
-    if (_gifSourceFrameStateEquals(before, after)) {
-      return;
-    }
-
-    final now = DateTime.now();
-    final previousAction = _lastGifFramesHistoryAction;
-    final previousAt = _lastGifFramesHistoryAt;
-    final shouldMerge =
-        previousAction != null &&
-        previousAt != null &&
-        _lastGifFramesHistoryKey == mergeKey &&
-        now.difference(previousAt) <= _gifHistoryMergeWindow;
-
-    if (shouldMerge) {
-      final mergedBefore = _lastGifFramesHistoryBefore ?? before;
-      final replacement = _gifFramesHistoryAction(
-        label: label,
-        before: mergedBefore,
-        after: after,
-      );
-      final replaced = _replaceTopHistory(
-        WorkspaceFeature.gifComposer,
-        current: previousAction,
-        replacement: replacement,
-      );
-      if (replaced) {
-        _rememberGifFramesHistory(
-          action: replacement,
-          mergeKey: mergeKey,
-          before: mergedBefore,
-          now: now,
-        );
-        return;
-      }
-    }
-
-    final action = _gifFramesHistoryAction(
-      label: label,
-      before: before,
-      after: after,
-    );
-    _pushHistory(WorkspaceFeature.gifComposer, action);
-    _rememberGifFramesHistory(
-      action: action,
-      mergeKey: mergeKey,
-      before: before,
-      now: now,
-    );
-  }
-
-  HistoryAction _gifFramesHistoryAction({
-    required String label,
-    required List<GifSourceFrame> before,
-    required List<GifSourceFrame> after,
-  }) {
-    return HistoryAction(
-      label: label,
-      estimatedBytes:
-          _gifFramesEstimatedBytes(before) + _gifFramesEstimatedBytes(after),
-      apply: () => _restoreGifFrames(after),
-      revert: () => _restoreGifFrames(before),
-    );
-  }
-
-  void _rememberGifFramesHistory({
-    required HistoryAction action,
-    required String mergeKey,
-    required List<GifSourceFrame> before,
-    required DateTime now,
-  }) {
-    _lastGifFramesHistoryAction = action;
-    _lastGifFramesHistoryKey = mergeKey;
-    _lastGifFramesHistoryBefore = before;
-    _lastGifFramesHistoryAt = now;
-  }
-
-  int _gifFramesEstimatedBytes(List<GifSourceFrame> frames) {
-    return frames.fold<int>(
-      0,
-      (total, frame) => total + (frame.inlineBytes?.length ?? 0),
-    );
-  }
-
-  bool _gifSourceFrameStateEquals(
-    List<GifSourceFrame> a,
-    List<GifSourceFrame> b,
-  ) {
-    if (identical(a, b)) return true;
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i].id != b[i].id || a[i].delayMs != b[i].delayMs) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   Future<void> _sendPreviewDataToGif(SpriteSheetPreviewData previewData) async {
-    final frames = <GifSourceFrame>[
-      for (var index = 0; index < previewData.frames.length; index++)
-        GifSourceFrame.fromBytes(
-          previewData.frames[index],
-          sourcePath: 'Sprite Sheet 预览',
-          delayMs: _gifDefaultFrameDelayMs,
-          seed: index,
-          label: '第 ${index + 1} 帧',
-        ),
-    ];
-
-    if (frames.length < 2) {
-      _showMessage('至少需要 2 帧才能合成 GIF');
+    final l10n = appL10nOf(context);
+    if (previewData.frames.length < 2) {
+      _showMessage(l10n.editorGifNeedAtLeastTwoFrames);
       return;
     }
-
-    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
-    setState(() {
-      _gifSourceFrames = frames;
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-      _selectedFeature = WorkspaceFeature.gifComposer;
-    });
-    _pushGifFramesHistory(
-      label: '载入切片到 GIF',
-      before: before,
-      mergeKey: _gifLoadPreviewFramesHistoryKey,
-    );
-    _showMessage('已载入 ${frames.length} 帧到 GIF 合成');
-  }
-
-  void _reorderGifSourceImages(int oldIndex, int newIndex) {
-    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
-    final after = List<GifSourceFrame>.unmodifiable(
-      reorderListItems(_gifSourceFrames, oldIndex, newIndex),
-    );
-    if (_gifSourceFrameOrderEquals(before, after)) {
-      return;
-    }
-    setState(() {
-      _gifSourceFrames = after;
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-    });
-    _pushHistory(
-      WorkspaceFeature.gifComposer,
-      HistoryAction(
-        label: '调整 GIF 帧顺序',
-        apply: () {
-          if (!mounted) return;
-          setState(() {
-            _gifSourceFrames = after;
-            _gifOutputPath = null;
-            _gifErrorMessage = null;
-          });
-        },
-        revert: () {
-          if (!mounted) return;
-          setState(() {
-            _gifSourceFrames = before;
-            _gifOutputPath = null;
-            _gifErrorMessage = null;
-          });
-        },
-      ),
-    );
-  }
-
-  void _removeGifSourceImageAt(int index) {
-    if (index < 0 || index >= _gifSourceFrames.length) {
-      return;
-    }
-
-    final before = List<GifSourceFrame>.unmodifiable(_gifSourceFrames);
-    final removedFrame = _gifSourceFrames[index];
-    final after = List<GifSourceFrame>.unmodifiable(
-      [..._gifSourceFrames]..removeAt(index),
-    );
-    setState(() {
-      _gifSourceFrames = after;
-      _gifOutputPath = null;
-      _gifErrorMessage = null;
-    });
-    _pushHistory(
-      WorkspaceFeature.gifComposer,
-      HistoryAction(
-        label: removedFrame.label != null
-            ? '移除「${removedFrame.label}」'
-            : '移除第 ${index + 1} 帧',
-        estimatedBytes: removedFrame.inlineBytes?.length ?? 0,
-        apply: () {
-          if (!mounted) return;
-          setState(() {
-            _gifSourceFrames = after;
-            _gifOutputPath = null;
-            _gifErrorMessage = null;
-          });
-        },
-        revert: () {
-          if (!mounted) return;
-          setState(() {
-            _gifSourceFrames = before;
-            _gifOutputPath = null;
-            _gifErrorMessage = null;
-          });
-        },
-      ),
-    );
-  }
-
-  bool _gifSourceFrameOrderEquals(
-    List<GifSourceFrame> a,
-    List<GifSourceFrame> b,
-  ) {
-    if (identical(a, b)) return true;
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i].id != b[i].id) return false;
-    }
-    return true;
-  }
-
-  Future<void> _composeGif() async {
-    if (_gifSourceFrames.length < 2) {
-      _showMessage('请至少选择 2 张图片');
-      return;
-    }
-
-    final beforeOutputPath = _gifOutputPath;
-    setState(() {
-      _isComposingGif = true;
-      _gifErrorMessage = null;
-      _gifOutputPath = null;
-    });
 
     try {
-      final output = await GifComposer.composeToStore(
-        store: _store,
-        frames: _gifSourceFrames,
-        loopCount: _gifLoopCount,
-        playbackMode: _gifPlaybackMode,
+      final importResult = await const AnimationProjectImporter()
+          .importSpriteSheet(
+            store: _store,
+            sheetBytes: previewData.sheetBytes,
+            title: l10n.editorGifQuickGifProjectTitle,
+            rows: previewData.rows,
+            columns: previewData.columns,
+            defaultDelayMs: _gifDefaultFrameDelayMs,
+            gridSpec: previewData.gridSpec,
+          );
+      final project = importResult.project.copyWith(
+        exportSettings: importResult.project.exportSettings.copyWith(
+          loopCount: _gifLoopCount,
+        ),
+        timeline: importResult.project.timeline.copyWith(
+          playbackMode: _animationPlaybackMode(_gifPlaybackMode),
+        ),
       );
-
+      final output = await const AnimationProjectExportService()
+          .exportProjectGif(store: _store, project: project);
       if (!mounted) {
         return;
       }
-
       final item = await _imageLibraryService.addGif(
         store: _store,
         path: output.path,
-        frameCount: _gifSourceFrames.length,
+        labels: imageLibraryGifLabels(
+          l10n,
+          title: l10n.imageLibrarySpriteSheetGifTitle,
+          source: l10n.editorGifImageEditorSource,
+          frameCount: previewData.frames.length,
+        ),
       );
       if (!mounted) {
         return;
       }
-      setState(() {
-        _gifOutputPath = output.path;
-        _imageLibrary = [item, ..._imageLibrary];
-      });
-      _pushGifCompositionHistory(
-        label: '生成 GIF',
-        beforeOutputPath: beforeOutputPath,
-        afterOutputPath: output.path,
-        appendedItem: item,
+      _imageLibrary = [item, ..._imageLibrary];
+      _pushImageLibraryAppendHistory(
+        feature: _selectedFeature,
+        label: l10n.editorGifExportSpriteSheetGifHistory,
+        appendedItems: [item],
       );
       _showMessage(
-        'GIF 已生成：${fileNameFromPath(output.path)} · 目录：${output.directoryPath}',
+        l10n.editorGifExportGifSavedMessage(
+          fileNameFromPath(output.path),
+          output.directoryPath,
+        ),
       );
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      _gifErrorMessage = 'GIF 生成失败：$error';
-    } finally {
       if (mounted) {
-        _isComposingGif = false;
+        _showMessage(l10n.editorGifExportGifFailedMessage(error));
       }
     }
-  }
-
-  void _pushGifCompositionHistory({
-    required String label,
-    required String? beforeOutputPath,
-    required String afterOutputPath,
-    required ImageLibraryItem appendedItem,
-  }) {
-    _pushImageLibraryAppendHistory(
-      feature: WorkspaceFeature.gifComposer,
-      label: label,
-      appendedItems: [appendedItem],
-      applyState: () {
-        _gifOutputPath = afterOutputPath;
-        _gifErrorMessage = null;
-      },
-      revertState: () {
-        _gifOutputPath = beforeOutputPath;
-        _gifErrorMessage = null;
-      },
-    );
   }
 
   Future<void> _exportSpriteSheet({
@@ -1439,6 +881,7 @@ mixin _EditorGifStateMixin
     required int columns,
     required SpriteSheetGridSpec gridSpec,
   }) async {
+    final l10n = appL10nOf(context);
     final output = await SpriteSheetFileService.exportPng(
       store: _store,
       pngBytes: pngBytes,
@@ -1454,6 +897,13 @@ mixin _EditorGifStateMixin
       path: output.path,
       rows: rows,
       columns: columns,
+      labels: imageLibrarySpriteSheetLabels(
+        l10n,
+        title: l10n.imageLibraryExportedSpriteSheetTitle,
+        source: l10n.imageLibraryExportedSpriteSheetSource,
+        rows: rows,
+        columns: columns,
+      ),
       gridSpec: gridSpec,
     );
     if (!mounted) {
@@ -1462,11 +912,14 @@ mixin _EditorGifStateMixin
     _imageLibrary = [item, ..._imageLibrary];
     _pushImageLibraryAppendHistory(
       feature: _selectedFeature,
-      label: '导出 Sprite Sheet',
+      label: l10n.editorGifExportSpriteSheetHistory,
       appendedItems: [item],
     );
     _showMessage(
-      '已导出 Sprite Sheet：${fileNameFromPath(output.path)} · 目录：${output.directoryPath}',
+      l10n.editorGifExportSpriteSheetSavedMessage(
+        fileNameFromPath(output.path),
+        output.directoryPath,
+      ),
     );
   }
 
@@ -1501,6 +954,7 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _replaceEditorFrame() async {
+    final l10n = appL10nOf(context);
     final sheetPath = _editorImagePath;
     final patchPath = _editorPatchImagePath;
     final rows = _editorRows;
@@ -1511,11 +965,11 @@ mixin _EditorGifStateMixin
         .toInt();
     final frameFit = _editorFrameFit;
     if (sheetPath == null) {
-      _showMessage('请先选择一张 Sprite Sheet');
+      _showMessage(l10n.editorGifPleaseSelectSpriteSheet);
       return;
     }
     if (patchPath == null) {
-      _showMessage('请先选择要插入的单帧图片');
+      _showMessage(l10n.editorGifPleaseSelectPatchForInsert);
       return;
     }
 
@@ -1545,7 +999,7 @@ mixin _EditorGifStateMixin
         context,
         preview: preview,
         columns: columns,
-        fitLabel: spriteSheetFrameFitLabel(frameFit),
+        fitLabel: localizedSpriteSheetFrameFitLabel(l10n, frameFit),
       );
       if (!confirmed || !mounted) {
         return;
@@ -1566,6 +1020,12 @@ mixin _EditorGifStateMixin
         frameIndex: frameIndex,
         rows: rows,
         columns: columns,
+        labels: imageLibraryEditedSpriteSheetLabels(
+          l10n,
+          frameIndex: frameIndex + 1,
+          rows: rows,
+          columns: columns,
+        ),
         gridSpec: gridSpec,
       );
       if (!mounted) {
@@ -1576,20 +1036,24 @@ mixin _EditorGifStateMixin
         _imageLibrary = [item, ..._imageLibrary];
       });
       _pushEditorFrameHistory(
-        label: '替换第 ${frameIndex + 1} 帧',
+        label: l10n.editorGifReplaceFrameHistory(frameIndex + 1),
         beforeSheetPath: sheetPath,
         afterSheetPath: output.path,
         appendedItem: item,
       );
       _showMessage(
-        '已替换第 ${frameIndex + 1} 帧：${fileNameFromPath(output.path)} · 目录：${output.directoryPath}',
+        l10n.editorGifReplaceFrameSavedMessage(
+          frameIndex + 1,
+          fileNameFromPath(output.path),
+          output.directoryPath,
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
 
-      _editorErrorMessage = '单帧替换失败：$error';
+      _editorErrorMessage = l10n.editorGifReplaceFrameFailedMessage(error);
     } finally {
       if (mounted) {
         _isReplacingEditorFrame = false;
@@ -1598,13 +1062,14 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _copyPreviousEditorFrame() async {
+    final l10n = appL10nOf(context);
     final sheetPath = _editorImagePath;
     if (sheetPath == null) {
-      _showMessage('请先选择一张 Sprite Sheet');
+      _showMessage(l10n.editorGifPleaseSelectSpriteSheet);
       return;
     }
     if (_editorTargetFrameIndex <= 0) {
-      _showMessage('第 1 帧没有上一帧可复制');
+      _showMessage(l10n.editorGifFirstFrameNoPrevious);
       return;
     }
 
@@ -1634,6 +1099,12 @@ mixin _EditorGifStateMixin
         frameIndex: _editorTargetFrameIndex,
         rows: _editorRows,
         columns: _editorColumns,
+        labels: imageLibraryEditedSpriteSheetLabels(
+          l10n,
+          frameIndex: _editorTargetFrameIndex + 1,
+          rows: _editorRows,
+          columns: _editorColumns,
+        ),
         gridSpec: _editorGridSpec,
       );
       if (!mounted) {
@@ -1644,17 +1115,21 @@ mixin _EditorGifStateMixin
         _imageLibrary = [item, ..._imageLibrary];
       });
       _pushEditorFrameHistory(
-        label: '复制上一帧到第 ${_editorTargetFrameIndex + 1} 帧',
+        label: l10n.editorGifCopyPreviousFrameHistory(
+          _editorTargetFrameIndex + 1,
+        ),
         beforeSheetPath: sheetPath,
         afterSheetPath: output.path,
         appendedItem: item,
       );
-      _showMessage('已复制上一帧到第 ${_editorTargetFrameIndex + 1} 帧');
+      _showMessage(
+        l10n.editorGifCopyPreviousFrameMessage(_editorTargetFrameIndex + 1),
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _editorErrorMessage = '复制帧失败：$error';
+      _editorErrorMessage = l10n.editorGifCopyFrameFailedMessage(error);
     } finally {
       if (mounted) {
         _isReplacingEditorFrame = false;
@@ -1663,9 +1138,10 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _clearEditorTargetFrame() async {
+    final l10n = appL10nOf(context);
     final sheetPath = _editorImagePath;
     if (sheetPath == null) {
-      _showMessage('请先选择一张 Sprite Sheet');
+      _showMessage(l10n.editorGifPleaseSelectSpriteSheet);
       return;
     }
 
@@ -1694,6 +1170,12 @@ mixin _EditorGifStateMixin
         frameIndex: _editorTargetFrameIndex,
         rows: _editorRows,
         columns: _editorColumns,
+        labels: imageLibraryEditedSpriteSheetLabels(
+          l10n,
+          frameIndex: _editorTargetFrameIndex + 1,
+          rows: _editorRows,
+          columns: _editorColumns,
+        ),
         gridSpec: _editorGridSpec,
       );
       if (!mounted) {
@@ -1704,17 +1186,19 @@ mixin _EditorGifStateMixin
         _imageLibrary = [item, ..._imageLibrary];
       });
       _pushEditorFrameHistory(
-        label: '清空第 ${_editorTargetFrameIndex + 1} 帧',
+        label: l10n.editorGifClearFrameHistory(_editorTargetFrameIndex + 1),
         beforeSheetPath: sheetPath,
         afterSheetPath: output.path,
         appendedItem: item,
       );
-      _showMessage('已清空第 ${_editorTargetFrameIndex + 1} 帧');
+      _showMessage(
+        l10n.editorGifClearFrameMessage(_editorTargetFrameIndex + 1),
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _editorErrorMessage = '清空帧失败：$error';
+      _editorErrorMessage = l10n.editorGifClearFrameFailedMessage(error);
     } finally {
       if (mounted) {
         _isReplacingEditorFrame = false;
@@ -1723,9 +1207,10 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _pixelateEditorTargetFrame(int blockSize) async {
+    final l10n = appL10nOf(context);
     final sheetPath = _editorImagePath;
     if (sheetPath == null) {
-      _showMessage('请先选择一张 Sprite Sheet');
+      _showMessage(l10n.editorGifPleaseSelectSpriteSheet);
       return;
     }
 
@@ -1757,11 +1242,14 @@ mixin _EditorGifStateMixin
         store: _store,
         path: output.path,
         kind: ImageAssetKind.editedImage,
-        title: '像素化 Sprite Sheet',
-        source: '图片编辑',
-        prompt:
-            '像素化第 ${frameIndex + 1} 帧 · 像素块 ${safeBlockSize}px · '
-            '$_editorRows x $_editorColumns',
+        title: l10n.editorGifPixelatedSpriteSheetTitle,
+        source: l10n.editorGifImageEditorSource,
+        prompt: l10n.editorGifPixelatedFramePrompt(
+          frameIndex + 1,
+          safeBlockSize,
+          _editorRows,
+          _editorColumns,
+        ),
         rows: _editorRows,
         columns: _editorColumns,
         gridSpec: _editorGridSpec,
@@ -1775,20 +1263,25 @@ mixin _EditorGifStateMixin
         _imageLibrary = [item, ..._imageLibrary];
       });
       _pushEditorFrameHistory(
-        label: '像素化第 ${frameIndex + 1} 帧',
+        label: l10n.editorGifPixelateFrameHistory(frameIndex + 1),
         beforeSheetPath: sheetPath,
         afterSheetPath: output.path,
         appendedItem: item,
       );
       _showMessage(
-        '已像素化第 ${frameIndex + 1} 帧：${fileNameFromPath(output.path)} · '
-        '像素块 ${safeBlockSize}px',
+        l10n.editorGifPixelateFrameSavedMessage(
+          frameIndex + 1,
+          fileNameFromPath(output.path),
+          safeBlockSize,
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _editorErrorMessage = '像素化当前帧失败：$error';
+      _editorErrorMessage = l10n.editorGifPixelateCurrentFrameFailedMessage(
+        error,
+      );
     } finally {
       if (mounted) {
         _isReplacingEditorFrame = false;
@@ -1797,9 +1290,10 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _pixelateEditorSpriteSheet(int blockSize) async {
+    final l10n = appL10nOf(context);
     final sheetPath = _editorImagePath;
     if (sheetPath == null) {
-      _showMessage('请先选择一张 Sprite Sheet');
+      _showMessage(l10n.editorGifPleaseSelectSpriteSheet);
       return;
     }
 
@@ -1827,11 +1321,13 @@ mixin _EditorGifStateMixin
         store: _store,
         path: output.path,
         kind: ImageAssetKind.editedImage,
-        title: '像素化 Sprite Sheet',
-        source: '图片编辑',
-        prompt:
-            '像素化整张 · 像素块 ${safeBlockSize}px · '
-            '$_editorRows x $_editorColumns',
+        title: l10n.editorGifPixelatedSpriteSheetTitle,
+        source: l10n.editorGifImageEditorSource,
+        prompt: l10n.editorGifPixelatedWholeSheetPrompt(
+          safeBlockSize,
+          _editorRows,
+          _editorColumns,
+        ),
         rows: _editorRows,
         columns: _editorColumns,
         gridSpec: _editorGridSpec,
@@ -1844,20 +1340,24 @@ mixin _EditorGifStateMixin
         _imageLibrary = [item, ..._imageLibrary];
       });
       _pushEditorFrameHistory(
-        label: '像素化整张 Sprite Sheet',
+        label: l10n.editorGifPixelateWholeSheetHistory,
         beforeSheetPath: sheetPath,
         afterSheetPath: output.path,
         appendedItem: item,
       );
       _showMessage(
-        '已像素化整张 Sprite Sheet：${fileNameFromPath(output.path)} · '
-        '像素块 ${safeBlockSize}px',
+        l10n.editorGifPixelateWholeSheetSavedMessage(
+          fileNameFromPath(output.path),
+          safeBlockSize,
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _editorErrorMessage = '像素化整张失败：$error';
+      _editorErrorMessage = l10n.editorGifPixelateWholeSheetFailedMessage(
+        error,
+      );
     } finally {
       if (mounted) {
         _isReplacingEditorFrame = false;
@@ -1866,9 +1366,10 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _pickGeneralEditorImage() async {
+    final l10n = appL10nOf(context);
     final imagePath = await _pickSingleImagePathFromSource(
-      title: '选择要编辑的图片',
-      libraryEmptyMessage: '作品库里保存的图片会显示在这里',
+      title: l10n.editorGifSelectImageToEditTitle,
+      libraryEmptyMessage: l10n.editorGifGeneralImageLibraryEmpty,
       allowedLibraryKinds: templateLibraryKinds,
     );
 
@@ -1876,13 +1377,11 @@ mixin _EditorGifStateMixin
       return;
     }
 
-    await _loadGeneralEditorImage(imagePath, label: '已载入图片');
+    await _loadGeneralEditorImage(imagePath);
   }
 
-  Future<void> _loadGeneralEditorImage(
-    String imagePath, {
-    required String label,
-  }) async {
+  Future<void> _loadGeneralEditorImage(String imagePath) async {
+    final l10n = appL10nOf(context);
     setState(() {
       _isProcessingGeneralImage = true;
       _generalEditorErrorMessage = null;
@@ -1898,12 +1397,14 @@ mixin _EditorGifStateMixin
         _generalEditorImagePath = imagePath;
         _generalEditorImageInfo = info;
       });
-      _showMessage('$label：${fileNameFromPath(imagePath)}');
+      _showMessage(
+        l10n.editorGifGeneralImageLoadedMessage(fileNameFromPath(imagePath)),
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _generalEditorErrorMessage = '图片读取失败：$error';
+      _generalEditorErrorMessage = l10n.editorGifImageReadFailedMessage(error);
     } finally {
       if (mounted) {
         _isProcessingGeneralImage = false;
@@ -1926,10 +1427,11 @@ mixin _EditorGifStateMixin
   }
 
   Future<void> _applyGeneralImageEdit(GeneralImageEditOptions options) async {
+    final l10n = appL10nOf(context);
     final imagePath = _generalEditorImagePath;
     final beforeInfo = _generalEditorImageInfo;
     if (imagePath == null) {
-      _showMessage('请先选择一张图片');
+      _showMessage(l10n.editorGifPleaseSelectImage);
       return;
     }
 
@@ -1943,6 +1445,7 @@ mixin _EditorGifStateMixin
       final result = await GeneralImageEditingService.editInBackground(
         bytes,
         options: options,
+        labels: generalImageEditSummaryLabels(l10n),
       );
       final groupId = 'edited_${DateTime.now().microsecondsSinceEpoch}';
       final file = await _store.saveGeneratedImageBytes(
@@ -1962,8 +1465,8 @@ mixin _EditorGifStateMixin
         store: _store,
         path: file.path,
         kind: ImageAssetKind.editedImage,
-        title: '编辑后的图片',
-        source: '图片编辑',
+        title: l10n.editorGifEditedImageTitle,
+        source: l10n.editorGifImageEditorSource,
         prompt:
             '${result.summary} · ${result.width} x ${result.height} · ${result.mimeType}',
         groupId: groupId,
@@ -1979,7 +1482,7 @@ mixin _EditorGifStateMixin
       });
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.imageEditor,
-        label: '编辑图片',
+        label: l10n.editorGifEditImageHistory,
         appendedItems: [item],
         applyState: () {
           _generalEditorImagePath = file.path;
@@ -1993,13 +1496,16 @@ mixin _EditorGifStateMixin
         },
       );
       _showMessage(
-        '已保存编辑结果：${fileNameFromPath(file.path)} · ${result.summary}',
+        l10n.editorGifEditImageSavedMessage(
+          fileNameFromPath(file.path),
+          result.summary,
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _generalEditorErrorMessage = '图片编辑失败：$error';
+      _generalEditorErrorMessage = l10n.editorGifEditImageFailedMessage(error);
     } finally {
       if (mounted) {
         _isProcessingGeneralImage = false;
@@ -2046,20 +1552,12 @@ mixin _EditorGifStateMixin
       onSendToGif: _sendPreviewDataToGif,
     );
   }
+}
 
-  Widget _buildGifComposerWorkspace() {
-    return GifComposerWorkspace(
-      historyControls: _buildCompactHistoryControls(),
-      onPickImages: _pickGifSourceImages,
-      onClearImages: _clearGifSourceImages,
-      onReorderImages: _reorderGifSourceImages,
-      onRemoveImageAt: _removeGifSourceImageAt,
-      onFrameDelayChanged: _setGifDefaultFrameDelay,
-      onApplyFrameDelayToAll: _applyGifFrameDelayToAll,
-      onFrameDelayForImageChanged: _setGifSourceFrameDelay,
-      onLoopCountChanged: _setGifLoopCount,
-      onPlaybackModeChanged: _setGifPlaybackMode,
-      onCompose: _composeGif,
-    );
-  }
+AnimationPlaybackMode _animationPlaybackMode(GifPlaybackMode mode) {
+  return switch (mode) {
+    GifPlaybackMode.normal => AnimationPlaybackMode.normal,
+    GifPlaybackMode.reverse => AnimationPlaybackMode.reverse,
+    GifPlaybackMode.pingPong => AnimationPlaybackMode.pingPong,
+  };
 }

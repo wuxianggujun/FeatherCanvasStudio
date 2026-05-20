@@ -4,11 +4,12 @@ import 'package:provider/provider.dart';
 import '../../models/image_library_item.dart';
 import '../../models/ui_state.dart';
 import '../../state/image_library_notifier.dart';
+import '../../l10n/app_l10n.dart';
 import '../../theme/layout_constants.dart';
 import '../../utils/image_library_view_data.dart';
 import '../image_library_widgets.dart';
 
-class ImageLibraryWorkspace extends StatelessWidget {
+class ImageLibraryWorkspace extends StatefulWidget {
   const ImageLibraryWorkspace({
     required this.itemExists,
     required this.searchController,
@@ -83,7 +84,15 @@ class ImageLibraryWorkspace extends StatelessWidget {
   final Widget? historyControls;
 
   @override
+  State<ImageLibraryWorkspace> createState() => _ImageLibraryWorkspaceState();
+}
+
+class _ImageLibraryWorkspaceState extends State<ImageLibraryWorkspace> {
+  final _viewDataMemoizer = ImageLibraryViewDataMemoizer();
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(workspacePadding),
@@ -93,17 +102,20 @@ class ImageLibraryWorkspace extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('作品', style: theme.textTheme.headlineMedium),
+                child: Text(
+                  l10n.imageLibraryWorkspaceTitle,
+                  style: theme.textTheme.headlineMedium,
+                ),
               ),
-              if (historyControls != null) ...[
+              if (widget.historyControls != null) ...[
                 const SizedBox(width: fieldGap),
-                historyControls!,
+                widget.historyControls!,
               ],
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '集中保存生成、切片、编辑和合成后的图片，其他功能可以直接复用',
+            l10n.imageLibraryWorkspaceDescription,
             style: theme.textTheme.bodyLarge,
           ),
           const SizedBox(height: sectionGap),
@@ -111,56 +123,59 @@ class ImageLibraryWorkspace extends StatelessWidget {
             child: Selector<ImageLibraryNotifier, List<ImageLibraryItem>>(
               selector: (_, n) => n.items,
               builder: (context, library, _) {
-                final viewData = buildImageLibraryViewData(
+                final viewData = _viewDataMemoizer.build(
                   library: library,
-                  filter: selectedFilter,
-                  sortOrder: sortOrder,
-                  searchQuery: searchQuery,
-                  showStandaloneFrames: showStandaloneFrames,
-                  projectFilter: selectedProject,
-                  tagFilter: selectedTag,
-                  itemExists: itemExists,
+                  filter: widget.selectedFilter,
+                  sortOrder: widget.sortOrder,
+                  searchQuery: widget.searchQuery,
+                  showStandaloneFrames: widget.showStandaloneFrames,
+                  projectFilter: widget.selectedProject,
+                  tagFilter: widget.selectedTag,
+                  itemExists: widget.itemExists,
+                  l10n: l10n,
                 );
                 return ImageLibraryPanel(
                   fillAvailableHeight: true,
                   items: viewData.filteredItems,
                   totalCount: viewData.visibleItems.length,
-                  searchController: searchController,
-                  searchQuery: searchQuery,
-                  onSearchChanged: onSearchChanged,
-                  onClearSearch: onClearSearch,
-                  selectedFilter: selectedFilter,
-                  onFilterChanged: onFilterChanged,
+                  searchController: widget.searchController,
+                  searchQuery: widget.searchQuery,
+                  onSearchChanged: widget.onSearchChanged,
+                  onClearSearch: widget.onClearSearch,
+                  selectedFilter: widget.selectedFilter,
+                  onFilterChanged: widget.onFilterChanged,
                   availableProjects: viewData.availableProjects,
-                  selectedProject: selectedProject,
-                  onProjectChanged: onProjectChanged,
+                  selectedProject: widget.selectedProject,
+                  onProjectChanged: widget.onProjectChanged,
                   availableTags: viewData.availableTags,
-                  selectedTag: selectedTag,
-                  onTagChanged: onTagChanged,
-                  sortOrder: sortOrder,
-                  onSortOrderChanged: onSortOrderChanged,
-                  selectedItemIds: selectedItemIds,
-                  onSelectionChanged: onSelectionChanged,
-                  onSelectVisible: () => onSelectVisible(viewData.filteredItems),
-                  onClearSelection: onClearSelection,
-                  onDeleteSelected: onDeleteSelected,
-                  onExportSelected: onExportSelected,
-                  onOpenAnimationProject: onOpenAnimationProject,
-                  onUseInEditor: onUseInEditor,
-                  onReuseGeneration: onReuseGeneration,
-                  onCopyGeneration: onCopyGeneration,
-                  onMakeBackgroundTransparent: onMakeBackgroundTransparent,
-                  onEditMetadata: onEditMetadata,
-                  onCopyImage: onCopyImage,
-                  onExportImage: onExportImage,
-                  onCopyPath: onCopyPath,
-                  onOpenLocation: onOpenLocation,
-                  onDelete: onDelete,
-                  onOpenSliceExplorer: onOpenSliceExplorer,
+                  selectedTag: widget.selectedTag,
+                  onTagChanged: widget.onTagChanged,
+                  sortOrder: widget.sortOrder,
+                  onSortOrderChanged: widget.onSortOrderChanged,
+                  selectedItemIds: widget.selectedItemIds,
+                  onSelectionChanged: widget.onSelectionChanged,
+                  onSelectVisible: () =>
+                      widget.onSelectVisible(viewData.filteredItems),
+                  onClearSelection: widget.onClearSelection,
+                  onDeleteSelected: widget.onDeleteSelected,
+                  onExportSelected: widget.onExportSelected,
+                  onOpenAnimationProject: widget.onOpenAnimationProject,
+                  onUseInEditor: widget.onUseInEditor,
+                  onReuseGeneration: widget.onReuseGeneration,
+                  onCopyGeneration: widget.onCopyGeneration,
+                  onMakeBackgroundTransparent:
+                      widget.onMakeBackgroundTransparent,
+                  onEditMetadata: widget.onEditMetadata,
+                  onCopyImage: widget.onCopyImage,
+                  onExportImage: widget.onExportImage,
+                  onCopyPath: widget.onCopyPath,
+                  onOpenLocation: widget.onOpenLocation,
+                  onDelete: widget.onDelete,
+                  onOpenSliceExplorer: widget.onOpenSliceExplorer,
                   savedFrameCountFor: viewData.savedFrameCountFor,
-                  showStandaloneFrames: showStandaloneFrames,
+                  showStandaloneFrames: widget.showStandaloneFrames,
                   groupedFrameCount: viewData.groupedFrameCount,
-                  onToggleStandaloneFrames: onToggleStandaloneFrames,
+                  onToggleStandaloneFrames: widget.onToggleStandaloneFrames,
                 );
               },
             ),

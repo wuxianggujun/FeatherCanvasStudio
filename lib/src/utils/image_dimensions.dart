@@ -88,6 +88,74 @@ class ImageDimensions {
   int get hashCode => Object.hash(width, height);
 }
 
+class ImageSizeDisplayLabels {
+  const ImageSizeDisplayLabels();
+
+  String get invalidSizeFallback => '当前图片尺寸无效。';
+  String get invalidDimensions => '请输入有效的宽度和高度。';
+
+  String fixedPresetsOnly(String presetSizes) {
+    return '当前模型只支持固定分辨率：$presetSizes。';
+  }
+
+  String sideTooSmall(int minSide) {
+    return '宽高都不能小于 ${minSide}px。';
+  }
+
+  String sideTooLarge(int maxSide) {
+    return '宽高都不能超过 ${maxSide}px。';
+  }
+
+  String sideStepMismatch(int step) {
+    return '宽高都必须是 ${step}px 的倍数。';
+  }
+
+  String aspectRatioTooLarge(int maxAspectRatio) {
+    return '长边不能超过短边的 $maxAspectRatio 倍。';
+  }
+
+  String totalPixelsTooSmall(int minPixels) {
+    return '总像素不能低于 $minPixels。';
+  }
+
+  String totalPixelsTooLarge(int maxPixels) {
+    return '总像素不能超过 $maxPixels。';
+  }
+
+  String capabilityLabel(ImageSizeMode mode) {
+    return switch (mode) {
+      ImageSizeMode.fixedPresets => '固定分辨率',
+      ImageSizeMode.customPixels => '自定义像素尺寸',
+      ImageSizeMode.aspectRatio => '画幅比例',
+    };
+  }
+
+  String capabilityOverrideLabel(ImageSizeCapabilityOverride override) {
+    return switch (override) {
+      ImageSizeCapabilityOverride.auto => '自动识别',
+      ImageSizeCapabilityOverride.fixedPresets => '固定分辨率',
+      ImageSizeCapabilityOverride.customPixels => '自定义像素尺寸',
+      ImageSizeCapabilityOverride.aspectRatio => 'Gemini 画幅比例',
+    };
+  }
+
+  String capabilityDescription(ImageModelCapabilities capabilities) {
+    final presetSizes = capabilities.presets
+        .map((preset) => preset.size)
+        .join(' / ');
+    return switch (capabilities.sizeMode) {
+      ImageSizeMode.fixedPresets => '仅允许固定档位：$presetSizes。',
+      ImageSizeMode.customPixels =>
+        '允许固定档位或自定义宽高，宽高必须是 '
+            '${capabilities.constraints!.step}px 倍数。',
+      ImageSizeMode.aspectRatio => '按所选尺寸换算为最接近的 Gemini 画幅比例。',
+    };
+  }
+}
+
+const ImageSizeDisplayLabels defaultImageSizeDisplayLabels =
+    ImageSizeDisplayLabels();
+
 const List<ImageSizePreset> imageSizePresets = <ImageSizePreset>[
   ImageSizePreset(label: '1K 方图', dimensions: ImageDimensions(1024, 1024)),
   ImageSizePreset(label: '1.5K 横图', dimensions: ImageDimensions(1536, 1024)),
@@ -148,15 +216,19 @@ String requestSizeForModel({
   required String model,
   ImageSizeCapabilityOverride capabilityOverride =
       ImageSizeCapabilityOverride.auto,
+  ImageSizeDisplayLabels labels = defaultImageSizeDisplayLabels,
 }) {
   final validation = validateImageSizeForModel(
     size: size,
     providerKind: providerKind,
     model: model,
     capabilityOverride: capabilityOverride,
+    labels: labels,
   );
   if (!validation.isValid) {
-    throw ImageGenerationException(validation.message ?? '当前图片尺寸无效。');
+    throw ImageGenerationException(
+      validation.message ?? labels.invalidSizeFallback,
+    );
   }
   return validation.dimensions!.size;
 }
@@ -194,6 +266,7 @@ ImageSizeValidationResult validateImageSizeForModel({
   required String model,
   ImageSizeCapabilityOverride capabilityOverride =
       ImageSizeCapabilityOverride.auto,
+  ImageSizeDisplayLabels labels = defaultImageSizeDisplayLabels,
 }) {
   final capabilities = imageModelCapabilitiesFor(
     providerKind: providerKind,
@@ -202,13 +275,14 @@ ImageSizeValidationResult validateImageSizeForModel({
   );
   final dimensions = tryParseImageDimensions(size);
   if (dimensions == null) {
-    return const ImageSizeValidationResult.invalid('请输入有效的宽度和高度。');
+    return ImageSizeValidationResult.invalid(labels.invalidDimensions);
   }
 
   if (capabilities.allowsCustomPixels) {
     return _validateCustomPixelDimensions(
       dimensions,
       capabilities.constraints!,
+      labels,
     );
   }
 
@@ -217,8 +291,12 @@ ImageSizeValidationResult validateImageSizeForModel({
     presets: capabilities.presets,
   );
   if (preset == null) {
-    final labels = capabilities.presets.map((preset) => preset.size).join('、');
-    return ImageSizeValidationResult.invalid('当前模型只支持固定分辨率：$labels。');
+    final presetSizes = capabilities.presets
+        .map((preset) => preset.size)
+        .join('、');
+    return ImageSizeValidationResult.invalid(
+      labels.fixedPresetsOnly(presetSizes),
+    );
   }
 
   return ImageSizeValidationResult.valid(preset.dimensions);
@@ -279,34 +357,25 @@ ImageModelCapabilities? imageModelCapabilitiesForOverride(
   };
 }
 
-String imageSizeCapabilityLabel(ImageModelCapabilities capabilities) {
-  return switch (capabilities.sizeMode) {
-    ImageSizeMode.fixedPresets => '固定分辨率',
-    ImageSizeMode.customPixels => '自定义像素尺寸',
-    ImageSizeMode.aspectRatio => '画幅比例',
-  };
+String imageSizeCapabilityLabel(
+  ImageModelCapabilities capabilities, {
+  ImageSizeDisplayLabels labels = defaultImageSizeDisplayLabels,
+}) {
+  return labels.capabilityLabel(capabilities.sizeMode);
 }
 
-String imageSizeCapabilityOverrideLabel(ImageSizeCapabilityOverride override) {
-  return switch (override) {
-    ImageSizeCapabilityOverride.auto => '自动识别',
-    ImageSizeCapabilityOverride.fixedPresets => '固定分辨率',
-    ImageSizeCapabilityOverride.customPixels => '自定义像素尺寸',
-    ImageSizeCapabilityOverride.aspectRatio => 'Gemini 画幅比例',
-  };
+String imageSizeCapabilityOverrideLabel(
+  ImageSizeCapabilityOverride override, {
+  ImageSizeDisplayLabels labels = defaultImageSizeDisplayLabels,
+}) {
+  return labels.capabilityOverrideLabel(override);
 }
 
-String imageSizeCapabilityDescription(ImageModelCapabilities capabilities) {
-  final presetSizes = capabilities.presets
-      .map((preset) => preset.size)
-      .join(' / ');
-  return switch (capabilities.sizeMode) {
-    ImageSizeMode.fixedPresets => '仅允许固定档位：$presetSizes。',
-    ImageSizeMode.customPixels =>
-      '允许固定档位或自定义宽高，宽高必须是 '
-          '${capabilities.constraints!.step}px 倍数。',
-    ImageSizeMode.aspectRatio => '按所选尺寸换算为最接近的 Gemini 画幅比例。',
-  };
+String imageSizeCapabilityDescription(
+  ImageModelCapabilities capabilities, {
+  ImageSizeDisplayLabels labels = defaultImageSizeDisplayLabels,
+}) {
+  return labels.capabilityDescription(capabilities);
 }
 
 String normalizeImageModelName(String model) {
@@ -384,6 +453,15 @@ ImageSizePreset nearestImageSizePresetInList({
   return best;
 }
 
+String imageSizePresetScaleLabel(ImageSizePreset preset) {
+  final label = preset.label.trim();
+  final separatorIndex = label.indexOf(' ');
+  if (separatorIndex <= 0) {
+    return label;
+  }
+  return label.substring(0, separatorIndex);
+}
+
 String geminiAspectRatioForDimensions(ImageDimensions dimensions) {
   final ratio = dimensions.width / dimensions.height;
   var best = _geminiAspectRatioOptions.first;
@@ -401,25 +479,26 @@ String geminiAspectRatioForDimensions(ImageDimensions dimensions) {
 ImageSizeValidationResult _validateCustomPixelDimensions(
   ImageDimensions dimensions,
   ImageSizeConstraints constraints,
+  ImageSizeDisplayLabels labels,
 ) {
   if (dimensions.width < constraints.minSide ||
       dimensions.height < constraints.minSide) {
     return ImageSizeValidationResult.invalid(
-      '宽高都不能小于 ${constraints.minSide}px。',
+      labels.sideTooSmall(constraints.minSide),
     );
   }
 
   if (dimensions.width > constraints.maxSide ||
       dimensions.height > constraints.maxSide) {
     return ImageSizeValidationResult.invalid(
-      '宽高都不能超过 ${constraints.maxSide}px。',
+      labels.sideTooLarge(constraints.maxSide),
     );
   }
 
   if (dimensions.width % constraints.step != 0 ||
       dimensions.height % constraints.step != 0) {
     return ImageSizeValidationResult.invalid(
-      '宽高都必须是 ${constraints.step}px 的倍数。',
+      labels.sideStepMismatch(constraints.step),
     );
   }
 
@@ -427,19 +506,19 @@ ImageSizeValidationResult _validateCustomPixelDimensions(
   final shortSide = math.min(dimensions.width, dimensions.height);
   if (longSide > shortSide * constraints.maxAspectRatio) {
     return ImageSizeValidationResult.invalid(
-      '长边不能超过短边的 ${constraints.maxAspectRatio} 倍。',
+      labels.aspectRatioTooLarge(constraints.maxAspectRatio),
     );
   }
 
   final pixels = _openAITotalPixels(dimensions);
   if (pixels < constraints.minPixels) {
     return ImageSizeValidationResult.invalid(
-      '总像素不能低于 ${constraints.minPixels}。',
+      labels.totalPixelsTooSmall(constraints.minPixels),
     );
   }
   if (pixels > constraints.maxPixels) {
     return ImageSizeValidationResult.invalid(
-      '总像素不能超过 ${constraints.maxPixels}。',
+      labels.totalPixelsTooLarge(constraints.maxPixels),
     );
   }
 

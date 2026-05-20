@@ -4,6 +4,8 @@ import '../models/api_provider.dart';
 import '../models/app_preset.dart';
 import '../models/app_config.dart';
 import '../models/image_advanced_settings.dart';
+import '../l10n/app_l10n.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/layout_constants.dart';
 import '../utils/generation_limits.dart';
 import '../widgets/image_advanced_settings_widgets.dart';
@@ -73,43 +75,44 @@ class LocalSettingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return Column(
       children: [
         AppPanel(
-          title: '本地状态',
+          title: l10n.localSettingsStatusSectionTitle,
           child: Column(
             children: [
               _SettingsSummaryRow(
                 icon: Icons.tune_outlined,
-                label: '接口配置',
-                value: '$apiConfigCount 个',
+                label: l10n.localSettingsStatusApiConfigs,
+                value: l10n.countApiConfigs(apiConfigCount),
               ),
               const Divider(height: 20),
               _SettingsSummaryRow(
                 icon: Icons.collections_outlined,
-                label: '作品库记录',
-                value: '$imageLibraryCount 条',
+                label: l10n.localSettingsStatusLibraryItems,
+                value: l10n.countLibraryItems(imageLibraryCount),
               ),
               const Divider(height: 20),
               _SettingsSummaryRow(
                 icon: Icons.preview_outlined,
-                label: '当前预览结果',
-                value: '$generatedPreviewCount 张',
+                label: l10n.localSettingsStatusPreviewImages,
+                value: l10n.countImages(generatedPreviewCount),
               ),
             ],
           ),
         ),
         const SizedBox(height: sectionGap),
         AppPanel(
-          title: '默认生成设置',
+          title: l10n.localSettingsDefaultsSectionTitle,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '这些值会保存在本机，并作为文本生图、动画工程等工作区的默认表单状态。',
+                l10n.localSettingsDefaultsSectionDescription,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -119,9 +122,9 @@ class LocalSettingsPanel extends StatelessWidget {
                 controller: promptController,
                 minLines: 4,
                 maxLines: 8,
-                decoration: const InputDecoration(
-                  labelText: '默认正向提示词',
-                  hintText: '新会话或恢复默认后使用的正向提示词',
+                decoration: InputDecoration(
+                  labelText: l10n.localSettingsDefaultPromptLabel,
+                  hintText: l10n.localSettingsDefaultPromptHint,
                   alignLabelWithHint: true,
                 ),
               ),
@@ -130,9 +133,9 @@ class LocalSettingsPanel extends StatelessWidget {
                 controller: negativePromptController,
                 minLines: 2,
                 maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: '默认负向提示词',
-                  hintText: '可选，会合并到 prompt 中',
+                decoration: InputDecoration(
+                  labelText: l10n.localSettingsDefaultNegativePromptLabel,
+                  hintText: l10n.localSettingsDefaultNegativePromptHint,
                   alignLabelWithHint: true,
                 ),
               ),
@@ -146,12 +149,14 @@ class LocalSettingsPanel extends StatelessWidget {
               ),
               const SizedBox(height: fieldGap),
               IntegerStepperField(
-                label: '默认生成数量',
+                label: l10n.localSettingsDefaultImageCountLabel,
                 value: imageCount,
                 minValue: minImageGenerationCount,
                 maxValue: maxImageGenerationTargetCount,
-                suffixText: '张',
-                helperText: '超过 $maxImageGenerationRequestCount 张会自动拆成多次请求',
+                suffixText: l10n.imageCountSuffix,
+                helperText: l10n.localSettingsDefaultImageCountHelper(
+                  maxImageGenerationRequestCount,
+                ),
                 onChanged: onImageCountChanged,
               ),
               const SizedBox(height: fieldGap),
@@ -166,7 +171,7 @@ class LocalSettingsPanel extends StatelessWidget {
         ),
         const SizedBox(height: sectionGap),
         AppPanel(
-          title: '常用预设',
+          title: l10n.localSettingsPresetSectionTitle,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -178,17 +183,17 @@ class LocalSettingsPanel extends StatelessWidget {
                     onPressed: () =>
                         onSavePreset(AppPresetKind.localGeneration),
                     icon: const Icon(Icons.save_outlined),
-                    label: const Text('保存文本预设'),
+                    label: Text(l10n.localSettingsSaveTextPreset),
                   ),
                   OutlinedButton.icon(
                     onPressed: () => onSavePreset(AppPresetKind.spriteSheet),
                     icon: const Icon(Icons.video_library_outlined),
-                    label: const Text('保存动画工程预设'),
+                    label: Text(l10n.localSettingsSaveAnimationPreset),
                   ),
                   OutlinedButton.icon(
                     onPressed: () => onSavePreset(AppPresetKind.gif),
                     icon: const Icon(Icons.gif_box_outlined),
-                    label: const Text('保存 GIF 预设'),
+                    label: Text(l10n.localSettingsSaveGifPreset),
                   ),
                 ],
               ),
@@ -197,6 +202,7 @@ class LocalSettingsPanel extends StatelessWidget {
                 for (final preset in presets)
                   _PresetRow(
                     preset: preset,
+                    l10n: l10n,
                     onApply: () => onApplyPreset(preset),
                     onDelete: () => onDeletePreset(preset),
                   ),
@@ -206,12 +212,12 @@ class LocalSettingsPanel extends StatelessWidget {
         ),
         const SizedBox(height: sectionGap),
         AppPanel(
-          title: '作品库迁移',
+          title: l10n.localSettingsLibraryMigrationSectionTitle,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '把作品库元数据和本地图片打包为 ZIP，或从 ZIP 导入到当前作品库。',
+                l10n.localSettingsLibraryMigrationSectionDescription,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -221,23 +227,49 @@ class LocalSettingsPanel extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: isExportingLibrary || imageLibraryCount == 0
-                        ? null
-                        : onExportLibrary,
-                    icon: ButtonProgressIcon(
-                      isBusy: isExportingLibrary,
-                      icon: Icons.archive_outlined,
+                  _DisabledActionSemantics(
+                    label: isExportingLibrary
+                        ? l10n.localSettingsExportingLibrary
+                        : l10n.localSettingsExportLibrary,
+                    disabledReason: isExportingLibrary
+                        ? l10n.localSettingsLibraryExportBusyUnavailable
+                        : imageLibraryCount == 0
+                        ? l10n.localSettingsLibraryExportEmptyUnavailable
+                        : null,
+                    child: OutlinedButton.icon(
+                      onPressed: isExportingLibrary || imageLibraryCount == 0
+                          ? null
+                          : onExportLibrary,
+                      icon: ButtonProgressIcon(
+                        isBusy: isExportingLibrary,
+                        icon: Icons.archive_outlined,
+                      ),
+                      label: Text(
+                        isExportingLibrary
+                            ? l10n.localSettingsExportingLibrary
+                            : l10n.localSettingsExportLibrary,
+                      ),
                     ),
-                    label: Text(isExportingLibrary ? '导出中' : '导出作品库'),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: isImportingLibrary ? null : onImportLibrary,
-                    icon: ButtonProgressIcon(
-                      isBusy: isImportingLibrary,
-                      icon: Icons.unarchive_outlined,
+                  _DisabledActionSemantics(
+                    label: isImportingLibrary
+                        ? l10n.localSettingsImportingLibrary
+                        : l10n.localSettingsImportLibrary,
+                    disabledReason: isImportingLibrary
+                        ? l10n.localSettingsLibraryImportBusyUnavailable
+                        : null,
+                    child: OutlinedButton.icon(
+                      onPressed: isImportingLibrary ? null : onImportLibrary,
+                      icon: ButtonProgressIcon(
+                        isBusy: isImportingLibrary,
+                        icon: Icons.unarchive_outlined,
+                      ),
+                      label: Text(
+                        isImportingLibrary
+                            ? l10n.localSettingsImportingLibrary
+                            : l10n.localSettingsImportLibrary,
+                      ),
                     ),
-                    label: Text(isImportingLibrary ? '导入中' : '导入作品库'),
                   ),
                 ],
               ),
@@ -246,12 +278,12 @@ class LocalSettingsPanel extends StatelessWidget {
         ),
         const SizedBox(height: sectionGap),
         AppPanel(
-          title: '配置入口',
+          title: l10n.localSettingsConfigEntrySectionTitle,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '接口地址、密钥和模型列表统一在接口配置页维护。',
+                l10n.localSettingsConfigEntrySectionDescription,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -262,7 +294,7 @@ class LocalSettingsPanel extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onOpenApiSettings,
                   icon: const Icon(Icons.tune_outlined),
-                  label: const Text('打开接口配置'),
+                  label: Text(l10n.localSettingsOpenApiSettings),
                 ),
               ),
             ],
@@ -270,12 +302,12 @@ class LocalSettingsPanel extends StatelessWidget {
         ),
         const SizedBox(height: sectionGap),
         AppPanel(
-          title: '存储清理',
+          title: l10n.localSettingsStorageCleanupSectionTitle,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '清理作品库不再引用的生成文件，以及临时参考图缓存。不会删除作品库仍在使用的文件。',
+                l10n.localSettingsStorageCleanupSectionDescription,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -283,13 +315,25 @@ class LocalSettingsPanel extends StatelessWidget {
               const SizedBox(height: fieldGap),
               Align(
                 alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  onPressed: isCleaningStorage ? null : onCleanupStorage,
-                  icon: ButtonProgressIcon(
-                    isBusy: isCleaningStorage,
-                    icon: Icons.cleaning_services_outlined,
+                child: _DisabledActionSemantics(
+                  label: isCleaningStorage
+                      ? l10n.localSettingsCleaningStorage
+                      : l10n.localSettingsCleanUnusedFiles,
+                  disabledReason: isCleaningStorage
+                      ? l10n.localSettingsStorageCleanupBusyUnavailable
+                      : null,
+                  child: OutlinedButton.icon(
+                    onPressed: isCleaningStorage ? null : onCleanupStorage,
+                    icon: ButtonProgressIcon(
+                      isBusy: isCleaningStorage,
+                      icon: Icons.cleaning_services_outlined,
+                    ),
+                    label: Text(
+                      isCleaningStorage
+                          ? l10n.localSettingsCleaningStorage
+                          : l10n.localSettingsCleanUnusedFiles,
+                    ),
                   ),
-                  label: Text(isCleaningStorage ? '清理中' : '清理未引用文件'),
                 ),
               ),
             ],
@@ -297,12 +341,12 @@ class LocalSettingsPanel extends StatelessWidget {
         ),
         const SizedBox(height: sectionGap),
         AppPanel(
-          title: '恢复默认',
+          title: l10n.localSettingsResetSectionTitle,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '仅在需要重新开始配置时使用。恢复前会再次确认。',
+                l10n.localSettingsResetSectionDescription,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -313,13 +357,42 @@ class LocalSettingsPanel extends StatelessWidget {
                 child: FilledButton.tonalIcon(
                   onPressed: onResetToDefaults,
                   icon: const Icon(Icons.restore_outlined),
-                  label: const Text('恢复默认表单'),
+                  label: Text(l10n.localSettingsResetForm),
                 ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DisabledActionSemantics extends StatelessWidget {
+  const _DisabledActionSemantics({
+    required this.label,
+    required this.disabledReason,
+    required this.child,
+  });
+
+  final String label;
+  final String? disabledReason;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (disabledReason == null) {
+      return child;
+    }
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: label,
+      value: disabledReason,
+      button: true,
+      enabled: false,
+      child: child,
     );
   }
 }
@@ -359,11 +432,13 @@ class _SettingsSummaryRow extends StatelessWidget {
 class _PresetRow extends StatelessWidget {
   const _PresetRow({
     required this.preset,
+    required this.l10n,
     required this.onApply,
     required this.onDelete,
   });
 
   final AppPreset preset;
+  final AppLocalizations l10n;
   final VoidCallback onApply;
   final VoidCallback onDelete;
 
@@ -397,7 +472,7 @@ class _PresetRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _presetSummary(preset),
+                    _presetSummary(l10n, preset),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall,
@@ -405,11 +480,26 @@ class _PresetRow extends StatelessWidget {
                 ],
               ),
             ),
-            TextButton(onPressed: onApply, child: const Text('应用')),
-            IconButton(
-              tooltip: '删除预设',
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline),
+            Semantics(
+              container: true,
+              label: l10n.applyPresetAction(preset.name),
+              button: true,
+              enabled: true,
+              child: TextButton(
+                onPressed: onApply,
+                child: Text(l10n.applyPreset),
+              ),
+            ),
+            Semantics(
+              container: true,
+              label: l10n.deletePresetAction(preset.name),
+              button: true,
+              enabled: true,
+              child: IconButton(
+                tooltip: l10n.deletePresetTooltip,
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline),
+              ),
             ),
           ],
         ),
@@ -426,18 +516,24 @@ IconData _presetIcon(AppPresetKind kind) {
   };
 }
 
-String _presetSummary(AppPreset preset) {
+String _presetSummary(AppLocalizations l10n, AppPreset preset) {
   return switch (preset.kind) {
-    AppPresetKind.localGeneration => '${preset.size} · ${preset.imageCount} 张',
-    AppPresetKind.spriteSheet =>
-      '${preset.size} · ${preset.rows} x ${preset.columns}',
-    AppPresetKind.gif => _gifPresetSummary(preset),
+    AppPresetKind.localGeneration => l10n.localGenerationPresetSummary(
+      preset.size,
+      preset.imageCount,
+    ),
+    AppPresetKind.spriteSheet => l10n.spriteSheetPresetSummary(
+      preset.size,
+      preset.rows,
+      preset.columns,
+    ),
+    AppPresetKind.gif => _gifPresetSummary(l10n, preset),
   };
 }
 
-String _gifPresetSummary(AppPreset preset) {
+String _gifPresetSummary(AppLocalizations l10n, AppPreset preset) {
   final loopLabel = preset.gifLoopCount == 0
-      ? '无限循环'
-      : '播放 ${preset.gifLoopCount} 次';
-  return '${preset.gifDelayMs} ms · $loopLabel';
+      ? l10n.gifLoopInfinite
+      : l10n.gifLoopCount(preset.gifLoopCount);
+  return l10n.gifPresetSummary(preset.gifDelayMs, loopLabel);
 }

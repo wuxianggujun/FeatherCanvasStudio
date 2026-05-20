@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' show Tristate;
 
 import 'package:feather_canvas_studio/src/models/animation_project.dart';
 import 'package:feather_canvas_studio/src/models/app_config.dart';
@@ -10,8 +11,13 @@ import 'package:feather_canvas_studio/src/widgets/workspaces/animation_project_w
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image_lib;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('animation project workspace exposes track and frame workflow', (
     tester,
   ) async {
@@ -49,6 +55,7 @@ void main() {
     final project = _projectWithTwoTracks(firstFramePath, secondFramePath);
 
     var imageSequenceImports = 0;
+    var librarySequenceImports = 0;
     var addedTracks = 0;
     var exportedSheets = 0;
     var exportedGifs = 0;
@@ -68,6 +75,14 @@ void main() {
     int? changedProjectLoopCount;
     bool? requestedProjectHiddenTracks;
     FrameTransform? changedTransform;
+    int? replacedFrameIndex;
+    int? clearedFrameIndex;
+    int? pixelatedFrameIndex;
+    int? pixelatedBlockSize;
+    String? blankInsertedTrackId;
+    int? blankInsertIndex;
+    String? imageInsertedTrackId;
+    int? imageInsertIndex;
     final promptController = TextEditingController(text: 'walk cycle');
     final negativePromptController = TextEditingController(text: 'blur');
     final userController = TextEditingController();
@@ -111,6 +126,7 @@ void main() {
             onGenerate: () {},
             onImportGeneratedSheet: () {},
             onImportImageSequence: () => imageSequenceImports++,
+            onImportLibraryImageSequence: () => librarySequenceImports++,
             onClearProject: () {},
             onTrackSelected: (_) {},
             onTrackAdded: () => addedTracks++,
@@ -138,10 +154,24 @@ void main() {
             onFrameMoved: (_, _, _) {},
             onFrameDuplicated: (_, frameIndex) =>
                 duplicatedFrameIndex = frameIndex,
+            onBlankFrameInserted: (trackId, insertIndex) {
+              blankInsertedTrackId = trackId;
+              blankInsertIndex = insertIndex;
+            },
+            onImageFrameInserted: (trackId, insertIndex) {
+              imageInsertedTrackId = trackId;
+              imageInsertIndex = insertIndex;
+            },
             onFrameDeleted: (_, frameIndex) => deletedFrameIndex = frameIndex,
             onFrameDelayChanged: (_, _, delayMs) => changedFrameDelay = delayMs,
             onFrameTransformChanged: (_, _, transform) =>
                 changedTransform = transform,
+            onFrameReplaced: (_, frameIndex) => replacedFrameIndex = frameIndex,
+            onFrameCleared: (_, frameIndex) => clearedFrameIndex = frameIndex,
+            onFramePixelated: (_, frameIndex, blockSize) {
+              pixelatedFrameIndex = frameIndex;
+              pixelatedBlockSize = blockSize;
+            },
             onFrameAssetRebound: (_) {},
             onProjectAutoRepaired: () {},
             onExportProjectSpriteSheet: () => exportedSheets++,
@@ -150,9 +180,6 @@ void main() {
             onExportTrackGif: () => exportedGifs++,
             onExportTrackPngSequence: () => exportedSequences++,
             onExportSourceSpriteSheet: (_) {},
-            onExportRenderedSpriteSheet: (_) {},
-            onSendRenderedToGif: (_) {},
-            onOpenRenderedInEditor: (_) {},
           ),
         ),
       ),
@@ -162,12 +189,21 @@ void main() {
     expect(find.text('动画工程'), findsWidgets);
     expect(find.text('工程控制'), findsOneWidget);
     expect(find.text('工程设置'), findsOneWidget);
-    expect(find.text('序列帧生成配置'), findsOneWidget);
+    expect(find.text('轨道时间轴'), findsOneWidget);
     expect(find.text('序列帧时间轴'), findsOneWidget);
     expect(find.text('单帧变换'), findsOneWidget);
     expect(find.text('Main'), findsOneWidget);
+    expect(find.bySemanticsLabel('Main'), findsOneWidget);
+    expect(find.bySemanticsLabel('当前帧 1 · 100ms'), findsOneWidget);
+    await _pumpAsyncRender(tester);
+    expect(
+      find.bySemanticsLabel('动画工程预览 · 合成帧 1 / 2 · 100 ms'),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.widgetWithText(OutlinedButton, '导入图片序列'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '导入本地图片序列'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(OutlinedButton, '从作品库导入序列'));
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, '新建轨道'));
     await tester.pump();
@@ -183,6 +219,7 @@ void main() {
     await tester.pump();
 
     expect(imageSequenceImports, 1);
+    expect(librarySequenceImports, 1);
     expect(addedTracks, 1);
     expect(exportedSheets, 1);
     expect(exportedProjectGifs, 1);
@@ -194,7 +231,15 @@ void main() {
     await tester.pump();
     await tester.enterText(_textFieldWithLabel('GIF 循环次数'), '2');
     await tester.pump();
-    await tester.tap(find.text('导出包含隐藏轨道'));
+    final includeHiddenTracksSwitch = find.byWidgetPredicate(
+      (widget) =>
+          widget is SwitchListTile &&
+          widget.title is Text &&
+          (widget.title as Text).data == '导出包含隐藏轨道',
+    );
+    await tester.ensureVisible(includeHiddenTracksSwitch);
+    await tester.pump();
+    await tester.tap(includeHiddenTracksSwitch);
     await tester.pump();
 
     expect(changedProjectDelay, 180);
@@ -231,17 +276,55 @@ void main() {
     await tester.pump();
     await tester.tap(find.byTooltip('水平翻转'));
     await tester.pump();
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '替换帧'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '替换帧'));
+    await tester.pump();
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '插入空白帧'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '插入空白帧'));
+    await tester.pump();
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '插入图片帧'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '插入图片帧'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '清空帧'));
+    await tester.pump();
+    final pixelateMenu = tester.widget<PopupMenuButton<int>>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is PopupMenuButton<int> && widget.tooltip == '像素化当前帧',
+      ),
+    );
+    final pixelateSemantics = tester.getSemantics(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == '像素化当前帧',
+      ),
+    );
+    expect(pixelateSemantics.flagsCollection.isButton, isTrue);
+    expect(pixelateSemantics.flagsCollection.isEnabled, Tristate.isTrue);
+
+    pixelateMenu.onSelected?.call(8);
+    await tester.pump();
 
     expect(changedFrameDelay, 160);
     expect(duplicatedFrameIndex, 0);
     expect(deletedFrameIndex, 0);
     expect(changedTransform?.flipX, isTrue);
+    expect(replacedFrameIndex, 0);
+    expect(blankInsertedTrackId, 'track-main');
+    expect(blankInsertIndex, 1);
+    expect(imageInsertedTrackId, 'track-main');
+    expect(imageInsertIndex, 1);
+    expect(clearedFrameIndex, 0);
+    expect(pixelatedFrameIndex, 0);
+    expect(pixelatedBlockSize, 8);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
 
-  testWidgets('source preview exports generated sprite sheet before import', (
+  testWidgets('creation view exports generated sprite sheet before import', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1200, 900);
@@ -270,9 +353,10 @@ void main() {
     );
     await _pumpBounded(tester);
 
-    expect(find.text('Sprite Sheet 来源预览'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, '导出 PNG'));
-    await tester.pump();
+    expect(find.text('创建动画工程'), findsOneWidget);
+    expect(find.text('Sprite Sheet 来源预览'), findsNothing);
+    await tester.tap(find.widgetWithText(OutlinedButton, '导出来源 Sprite Sheet'));
+    await _pumpBounded(tester);
 
     expect(exportedBytes, isNotNull);
     expect(exportedBytes, equals(_spriteSheetPng()));
@@ -372,6 +456,79 @@ void main() {
 
     expect(find.text('渲染失败'), findsOneWidget);
     expect(find.textContaining('动画帧文件不存在'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('busy animation project actions expose disabled reasons', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final tempDir = (await tester.runAsync(
+      () => Directory.systemTemp.createTemp(
+        'animation_project_workspace_busy_test_',
+      ),
+    ))!;
+    addTearDown(() async {
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    final firstFramePath = (await tester.runAsync(
+      () => _writePng(tempDir, 'first.png', image_lib.ColorRgb8(255, 0, 0)),
+    ))!;
+    final secondFramePath = (await tester.runAsync(
+      () => _writePng(tempDir, 'second.png', image_lib.ColorRgb8(0, 255, 0)),
+    ))!;
+    final project = _projectWithTwoTracks(firstFramePath, secondFramePath);
+    final promptController = TextEditingController(text: 'walk cycle');
+    final negativePromptController = TextEditingController();
+    final userController = TextEditingController();
+    addTearDown(promptController.dispose);
+    addTearDown(negativePromptController.dispose);
+    addTearDown(userController.dispose);
+
+    await tester.pumpWidget(
+      _workspaceApp(
+        project: project,
+        selectedTrackId: 'track-main',
+        promptController: promptController,
+        negativePromptController: negativePromptController,
+        userController: userController,
+        isProjectBusy: true,
+      ),
+    );
+    await _pumpBounded(tester);
+
+    final exportSemantics = tester.getSemantics(
+      find
+          .byWidgetPredicate(
+            (widget) =>
+                widget is Semantics && widget.properties.label == '导出工程 GIF',
+          )
+          .first,
+    );
+    expect(exportSemantics.value, '当前工程正在处理任务，完成后可继续操作');
+    expect(exportSemantics.flagsCollection.isButton, isTrue);
+    expect(exportSemantics.flagsCollection.isEnabled, Tristate.isFalse);
+
+    final importSemantics = tester.getSemantics(
+      find
+          .byWidgetPredicate(
+            (widget) =>
+                widget is Semantics && widget.properties.label == '从作品库导入序列',
+          )
+          .first,
+    );
+    expect(importSemantics.value, '当前工程正在处理任务，完成后可继续操作');
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -533,9 +690,16 @@ Widget _workspaceApp({
   required TextEditingController negativePromptController,
   required TextEditingController userController,
   ValueChanged<String>? onFrameAssetRebound,
+  void Function(String trackId, int frameIndex)? onFrameReplaced,
+  void Function(String trackId, int insertIndex)? onBlankFrameInserted,
+  void Function(String trackId, int insertIndex)? onImageFrameInserted,
+  void Function(String trackId, int frameIndex)? onFrameCleared,
+  void Function(String trackId, int frameIndex, int blockSize)?
+  onFramePixelated,
   VoidCallback? onProjectAutoRepaired,
   List<GeneratedImage> generatedImages = const [],
   ValueChanged<Uint8List>? onExportSourceSpriteSheet,
+  bool isProjectBusy = false,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -557,7 +721,7 @@ Widget _workspaceApp({
         generatedImages: generatedImages,
         project: project,
         selectedTrackId: selectedTrackId,
-        isProjectBusy: false,
+        isProjectBusy: isProjectBusy,
         projectErrorMessage: null,
         enablePreviewPlayback: false,
         onApiConfigChanged: (_) {},
@@ -572,6 +736,7 @@ Widget _workspaceApp({
         onGenerate: () {},
         onImportGeneratedSheet: () {},
         onImportImageSequence: () {},
+        onImportLibraryImageSequence: () {},
         onClearProject: () {},
         onTrackSelected: (_) {},
         onTrackAdded: () {},
@@ -589,9 +754,14 @@ Widget _workspaceApp({
         onTrackLockChanged: (_, _) {},
         onFrameMoved: (_, _, _) {},
         onFrameDuplicated: (_, _) {},
+        onBlankFrameInserted: onBlankFrameInserted ?? (_, _) {},
+        onImageFrameInserted: onImageFrameInserted ?? (_, _) {},
         onFrameDeleted: (_, _) {},
         onFrameDelayChanged: (_, _, _) {},
         onFrameTransformChanged: (_, _, _) {},
+        onFrameReplaced: onFrameReplaced ?? (_, _) {},
+        onFrameCleared: onFrameCleared ?? (_, _) {},
+        onFramePixelated: onFramePixelated ?? (_, _, _) {},
         onFrameAssetRebound: onFrameAssetRebound ?? (_) {},
         onProjectAutoRepaired: onProjectAutoRepaired ?? () {},
         onExportProjectSpriteSheet: () {},
@@ -600,9 +770,6 @@ Widget _workspaceApp({
         onExportTrackGif: () {},
         onExportTrackPngSequence: () {},
         onExportSourceSpriteSheet: onExportSourceSpriteSheet ?? (_) {},
-        onExportRenderedSpriteSheet: (_) {},
-        onSendRenderedToGif: (_) {},
-        onOpenRenderedInEditor: (_) {},
       ),
     ),
   );

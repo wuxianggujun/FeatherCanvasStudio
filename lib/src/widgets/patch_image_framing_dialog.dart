@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/app_l10n.dart';
 import '../services/patch_image_framing_service.dart';
 
 Future<PatchImageFraming?> showPatchImageFramingDialog(
@@ -112,95 +113,103 @@ class _PatchImageFramingDialogState extends State<_PatchImageFramingDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
 
-    return AlertDialog(
-      title: const Text('调整单帧取景'),
-      content: SizedBox(
-        width: 760,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.sourceTitle != null) ...[
-              Text(
-                widget.sourceTitle!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium,
+    return FocusTraversalGroup(
+      policy: ReadingOrderTraversalPolicy(),
+      child: AlertDialog(
+        title: Text(l10n.patchImageFramingTitle),
+        content: SizedBox(
+          width: 760,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.sourceTitle != null) ...[
+                Text(
+                  widget.sourceTitle!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 8),
+              ],
+              _PatchImageViewport(
+                imageBytes: widget.imageBytes,
+                source: widget.source,
+                targetWidth: widget.targetWidth,
+                targetHeight: widget.targetHeight,
+                framing: _framing,
+                onChanged: _setFraming,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Slider(
+                      value: _framing.scale.clamp(_minScale, _maxScale),
+                      min: _minScale,
+                      max: _maxScale,
+                      label: '${(_framing.scale * 100).round()}%',
+                      semanticFormatterCallback: (value) =>
+                          l10n.patchImageFramingScaleSemanticLabel(
+                            (value * 100).round(),
+                          ),
+                      onChanged: _setScale,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 68,
+                    child: Text(
+                      '${(_framing.scale * 100).round()}%',
+                      textAlign: TextAlign.end,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _fitContain,
+                    icon: const Icon(Icons.fit_screen_outlined),
+                    label: Text(l10n.patchImageFramingContain),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _fitCover,
+                    icon: const Icon(Icons.crop_free_outlined),
+                    label: Text(l10n.patchImageFramingCover),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _centerImage,
+                    icon: const Icon(Icons.center_focus_strong_outlined),
+                    label: Text(l10n.patchImageFramingCenter),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _resetToOriginalSize,
+                    icon: const Icon(Icons.one_x_mobiledata_outlined),
+                    label: const Text('100%'),
+                  ),
+                ],
+              ),
             ],
-            _PatchImageViewport(
-              imageBytes: widget.imageBytes,
-              source: widget.source,
-              targetWidth: widget.targetWidth,
-              targetHeight: widget.targetHeight,
-              framing: _framing,
-              onChanged: _setFraming,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: _framing.scale.clamp(_minScale, _maxScale),
-                    min: _minScale,
-                    max: _maxScale,
-                    label: '${(_framing.scale * 100).round()}%',
-                    onChanged: _setScale,
-                  ),
-                ),
-                SizedBox(
-                  width: 68,
-                  child: Text(
-                    '${(_framing.scale * 100).round()}%',
-                    textAlign: TextAlign.end,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _fitContain,
-                  icon: const Icon(Icons.fit_screen_outlined),
-                  label: const Text('完整显示'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _fitCover,
-                  icon: const Icon(Icons.crop_free_outlined),
-                  label: const Text('填满格子'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _centerImage,
-                  icon: const Icon(Icons.center_focus_strong_outlined),
-                  label: const Text('居中'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _resetToOriginalSize,
-                  icon: const Icon(Icons.one_x_mobiledata_outlined),
-                  label: const Text('100%'),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.cancelAction),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(_framing),
+            icon: const Icon(Icons.check_outlined),
+            label: Text(l10n.patchImageFramingGenerate),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton.icon(
-          onPressed: () => Navigator.of(context).pop(_framing),
-          icon: const Icon(Icons.check_outlined),
-          label: const Text('生成取景单帧'),
-        ),
-      ],
     );
   }
 }
@@ -224,6 +233,7 @@ class _PatchImageViewport extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final aspectRatio = targetWidth / targetHeight;
 
@@ -243,69 +253,85 @@ class _PatchImageViewport extends StatelessWidget {
         final imageTop =
             (viewportHeight - imageHeight) / 2 + framing.offsetY * displayScale;
 
+        final semanticLabel = l10n.patchImageFramingViewportSemanticLabel(
+          targetWidth,
+          targetHeight,
+          (framing.scale * 100).round(),
+          framing.offsetX.round(),
+          framing.offsetY.round(),
+        );
+
         return Center(
-          child: Listener(
-            onPointerSignal: (event) {
-              if (event is! PointerScrollEvent) {
-                return;
-              }
-              final factor = event.scrollDelta.dy < 0 ? 1.08 : 0.92;
-              onChanged(framing.copyWith(scale: framing.scale * factor));
-            },
-            child: GestureDetector(
-              onPanUpdate: (details) {
-                onChanged(
-                  framing.copyWith(
-                    offsetX: framing.offsetX + details.delta.dx / displayScale,
-                    offsetY: framing.offsetY + details.delta.dy / displayScale,
-                  ),
-                );
+          child: Semantics(
+            container: true,
+            image: true,
+            label: semanticLabel,
+            child: Listener(
+              onPointerSignal: (event) {
+                if (event is! PointerScrollEvent) {
+                  return;
+                }
+                final factor = event.scrollDelta.dy < 0 ? 1.08 : 0.92;
+                onChanged(framing.copyWith(scale: framing.scale * factor));
               },
-              child: ClipRect(
-                child: Container(
-                  width: viewportWidth,
-                  height: viewportHeight,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.colorScheme.primary),
-                  ),
-                  child: Stack(
-                    clipBehavior: Clip.hardEdge,
-                    children: [
-                      const Positioned.fill(child: _Checkerboard()),
-                      Positioned(
-                        left: imageLeft,
-                        top: imageTop,
-                        width: imageWidth,
-                        height: imageHeight,
-                        child: Image.memory(
-                          imageBytes,
-                          fit: BoxFit.fill,
-                          filterQuality: FilterQuality.medium,
-                        ),
-                      ),
-                      Positioned(
-                        left: 8,
-                        bottom: 8,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface.withValues(
-                              alpha: 0.9,
-                            ),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            child: Text(
-                              '$targetWidth x $targetHeight',
-                              style: theme.textTheme.labelSmall,
-                            ),
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  onChanged(
+                    framing.copyWith(
+                      offsetX:
+                          framing.offsetX + details.delta.dx / displayScale,
+                      offsetY:
+                          framing.offsetY + details.delta.dy / displayScale,
+                    ),
+                  );
+                },
+                child: ClipRect(
+                  child: Container(
+                    width: viewportWidth,
+                    height: viewportHeight,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.colorScheme.primary),
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.hardEdge,
+                      children: [
+                        const Positioned.fill(child: _Checkerboard()),
+                        Positioned(
+                          left: imageLeft,
+                          top: imageTop,
+                          width: imageWidth,
+                          height: imageHeight,
+                          child: Image.memory(
+                            imageBytes,
+                            fit: BoxFit.fill,
+                            filterQuality: FilterQuality.medium,
+                            semanticLabel: semanticLabel,
                           ),
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          left: 8,
+                          bottom: 8,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface.withValues(
+                                alpha: 0.9,
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              child: Text(
+                                '$targetWidth x $targetHeight',
+                                style: theme.textTheme.labelSmall,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

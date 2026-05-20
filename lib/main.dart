@@ -8,12 +8,14 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'src/l10n/app_l10n.dart';
 import 'src/l10n/generated/app_localizations.dart';
+import 'src/l10n/library_label_builders.dart';
 import 'src/state/batch_generation_notifier.dart';
-import 'src/state/gif_composer_notifier.dart';
 import 'src/state/image_editor_notifier.dart';
 import 'src/state/image_generation_notifier.dart';
 import 'src/state/image_library_notifier.dart';
+import 'src/state/sprite_sheet_import_notifier.dart';
 import 'src/theme/app_theme.dart';
 import 'src/theme/layout_constants.dart';
 
@@ -32,6 +34,7 @@ import 'src/models/image_library_item.dart';
 import 'src/models/image_advanced_settings.dart';
 import 'src/models/sprite_sheet_frame_fit.dart';
 import 'src/models/sprite_sheet_grid_spec.dart';
+import 'src/models/sprite_sheet_import_config.dart';
 import 'src/models/workspace_feature.dart';
 import 'src/models/ui_state.dart';
 import 'src/services/api_config_service.dart';
@@ -61,7 +64,7 @@ import 'src/utils/image_library_deletion.dart';
 import 'src/utils/image_library_generation_reuse.dart';
 import 'src/utils/image_selection_logic.dart';
 import 'src/utils/image_dimensions.dart';
-import 'src/utils/list_reorder.dart';
+import 'src/utils/localized_display_labels.dart';
 import 'src/widgets/app_dialogs.dart';
 import 'src/widgets/background_transparency_dialog.dart';
 import 'src/widgets/layout_navigation_widgets.dart';
@@ -202,6 +205,9 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   final AnimationProjectExportService _animationProjectExportService =
       const AnimationProjectExportService();
   @override
+  final AnimationProjectFrameEditor _animationProjectFrameEditor =
+      const AnimationProjectFrameEditor();
+  @override
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -214,15 +220,27 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
 
   @override
   WorkspaceFeature _selectedFeature = WorkspaceFeature.imageGeneration;
+  final SpriteSheetImportNotifier _spriteSheetImportNotifier =
+      SpriteSheetImportNotifier();
   @override
-  int _animationRows = defaultAnimationRows;
+  SpriteSheetImportConfig get _spriteSheetImportConfig =>
+      _spriteSheetImportNotifier.config;
   @override
-  int _animationColumns = defaultAnimationColumns;
+  set _spriteSheetImportConfig(SpriteSheetImportConfig value) =>
+      _spriteSheetImportNotifier.config = value;
   @override
-  SpriteSheetGridSpec _animationGridSpec = const SpriteSheetGridSpec(
-    rows: defaultAnimationRows,
-    columns: defaultAnimationColumns,
-  );
+  int get _animationRows => _spriteSheetImportConfig.rows;
+  set _animationRows(int value) =>
+      _spriteSheetImportConfig = _spriteSheetImportConfig.withRows(value);
+  @override
+  int get _animationColumns => _spriteSheetImportConfig.columns;
+  set _animationColumns(int value) =>
+      _spriteSheetImportConfig = _spriteSheetImportConfig.withColumns(value);
+  @override
+  SpriteSheetGridSpec get _animationGridSpec =>
+      _spriteSheetImportConfig.gridSpec;
+  set _animationGridSpec(SpriteSheetGridSpec value) =>
+      _spriteSheetImportConfig = _spriteSheetImportConfig.withGridSpec(value);
   @override
   // ignore: unused_element
   bool get _isGenerating => _imageGenerationNotifier.isGenerating;
@@ -299,16 +317,13 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   }
 
   @override
-  final GifComposerNotifier _gifComposerNotifier = GifComposerNotifier();
-
-  @override
   final ImageEditorNotifier _imageEditorNotifier = ImageEditorNotifier();
 
   @override
   final ImageLibraryNotifier _imageLibraryNotifier = ImageLibraryNotifier();
 
   @override
-  int get _animationFrameCount => _animationRows * _animationColumns;
+  int get _animationFrameCount => _spriteSheetImportConfig.frameCount;
   @override
   int get _editorFrameCount => _editorRows * _editorColumns;
 
@@ -334,7 +349,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
     _animationPromptController.dispose();
     _imageGenerationNotifier.dispose();
     _batchGenerationNotifier.dispose();
-    _gifComposerNotifier.dispose();
+    _spriteSheetImportNotifier.dispose();
     _imageEditorNotifier.dispose();
     _imageLibraryNotifier.dispose();
     for (final path in _ephemeralTemplatePaths) {

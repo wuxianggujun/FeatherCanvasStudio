@@ -193,6 +193,95 @@ class GeneralImageEditResult {
   }
 }
 
+class GeneralImageEditSummaryLabels {
+  const GeneralImageEditSummaryLabels({
+    required this.crop,
+    required this.rotatePattern,
+    required this.flipHorizontal,
+    required this.flipVertical,
+    required this.resizePattern,
+    required this.annotationPattern,
+    required this.jpegQualityPattern,
+    required this.saveCopy,
+    required this.partSeparator,
+    required this.localRegion,
+    required this.transparentBackground,
+    required this.colorAdjustment,
+    required this.blurPattern,
+    required this.sharpenPattern,
+    required this.pixelationPattern,
+    required this.effectOriginal,
+    required this.effectGrayscale,
+    required this.effectSepia,
+    required this.effectInvert,
+  });
+
+  final String crop;
+  final String rotatePattern;
+  final String flipHorizontal;
+  final String flipVertical;
+  final String resizePattern;
+  final String annotationPattern;
+  final String jpegQualityPattern;
+  final String saveCopy;
+  final String partSeparator;
+  final String localRegion;
+  final String transparentBackground;
+  final String colorAdjustment;
+  final String blurPattern;
+  final String sharpenPattern;
+  final String pixelationPattern;
+  final String effectOriginal;
+  final String effectGrayscale;
+  final String effectSepia;
+  final String effectInvert;
+
+  String rotate(int degrees) {
+    return _format(rotatePattern, {'degrees': '$degrees'});
+  }
+
+  String resize(int width, int height) {
+    return _format(resizePattern, {'width': '$width', 'height': '$height'});
+  }
+
+  String annotation(int count) {
+    return _format(annotationPattern, {'count': '$count'});
+  }
+
+  String jpegQuality(int quality) {
+    return _format(jpegQualityPattern, {'quality': '$quality'});
+  }
+
+  String blur(int radius) {
+    return _format(blurPattern, {'radius': '$radius'});
+  }
+
+  String sharpen(int amount) {
+    return _format(sharpenPattern, {'amount': '$amount'});
+  }
+
+  String pixelation(int blockSize) {
+    return _format(pixelationPattern, {'blockSize': '$blockSize'});
+  }
+
+  String effect(ImageEditColorEffect effect) {
+    return switch (effect) {
+      ImageEditColorEffect.none => effectOriginal,
+      ImageEditColorEffect.grayscale => effectGrayscale,
+      ImageEditColorEffect.sepia => effectSepia,
+      ImageEditColorEffect.invert => effectInvert,
+    };
+  }
+}
+
+String _format(String pattern, Map<String, String> values) {
+  var result = pattern;
+  for (final entry in values.entries) {
+    result = result.replaceAll('%${entry.key}%', entry.value);
+  }
+  return result;
+}
+
 class GeneralImageEditingService {
   const GeneralImageEditingService._();
 
@@ -226,6 +315,7 @@ class GeneralImageEditingService {
   static GeneralImageEditResult edit(
     Uint8List imageBytes, {
     required GeneralImageEditOptions options,
+    required GeneralImageEditSummaryLabels labels,
   }) {
     final decoded = image_lib.decodeImage(imageBytes);
     if (decoded == null) {
@@ -240,22 +330,22 @@ class GeneralImageEditingService {
 
     if (!options.crop.isEmpty) {
       image = _cropByMargins(image, options.crop);
-      summary.add('裁剪');
+      summary.add(labels.crop);
     }
 
     final quarterTurns = _normalizeQuarterTurns(options.quarterTurns);
     if (quarterTurns != 0) {
       image = _rotateQuarterTurns(image, quarterTurns);
-      summary.add('旋转 ${quarterTurns * 90}°');
+      summary.add(labels.rotate(quarterTurns * 90));
     }
 
     if (options.flipHorizontal) {
       image = _flipHorizontal(image);
-      summary.add('水平翻转');
+      summary.add(labels.flipHorizontal);
     }
     if (options.flipVertical) {
       image = _flipVertical(image);
-      summary.add('垂直翻转');
+      summary.add(labels.flipVertical);
     }
 
     final resize = _resolveResize(image, options.resize);
@@ -266,29 +356,33 @@ class GeneralImageEditingService {
         height: resize.height,
         interpolation: image_lib.Interpolation.average,
       );
-      summary.add('缩放 ${image.width} x ${image.height}');
+      summary.add(labels.resize(image.width, image.height));
     }
 
-    image = _applyEffects(image, options, summary);
+    image = _applyEffects(image, options, labels, summary);
 
     final annotationCount = options.annotations
         .where((annotation) => annotation.hasVisibleContent)
         .length;
     if (annotationCount > 0) {
       _applyAnnotations(image, options.annotations);
-      summary.add('标注 $annotationCount 个');
+      summary.add(labels.annotation(annotationCount));
     }
 
     final encoded = _encodeOutput(image, options);
     if (options.outputFormat == GeneralImageOutputFormat.jpeg) {
-      summary.add('JPEG ${options.jpegQuality.clamp(1, 100)}质量');
+      summary.add(
+        labels.jpegQuality(options.jpegQuality.clamp(1, 100).toInt()),
+      );
     }
 
     return GeneralImageEditResult(
       bytes: encoded,
       width: image.width,
       height: image.height,
-      summary: summary.isEmpty ? '保存副本' : summary.join(' · '),
+      summary: summary.isEmpty
+          ? labels.saveCopy
+          : summary.join(labels.partSeparator),
       outputFormat: options.outputFormat,
     );
   }
@@ -296,10 +390,11 @@ class GeneralImageEditingService {
   static Future<GeneralImageEditResult> editInBackground(
     Uint8List imageBytes, {
     required GeneralImageEditOptions options,
+    required GeneralImageEditSummaryLabels labels,
   }) {
     return compute(
       _editInIsolate,
-      _GeneralImageEditTask(imageBytes, options),
+      _GeneralImageEditTask(imageBytes, options, labels),
       debugLabel: 'general-image-edit',
     );
   }
@@ -421,19 +516,25 @@ class GeneralImageEditingService {
   static image_lib.Image _applyEffects(
     image_lib.Image source,
     GeneralImageEditOptions options,
+    GeneralImageEditSummaryLabels labels,
     List<String> summary,
   ) {
     final region = _resolveEffectRegion(source, options.effectRegion);
     if (region == null) {
-      return _applyEffectsToImage(source, options, summary);
+      return _applyEffectsToImage(source, options, labels, summary);
     }
 
     final regionImage = _copyRegion(source, region);
     final summaryLength = summary.length;
-    final editedRegion = _applyEffectsToImage(regionImage, options, summary);
+    final editedRegion = _applyEffectsToImage(
+      regionImage,
+      options,
+      labels,
+      summary,
+    );
     _pasteRegion(source, editedRegion, region);
     if (summary.length > summaryLength) {
-      summary.add('局部选区');
+      summary.add(labels.localRegion);
     }
     return source;
   }
@@ -441,6 +542,7 @@ class GeneralImageEditingService {
   static image_lib.Image _applyEffectsToImage(
     image_lib.Image image,
     GeneralImageEditOptions options,
+    GeneralImageEditSummaryLabels labels,
     List<String> summary,
   ) {
     final tolerance = options.backgroundTransparencyTolerance;
@@ -450,7 +552,7 @@ class GeneralImageEditingService {
         tolerance: tolerance,
       );
       image = image_lib.decodeImage(result.pngBytes)!.convert(numChannels: 4);
-      summary.add('边缘背景转透明');
+      summary.add(labels.transparentBackground);
     }
 
     if (!options.adjustments.isEmpty ||
@@ -461,23 +563,23 @@ class GeneralImageEditingService {
         effect: options.effect,
       );
       if (!options.adjustments.isEmpty) {
-        summary.add('色彩调整');
+        summary.add(labels.colorAdjustment);
       }
       if (options.effect != ImageEditColorEffect.none) {
-        summary.add(_effectLabel(options.effect));
+        summary.add(labels.effect(options.effect));
       }
     }
 
     final blurRadius = options.blurRadius.clamp(0, 20).toInt();
     if (blurRadius > 0) {
       image = image_lib.gaussianBlur(image, radius: blurRadius);
-      summary.add('模糊 ${blurRadius}px');
+      summary.add(labels.blur(blurRadius));
     }
 
     final sharpenAmount = options.sharpenAmount.clamp(0, 100).toInt();
     if (sharpenAmount > 0) {
       image = _applyUnsharpMask(image, sharpenAmount);
-      summary.add('锐化 $sharpenAmount%');
+      summary.add(labels.sharpen(sharpenAmount));
     }
 
     if (options.pixelationBlockSize > 0) {
@@ -488,7 +590,7 @@ class GeneralImageEditingService {
         image,
         blockSize: blockSize,
       );
-      summary.add('像素化 ${blockSize}px');
+      summary.add(labels.pixelation(blockSize));
     }
 
     return image;
@@ -949,21 +1051,13 @@ class GeneralImageEditingService {
   static int _channel(double value) {
     return value.round().clamp(0, 255).toInt();
   }
-
-  static String _effectLabel(ImageEditColorEffect effect) {
-    return switch (effect) {
-      ImageEditColorEffect.none => '原色',
-      ImageEditColorEffect.grayscale => '灰度',
-      ImageEditColorEffect.sepia => '复古',
-      ImageEditColorEffect.invert => '反相',
-    };
-  }
 }
 
 GeneralImageEditResult _editInIsolate(_GeneralImageEditTask task) {
   return GeneralImageEditingService.edit(
     task.imageBytes,
     options: task.options,
+    labels: task.labels,
   );
 }
 
@@ -972,10 +1066,11 @@ ImageInspectionResult _inspectInIsolate(Uint8List imageBytes) {
 }
 
 class _GeneralImageEditTask {
-  const _GeneralImageEditTask(this.imageBytes, this.options);
+  const _GeneralImageEditTask(this.imageBytes, this.options, this.labels);
 
   final Uint8List imageBytes;
   final GeneralImageEditOptions options;
+  final GeneralImageEditSummaryLabels labels;
 }
 
 class _ResolvedResize {

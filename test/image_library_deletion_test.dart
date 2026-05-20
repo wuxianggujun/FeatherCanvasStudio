@@ -51,7 +51,7 @@ void main() {
     expect(impact.remainingItems, [second]);
   });
 
-  test('reference cleanup removes deleted paths from editor and gif state', () {
+  test('reference cleanup removes deleted paths from editor state', () {
     final cleanup = cleanDeletedImageLibraryReferences(
       removedIds: {'deleted-id'},
       removedPaths: {'/tmp/deleted.png', '/tmp/template.png'},
@@ -59,17 +59,12 @@ void main() {
       editorImagePath: '/tmp/deleted.png',
       editorPatchImagePath: '/tmp/patch.png',
       animationTemplateImagePath: '/tmp/template.png',
-      gifSourceFrames: const [
-        GifSourceFrame(id: 'a', path: '/tmp/deleted.png', delayMs: 120),
-        GifSourceFrame(id: 'b', path: '/tmp/kept.png', delayMs: 120),
-      ],
     );
 
     expect(cleanup.selectedItemIds, {'kept-id'});
     expect(cleanup.editorImagePath, isNull);
     expect(cleanup.editorPatchImagePath, '/tmp/patch.png');
     expect(cleanup.animationTemplateImagePath, isNull);
-    expect(cleanup.gifSourceFrames.map((frame) => frame.id), ['b']);
   });
 
   test('generation snapshot summary includes reusable request details', () {

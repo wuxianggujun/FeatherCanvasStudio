@@ -1,9 +1,10 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
 
+import '../../l10n/app_l10n.dart';
 import '../../theme/layout_constants.dart';
 import '../common_form_widgets.dart';
 import '../layout_navigation_widgets.dart';
@@ -65,23 +66,30 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   final List<List<int>> _redoStack = <List<int>>[];
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
+  final FocusNode _canvasFocusNode = FocusNode(debugLabel: 'pixel_art_canvas');
   bool _isSaving = false;
   bool _isDrawingStroke = false;
+  int _keyboardCursorX = 0;
+  int _keyboardCursorY = 0;
 
   @override
   void dispose() {
     _horizontalScrollController.dispose();
     _verticalScrollController.dispose();
+    _canvasFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final onFocusModeChanged = widget.onFocusModeChanged;
     final focusButton = onFocusModeChanged == null
         ? null
         : IconButton.filledTonal(
-            tooltip: widget.isFocusMode ? '退出全屏编辑' : '进入全屏编辑',
+            tooltip: widget.isFocusMode
+                ? l10n.pixelArtExitFocusTooltip
+                : l10n.pixelArtEnterFocusTooltip,
             onPressed: () => onFocusModeChanged(!widget.isFocusMode),
             icon: Icon(
               widget.isFocusMode
@@ -95,8 +103,8 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
     ];
 
     return WorkspacePage(
-      title: '像素画编辑',
-      description: '逐格绘制像素画，支持画笔、橡皮、取色和保存到作品库',
+      title: l10n.navPixelArtEditor,
+      description: l10n.pixelArtWorkspaceDescription,
       compactHeader: widget.isFocusMode,
       trailing: trailingChildren.isEmpty
           ? null
@@ -121,22 +129,25 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
 
   Widget _buildControls(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = appL10nOf(context);
     final hasPendingSize =
         _draftCanvasWidth != _canvasWidth ||
         _draftCanvasHeight != _canvasHeight;
+    final canUndo = _undoStack.isNotEmpty;
+    final canRedo = _redoStack.isNotEmpty;
 
     return AppPanel(
-      title: '像素画工具',
+      title: l10n.pixelArtToolsTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('画布尺寸', style: theme.textTheme.titleSmall),
+          Text(l10n.pixelArtCanvasSizeTitle, style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
           ResponsivePair(
             first: KeyedSubtree(
               key: const ValueKey('pixel-art-width-control'),
               child: IntegerStepperField(
-                label: '画布宽度',
+                label: l10n.pixelArtCanvasWidthLabel,
                 value: _draftCanvasWidth,
                 minValue: _minCanvasDimension,
                 maxValue: _maxCanvasDimension,
@@ -150,12 +161,12 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
             second: KeyedSubtree(
               key: const ValueKey('pixel-art-height-control'),
               child: IntegerStepperField(
-                label: '画布高度',
+                label: l10n.pixelArtCanvasHeightLabel,
                 value: _draftCanvasHeight,
                 minValue: _minCanvasDimension,
                 maxValue: _maxCanvasDimension,
                 suffixText: 'px',
-                helperText: '修改后应用',
+                helperText: l10n.pixelArtApplyAfterChangeHelper,
                 onChanged: (value) => setState(() {
                   _draftCanvasHeight = value;
                 }),
@@ -181,26 +192,26 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
             child: OutlinedButton.icon(
               onPressed: hasPendingSize ? _applyDraftCanvasSize : null,
               icon: const Icon(Icons.check_outlined),
-              label: const Text('应用画布尺寸'),
+              label: Text(l10n.pixelArtApplyCanvasSize),
             ),
           ),
           const SizedBox(height: fieldGap),
           SegmentedButton<PixelArtTool>(
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: PixelArtTool.brush,
-                icon: Icon(Icons.brush_outlined),
-                label: Text('画笔'),
+                icon: const Icon(Icons.brush_outlined),
+                label: Text(l10n.pixelArtBrushTool),
               ),
               ButtonSegment(
                 value: PixelArtTool.eraser,
-                icon: Icon(Icons.cleaning_services_outlined),
-                label: Text('橡皮'),
+                icon: const Icon(Icons.cleaning_services_outlined),
+                label: Text(l10n.pixelArtEraserTool),
               ),
               ButtonSegment(
                 value: PixelArtTool.eyedropper,
-                icon: Icon(Icons.colorize_outlined),
-                label: Text('取色'),
+                icon: const Icon(Icons.colorize_outlined),
+                label: Text(l10n.pixelArtEyedropperTool),
               ),
             ],
             selected: {_tool},
@@ -210,16 +221,16 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
           ),
           const SizedBox(height: fieldGap),
           IntegerStepperField(
-            label: '画笔大小',
+            label: l10n.pixelArtBrushSizeLabel,
             value: _brushSize,
             minValue: 1,
             maxValue: 8,
-            suffixText: '格',
-            helperText: '按方形笔刷覆盖像素格',
+            suffixText: l10n.pixelArtCellSuffix,
+            helperText: l10n.pixelArtBrushSizeHelper,
             onChanged: (value) => setState(() => _brushSize = value),
           ),
           const SizedBox(height: fieldGap),
-          Text('颜色', style: theme.textTheme.titleSmall),
+          Text(l10n.pixelArtColorTitle, style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -237,7 +248,7 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
             ],
           ),
           const SizedBox(height: fieldGap),
-          Text('缩放', style: theme.textTheme.titleSmall),
+          Text(l10n.pixelArtZoomTitle, style: theme.textTheme.titleSmall),
           Slider(
             value: _cellSize,
             min: 8,
@@ -248,15 +259,29 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
           ),
           const SizedBox(height: fieldGap),
           ResponsivePair(
-            first: OutlinedButton.icon(
-              onPressed: _undoStack.isEmpty ? null : _undo,
-              icon: const Icon(Icons.undo_outlined),
-              label: const Text('撤销'),
+            first: Semantics(
+              container: true,
+              label: l10n.historyUndo,
+              value: canUndo ? null : l10n.historyUndoUnavailable,
+              button: true,
+              enabled: canUndo,
+              child: OutlinedButton.icon(
+                onPressed: canUndo ? _undo : null,
+                icon: const Icon(Icons.undo_outlined),
+                label: Text(l10n.historyUndo),
+              ),
             ),
-            second: OutlinedButton.icon(
-              onPressed: _redoStack.isEmpty ? null : _redo,
-              icon: const Icon(Icons.redo_outlined),
-              label: const Text('重做'),
+            second: Semantics(
+              container: true,
+              label: l10n.historyRedo,
+              value: canRedo ? null : l10n.historyRedoUnavailable,
+              button: true,
+              enabled: canRedo,
+              child: OutlinedButton.icon(
+                onPressed: canRedo ? _redo : null,
+                icon: const Icon(Icons.redo_outlined),
+                label: Text(l10n.historyRedo),
+              ),
             ),
           ),
           const SizedBox(height: fieldGap),
@@ -264,20 +289,20 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
             first: OutlinedButton.icon(
               onPressed: _newCanvas,
               icon: const Icon(Icons.note_add_outlined),
-              label: const Text('新建空白'),
+              label: Text(l10n.pixelArtNewBlankCanvas),
             ),
             second: OutlinedButton.icon(
               onPressed: _clearCanvas,
               icon: const Icon(Icons.backspace_outlined),
-              label: const Text('清空'),
+              label: Text(l10n.pixelArtClearCanvas),
             ),
           ),
           const SizedBox(height: fieldGap),
           PrimaryActionButton(
             onPressed: _isSaving ? null : () => _saveToLibrary(),
             icon: Icons.collections_bookmark_outlined,
-            label: '保存到作品库',
-            busyLabel: '保存中',
+            label: l10n.pixelArtSaveToLibrary,
+            busyLabel: l10n.pixelArtSaving,
             isBusy: _isSaving,
           ),
         ],
@@ -295,7 +320,7 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
         : math.max(640.0, viewportHeight - 360);
 
     return AppPanel(
-      title: '像素画画布',
+      title: appL10nOf(context).pixelArtCanvasTitle,
       trailing: Text(
         '$_canvasWidth x $_canvasHeight',
         style: theme.textTheme.labelLarge,
@@ -322,37 +347,60 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
                   scrollDirection: Axis.horizontal,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: SizedBox(
-                      width: canvasWidth,
-                      height: canvasHeight,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onPanStart: (details) {
-                          _isDrawingStroke = false;
-                          _paintAt(details.localPosition);
-                        },
-                        onPanUpdate: (details) =>
-                            _paintAt(details.localPosition),
-                        onPanEnd: (_) => _isDrawingStroke = false,
-                        onTapDown: (details) {
-                          _isDrawingStroke = false;
-                          _paintAt(details.localPosition);
-                          _isDrawingStroke = false;
-                        },
-                        child: CustomPaint(
-                          key: const ValueKey('pixel-art-canvas'),
-                          painter: _PixelArtPainter(
-                            pixels: _pixels,
-                            canvasWidth: _canvasWidth,
-                            canvasHeight: _canvasHeight,
-                            cellSize: _cellSize,
-                            gridColor: theme.colorScheme.outlineVariant,
-                            checkerLightColor: theme.brightness == Brightness.dark
-                                ? const Color(0xFF2A2D35)
-                                : const Color(0xFFFFFFFF),
-                            checkerDarkColor: theme.brightness == Brightness.dark
-                                ? const Color(0xFF1F222A)
-                                : const Color(0xFFE5E7EB),
+                    child: Semantics(
+                      label: appL10nOf(context).pixelArtCanvasSemanticLabel(
+                        _canvasWidth,
+                        _canvasHeight,
+                        _keyboardCursorX + 1,
+                        _keyboardCursorY + 1,
+                      ),
+                      image: true,
+                      button: true,
+                      onTap: _paintAtKeyboardCursor,
+                      child: Focus(
+                        focusNode: _canvasFocusNode,
+                        onKeyEvent: _handleCanvasKeyEvent,
+                        child: SizedBox(
+                          width: canvasWidth,
+                          height: canvasHeight,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onPanStart: (details) {
+                              _canvasFocusNode.requestFocus();
+                              _isDrawingStroke = false;
+                              _paintAt(details.localPosition);
+                            },
+                            onPanUpdate: (details) =>
+                                _paintAt(details.localPosition),
+                            onPanEnd: (_) => _isDrawingStroke = false,
+                            onTapDown: (details) {
+                              _canvasFocusNode.requestFocus();
+                              _isDrawingStroke = false;
+                              _moveKeyboardCursorTo(details.localPosition);
+                              _paintAt(details.localPosition);
+                              _isDrawingStroke = false;
+                            },
+                            child: CustomPaint(
+                              key: const ValueKey('pixel-art-canvas'),
+                              painter: _PixelArtPainter(
+                                pixels: _pixels,
+                                canvasWidth: _canvasWidth,
+                                canvasHeight: _canvasHeight,
+                                cellSize: _cellSize,
+                                gridColor: theme.colorScheme.outlineVariant,
+                                checkerLightColor:
+                                    theme.brightness == Brightness.dark
+                                    ? const Color(0xFF2A2D35)
+                                    : const Color(0xFFFFFFFF),
+                                checkerDarkColor:
+                                    theme.brightness == Brightness.dark
+                                    ? const Color(0xFF1F222A)
+                                    : const Color(0xFFE5E7EB),
+                                cursorX: _keyboardCursorX,
+                                cursorY: _keyboardCursorY,
+                                cursorColor: theme.colorScheme.primary,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -397,7 +445,72 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
       _draftCanvasWidth = nextWidth;
       _draftCanvasHeight = nextHeight;
       _pixels = nextPixels;
+      _keyboardCursorX = _keyboardCursorX.clamp(0, nextWidth - 1);
+      _keyboardCursorY = _keyboardCursorY.clamp(0, nextHeight - 1);
     });
+  }
+
+  KeyEventResult _handleCanvasKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowLeft) {
+      _moveKeyboardCursorBy(dx: -1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowRight) {
+      _moveKeyboardCursorBy(dx: 1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      _moveKeyboardCursorBy(dy: -1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowDown) {
+      _moveKeyboardCursorBy(dy: 1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
+      _paintAtKeyboardCursor();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _moveKeyboardCursorBy({int dx = 0, int dy = 0}) {
+    final nextX = (_keyboardCursorX + dx).clamp(0, _canvasWidth - 1);
+    final nextY = (_keyboardCursorY + dy).clamp(0, _canvasHeight - 1);
+    if (nextX == _keyboardCursorX && nextY == _keyboardCursorY) {
+      return;
+    }
+    setState(() {
+      _keyboardCursorX = nextX;
+      _keyboardCursorY = nextY;
+    });
+  }
+
+  void _moveKeyboardCursorTo(Offset position) {
+    final nextX = (position.dx / _cellSize).floor().clamp(0, _canvasWidth - 1);
+    final nextY = (position.dy / _cellSize).floor().clamp(0, _canvasHeight - 1);
+    if (nextX == _keyboardCursorX && nextY == _keyboardCursorY) {
+      return;
+    }
+    setState(() {
+      _keyboardCursorX = nextX;
+      _keyboardCursorY = nextY;
+    });
+  }
+
+  void _paintAtKeyboardCursor() {
+    _isDrawingStroke = false;
+    _paintAt(
+      Offset(
+        (_keyboardCursorX + 0.5) * _cellSize,
+        (_keyboardCursorY + 0.5) * _cellSize,
+      ),
+    );
+    _isDrawingStroke = false;
   }
 
   void _paintAt(Offset position) {
@@ -540,24 +653,38 @@ class _ColorSwatchButton extends StatelessWidget {
     final borderColor = selected
         ? Theme.of(context).colorScheme.primary
         : Theme.of(context).colorScheme.outlineVariant;
+    final label =
+        '${appL10nOf(context).pixelArtChooseColorTooltip} ${_colorHexLabel(color)}';
 
     return Tooltip(
-      message: '选择颜色',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: borderColor, width: selected ? 3 : 1),
+      message: label,
+      child: Semantics(
+        container: true,
+        label: label,
+        button: true,
+        selected: selected,
+        enabled: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor, width: selected ? 3 : 1),
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+String _colorHexLabel(Color color) {
+  final rgb = color.toARGB32() & 0x00FFFFFF;
+  return '#${rgb.toRadixString(16).padLeft(6, '0').toUpperCase()}';
 }
 
 class _PixelArtPainter extends CustomPainter {
@@ -569,6 +696,9 @@ class _PixelArtPainter extends CustomPainter {
     required this.gridColor,
     required this.checkerLightColor,
     required this.checkerDarkColor,
+    required this.cursorX,
+    required this.cursorY,
+    required this.cursorColor,
   });
 
   final List<int> pixels;
@@ -578,6 +708,9 @@ class _PixelArtPainter extends CustomPainter {
   final Color gridColor;
   final Color checkerLightColor;
   final Color checkerDarkColor;
+  final int cursorX;
+  final int cursorY;
+  final Color cursorColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -620,6 +753,18 @@ class _PixelArtPainter extends CustomPainter {
       final dy = y * cellSize;
       canvas.drawLine(Offset(0, dy), Offset(size.width, dy), gridPaint);
     }
+
+    final cursorPaint = Paint()
+      ..color = cursorColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    final cursorRect = Rect.fromLTWH(
+      cursorX * cellSize,
+      cursorY * cellSize,
+      cellSize,
+      cellSize,
+    ).deflate(1.5);
+    canvas.drawRect(cursorRect, cursorPaint);
   }
 
   @override
@@ -630,6 +775,9 @@ class _PixelArtPainter extends CustomPainter {
         oldDelegate.cellSize != cellSize ||
         oldDelegate.gridColor != gridColor ||
         oldDelegate.checkerLightColor != checkerLightColor ||
-        oldDelegate.checkerDarkColor != checkerDarkColor;
+        oldDelegate.checkerDarkColor != checkerDarkColor ||
+        oldDelegate.cursorX != cursorX ||
+        oldDelegate.cursorY != cursorY ||
+        oldDelegate.cursorColor != cursorColor;
   }
 }

@@ -270,7 +270,7 @@ class FrameRef {
 3. 导入已有 Sprite Sheet。
 4. 导入多张单帧图。
 5. 轨道命名、重排、删除、锁定。
-6. 帧重排、复制、删除、插入空帧。
+6. 帧重排、复制、删除、插入空帧，并支持从本地图片插入新帧。
 7. 当前轨道播放、全部轨道预览。
 8. 导出 Sprite Sheet、GIF、PNG 序列。
 
@@ -809,3 +809,101 @@ PixelationService 帧处理
 
 - UI 可以变，但模型一旦清楚，后面不会越改越乱。
 - 旧路径删除也需要新模型先接住现有能力。
+
+
+## 17. 实施进度
+
+### 2026-05-18：阶段 1-4 核心闭环
+
+已完成：
+
+1. 阶段 1-3 基础能力已落地：`AnimationProject` 领域模型、工程 JSON 存储、Sprite Sheet 导入、多图片导入、工程渲染、Sprite Sheet / GIF / PNG 序列导出。
+2. 阶段 4 新增工程帧资产编辑：时间轴选中帧支持替换帧、清空透明帧、像素化帧、在当前位置后插入空白帧、从本地图片插入新帧；空轨道可直接插入首帧。
+3. 单帧编辑会生成新的 `FrameAssetSource.editedFrame` 或 `importedFile` 资产，并通过 `AnimationProjectEditor.replaceFrameAsset` 或 `insertFrameAsset` 回写 `FrameRef`，旧资产在不再被引用时从工程资产表移除。
+4. 所有单帧编辑统一走 `_applyAnimationProjectChange`，因此工程 JSON 同步、作品库摘要同步、撤销/重做历史沿用动画工程现有链路。
+
+验证：
+
+- `flutter analyze` 通过（No issues found）。
+- `flutter test test/animation_project_service_test.dart` 通过。
+- `flutter test test/animation_project_workspace_test.dart` 通过。
+
+当时剩余（现已由阶段 5 收敛）：
+
+1. 旧 GIF 合成主导航入口需要降级为动画工程导出能力或快速导入入口。
+2. 旧 Sprite Sheet 行列式状态需要继续从主流程收敛为导入器参数。
+
+### 2026-05-18：阶段 5 主路径收敛
+
+已完成：
+
+1. 旧 `WorkspaceFeature.gifComposer` 已从主导航分类中移除；旧 `GifComposerWorkspace`、`GifComposerNotifier`、旧 GIF 组合面板和旧 GIF UI 历史状态已删除。
+2. `FrameAnimationPreviewPanel` 的旧“转 GIF”主路径不再把切片载入 `GifSourceFrame` UI 状态，也不再跳转到旧 GIF 合成工作区。
+3. Sprite Sheet 快速转 GIF 改为创建临时 `AnimationProject`，再走 `AnimationProjectExportService.exportProjectGif`；`GifComposer` 服务和 `GifSourceFrame` 仅作为底层 GIF 编码适配器保留。
+4. 动画工程已有工程时，右侧预览改为直接渲染工程合成帧列表并播放，不再先合成为行列式 Sprite Sheet 再预览。
+5. 动画工程里的 Sprite Sheet 行列式 UI 目前只保留为“生成/导入 Sprite Sheet 来源预览”参数，以及导出格式参数；不再承担工程主预览。
+6. `_animationRows / _animationColumns / _animationGridSpec` 已收敛为 `SpriteSheetImportConfig` 和 `SpriteSheetImportNotifier` 的兼容访问器；撤销/重做、预设和恢复默认值快照都改为保存配置对象。
+
+验证：
+
+- `flutter analyze` 通过（No issues found）。
+- `flutter test test/app_test.dart` 通过。
+- `flutter test test/history_widget_test.dart` 通过。
+- `flutter test test/animation_project_workspace_test.dart` 通过。
+- `flutter test test/animation_project_service_test.dart test/animation_project_workspace_test.dart test/app_test.dart test/history_widget_test.dart test/image_library_deletion_test.dart test/gif_composer_test.dart test/image_selection_logic_test.dart` 通过。
+- 全测试集按 60s 上限拆批验证通过：
+  - `core-services`：服务、模型、导入导出、GIF 编码器、作品库、OpenAI 客户端、Sprite Sheet 预览等纯逻辑测试。
+  - `main-workspaces`：动画工程工作区和应用主壳测试。
+  - `history-and-editor-widgets`：历史、预设、恢复默认值和通用图片编辑器 Widget 测试。
+  - `misc-widgets`：API 设置、批量生成、帧动画预览、图片编辑器像素化入口、像素画和作品库菜单测试。
+
+阶段 5 状态：
+
+1. 无。旧 GIF 独立主路径已删除，Sprite Sheet 行列式状态已对象化。
+
+### 2026-05-18：完成标准审计
+
+逐项核验 `## 15. 完成标准`：
+
+1. 用户可以创建动画工程：
+   - 已满足。生成后的 Sprite Sheet 可通过 `_importCurrentAnimationSheetToProject` 创建动画工程；图片序列在无当前工程时通过 `_importLocalImagesToAnimationProject` 创建动画工程。
+   - 证据：`AnimationProjectImporter.importSpriteSheet`、`AnimationProjectImporter.importImages`、`test/animation_project_service_test.dart` 的 “imports sprite sheet into tracks and renders project sheet”。
+
+2. 用户可以把 Sprite Sheet 导入为多轨道工程：
+   - 已满足。Sprite Sheet 按行导入为多轨道工程。
+   - 证据：`importSpriteSheet` 测试断言 `result.project.tracks` 为 2 条轨道、资源数和帧引用数正确。
+
+3. 用户可以在时间轴上编辑轨道和帧：
+   - 已满足。轨道支持新增、复制、删除、移动、显示/隐藏、锁定、时长、播放方式；帧支持移动、复制、删除、时长和变换。
+   - 证据：`test/animation_project_editor_test.dart` 覆盖轨道和帧编辑；`test/animation_project_workspace_test.dart` 覆盖 UI 操作入口。
+
+4. 用户可以播放当前轨道：
+   - 已满足。动画工程预览面板包含播放/暂停控制，时间轴工作区测试覆盖主工作区渲染与播放入口；旧切片播放仅作为 Sprite Sheet 来源预览保留。
+   - 证据：`AnimationProjectWorkspace` 的 `_AnimationProjectPreview` 播放控制，`test/animation_project_workspace_test.dart` 和 `test/frame_animation_preview_widgets_test.dart`。
+
+5. 用户可以编辑单帧：
+   - 已满足。时间轴选中帧支持替换、清空、像素化、插入空白帧、插入本地图片帧；空轨道可直接插入首帧，并通过工程帧资产编辑器写回工程。
+   - 证据：`_replaceAnimationFrameAsset`、`_clearAnimationFrameAsset`、`_pixelateAnimationFrameAsset`、`_insertBlankAnimationFrame`、`_insertAnimationFrameFromImage`；`test/animation_project_service_test.dart` 的 “edits timeline frame assets and keeps project references valid”。
+
+6. 用户可以导出 Sprite Sheet：
+   - 已满足。工程级导出走 `AnimationProjectExportService.exportProjectSpriteSheet`，来源 Sprite Sheet 仍可作为导入/导出适配器导出。
+   - 证据：`_exportAnimationProjectSpriteSheet`、`test/animation_project_workspace_test.dart` 的 “导出合成 Sprite Sheet” 入口。
+
+7. 用户可以导出 GIF：
+   - 已满足。工程级 GIF 和当前轨道 GIF 都从动画工程导出，旧 GIF 临时 UI 状态不再参与主路径。
+   - 证据：`_exportAnimationProjectGif`、`_exportAnimationTrackGif`、`AnimationProjectExportService.exportProjectGif`、`test/gif_composer_test.dart`。
+
+8. 用户可以导出 PNG 序列：
+   - 已满足。工程级 PNG 序列和当前轨道 PNG 序列均已接入工作区。
+   - 证据：`_exportAnimationProjectPngSequence`、`_exportAnimationTrackPngSequence`、`test/animation_project_workspace_test.dart`。
+
+9. 旧帧动画主路径已移除：
+   - 已满足。主导航和工作区切换只保留 `WorkspaceFeature.animationProject`，旧帧动画主入口不再存在。
+   - 证据：`rg "WorkspaceFeature\.(gifComposer|frameAnimation)|FrameAnimationWorkspace|frame_animation_workspace" lib test` 无结果。
+
+10. 旧 GIF 临时主路径已移除或降级：
+    - 已满足。旧 `GifComposerWorkspace`、`GifComposerNotifier`、旧 GIF UI 面板和旧 GIF widget 测试已删除；`GifComposer` 仅作为底层编码器保留。
+    - 证据：`rg "GifComposerWorkspace|GifComposerNotifier|gif_composer_workspace|gif_composer_widgets|gifSourceFrames|_gifSourceFrames|_gifOutputPath|_gifErrorMessage|_isComposingGif" lib test` 无结果。
+
+11. `flutter test`、`flutter analyze` 通过：
+    - 已满足。`flutter analyze` 当前工作树通过。全测试集按 60s 上限拆为 `core-services`、`main-workspaces`、`history-and-editor-widgets`、`misc-widgets` 四批，全部通过。

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/generated_image.dart';
 import '../../models/sprite_sheet_frame_fit.dart';
 import '../../models/sprite_sheet_grid_spec.dart';
+import '../../l10n/app_l10n.dart';
 import '../../services/general_image_editing_service.dart';
 import '../../services/sprite_sheet_service.dart';
 import '../../state/image_editor_notifier.dart';
@@ -116,11 +117,13 @@ class _ImageEditorWorkspaceState extends State<ImageEditorWorkspace> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+
     return WorkspacePage(
-      title: '图片编辑',
+      title: l10n.imageEditorWorkspaceTitle,
       description: _mode == _ImageEditorMode.general
-          ? '裁剪、旋转、缩放、调色和保存图片副本'
-          : '载入一张 Sprite Sheet，按行列快速查看第几帧',
+          ? l10n.imageEditorWorkspaceGeneralDescription
+          : l10n.imageEditorWorkspaceSpriteSheetDescription,
       compactHeader: widget.isFocusMode,
       trailing: Wrap(
         spacing: 8,
@@ -128,16 +131,16 @@ class _ImageEditorWorkspaceState extends State<ImageEditorWorkspace> {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           SegmentedButton<_ImageEditorMode>(
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: _ImageEditorMode.general,
-                icon: Icon(Icons.tune_outlined),
-                label: Text('普通图片'),
+                icon: const Icon(Icons.tune_outlined),
+                label: Text(l10n.imageEditorGeneralImageTab),
               ),
               ButtonSegment(
                 value: _ImageEditorMode.spriteSheet,
-                icon: Icon(Icons.grid_on_outlined),
-                label: Text('Sprite Sheet'),
+                icon: const Icon(Icons.grid_on_outlined),
+                label: Text(l10n.imageEditorSpriteSheetTab),
               ),
             ],
             selected: {_mode},
@@ -148,7 +151,9 @@ class _ImageEditorWorkspaceState extends State<ImageEditorWorkspace> {
           ),
           widget.historyControls,
           IconButton.filledTonal(
-            tooltip: widget.isFocusMode ? '退出专注模式' : '进入专注模式',
+            tooltip: widget.isFocusMode
+                ? l10n.imageEditorExitFocusModeTooltip
+                : l10n.imageEditorEnterFocusModeTooltip,
             onPressed: () => widget.onFocusModeChanged(!widget.isFocusMode),
             icon: Icon(
               widget.isFocusMode
@@ -160,13 +165,15 @@ class _ImageEditorWorkspaceState extends State<ImageEditorWorkspace> {
       ),
       children: [
         if (_mode == _ImageEditorMode.general)
-          Selector<ImageEditorNotifier,
-              ({
-                String? imagePath,
-                ImageInspectionResult? imageInfo,
-                bool isProcessing,
-                String? errorMessage,
-              })>(
+          Selector<
+            ImageEditorNotifier,
+            ({
+              String? imagePath,
+              ImageInspectionResult? imageInfo,
+              bool isProcessing,
+              String? errorMessage,
+            })
+          >(
             selector: (_, n) => (
               imagePath: n.generalEditorImagePath,
               imageInfo: n.generalEditorImageInfo,
@@ -190,104 +197,115 @@ class _ImageEditorWorkspaceState extends State<ImageEditorWorkspace> {
   }
 
   Widget _buildSpriteSheetEditor() {
+    final l10n = appL10nOf(context);
+
     return ResponsiveWorkspaceSplit(
       storageKey: 'image_editor',
       controlsWidth: widget.isFocusMode ? 316 : 352,
       minControlsWidth: widget.isFocusMode ? 276 : 300,
       maxControlsWidth: widget.isFocusMode ? 420 : 500,
-      controls: Selector<ImageEditorNotifier,
-          ({
-            String? imagePath,
-            String? patchImagePath,
-            int rows,
-            int columns,
-            SpriteSheetGridSpec gridSpec,
-            int targetFrameIndex,
-            SpriteSheetFrameFit frameFit,
-            bool isReplacingFrame,
-          })>(
-        selector: (_, n) => (
-          imagePath: n.editorImagePath,
-          patchImagePath: n.editorPatchImagePath,
-          rows: n.editorRows,
-          columns: n.editorColumns,
-          gridSpec: n.editorGridSpec,
-          targetFrameIndex: n.editorTargetFrameIndex,
-          frameFit: n.editorFrameFit,
-          isReplacingFrame: n.isReplacingEditorFrame,
-        ),
-        builder: (context, data, _) => SpriteSheetEditorPanel(
-          imagePath: data.imagePath,
-          patchImagePath: data.patchImagePath,
-          rows: data.rows,
-          columns: data.columns,
-          gridSpec: data.gridSpec,
-          targetFrameIndex: data.targetFrameIndex.clamp(
-            0,
-            data.rows * data.columns - 1,
+      controls:
+          Selector<
+            ImageEditorNotifier,
+            ({
+              String? imagePath,
+              String? patchImagePath,
+              int rows,
+              int columns,
+              SpriteSheetGridSpec gridSpec,
+              int targetFrameIndex,
+              SpriteSheetFrameFit frameFit,
+              bool isReplacingFrame,
+            })
+          >(
+            selector: (_, n) => (
+              imagePath: n.editorImagePath,
+              patchImagePath: n.editorPatchImagePath,
+              rows: n.editorRows,
+              columns: n.editorColumns,
+              gridSpec: n.editorGridSpec,
+              targetFrameIndex: n.editorTargetFrameIndex,
+              frameFit: n.editorFrameFit,
+              isReplacingFrame: n.isReplacingEditorFrame,
+            ),
+            builder: (context, data, _) => SpriteSheetEditorPanel(
+              imagePath: data.imagePath,
+              patchImagePath: data.patchImagePath,
+              rows: data.rows,
+              columns: data.columns,
+              gridSpec: data.gridSpec,
+              targetFrameIndex: data.targetFrameIndex.clamp(
+                0,
+                data.rows * data.columns - 1,
+              ),
+              frameFit: data.frameFit,
+              isReplacingFrame: data.isReplacingFrame,
+              onPickImage: widget.onPickImage,
+              onClearImage: widget.onClearImage,
+              onPickPatchImage: widget.onPickPatchImage,
+              onClearPatchImage: widget.onClearPatchImage,
+              onAdjustPatchFraming: widget.onAdjustPatchFraming,
+              onMakePatchBackgroundTransparent:
+                  widget.onMakePatchBackgroundTransparent,
+              onPixelateCurrentFrame: widget.onPixelateCurrentFrame,
+              onPixelateWholeSheet: widget.onPixelateWholeSheet,
+              onRowsChanged: widget.onRowsChanged,
+              onColumnsChanged: widget.onColumnsChanged,
+              onGridSpecChanged: widget.onGridSpecChanged,
+              onTargetFrameChanged: widget.onTargetFrameChanged,
+              onFrameFitChanged: widget.onFrameFitChanged,
+              onReplaceFrame: widget.onReplaceFrame,
+              onCopyPreviousFrame: widget.onCopyPreviousFrame,
+              onClearTargetFrame: widget.onClearTargetFrame,
+            ),
           ),
-          frameFit: data.frameFit,
-          isReplacingFrame: data.isReplacingFrame,
-          onPickImage: widget.onPickImage,
-          onClearImage: widget.onClearImage,
-          onPickPatchImage: widget.onPickPatchImage,
-          onClearPatchImage: widget.onClearPatchImage,
-          onAdjustPatchFraming: widget.onAdjustPatchFraming,
-          onMakePatchBackgroundTransparent:
-              widget.onMakePatchBackgroundTransparent,
-          onPixelateCurrentFrame: widget.onPixelateCurrentFrame,
-          onPixelateWholeSheet: widget.onPixelateWholeSheet,
-          onRowsChanged: widget.onRowsChanged,
-          onColumnsChanged: widget.onColumnsChanged,
-          onGridSpecChanged: widget.onGridSpecChanged,
-          onTargetFrameChanged: widget.onTargetFrameChanged,
-          onFrameFitChanged: widget.onFrameFitChanged,
-          onReplaceFrame: widget.onReplaceFrame,
-          onCopyPreviousFrame: widget.onCopyPreviousFrame,
-          onClearTargetFrame: widget.onClearTargetFrame,
-        ),
-      ),
-      preview: Selector<ImageEditorNotifier,
-          ({
-            String? imagePath,
-            int rows,
-            int columns,
-            SpriteSheetGridSpec gridSpec,
-            int targetFrameIndex,
-            String? errorMessage,
-          })>(
-        selector: (_, n) => (
-          imagePath: n.editorImagePath,
-          rows: n.editorRows,
-          columns: n.editorColumns,
-          gridSpec: n.editorGridSpec,
-          targetFrameIndex: n.editorTargetFrameIndex,
-          errorMessage: n.editorErrorMessage,
-        ),
-        builder: (context, data, _) {
-          final editorImages = data.imagePath == null
-              ? const <GeneratedImage>[]
-              : [GeneratedImage.file(data.imagePath!)];
-          return FrameAnimationPreviewPanel(
-            title: '切片查看',
-            emptyMessage: '选择一张 Sprite Sheet 后，可以按行列查看第几帧',
-            errorMessage: data.errorMessage,
-            debugRecord: null,
-            generatedImages: editorImages,
-            isGenerating: false,
-            rows: data.rows,
-            columns: data.columns,
-            gridSpec: data.gridSpec,
-            selectedFrameIndex: data.targetFrameIndex,
-            onFrameSelected: widget.onTargetFrameChanged,
-            enablePlayback: false,
-            labelBuilder: (index) =>
-                editorFrameGridLabel(index, columns: data.columns),
-            onExportSpriteSheet: widget.onExportSpriteSheet,
-            onSendToGif: widget.onSendToGif,
-          );
-        },
-      ),
+      preview:
+          Selector<
+            ImageEditorNotifier,
+            ({
+              String? imagePath,
+              int rows,
+              int columns,
+              SpriteSheetGridSpec gridSpec,
+              int targetFrameIndex,
+              String? errorMessage,
+            })
+          >(
+            selector: (_, n) => (
+              imagePath: n.editorImagePath,
+              rows: n.editorRows,
+              columns: n.editorColumns,
+              gridSpec: n.editorGridSpec,
+              targetFrameIndex: n.editorTargetFrameIndex,
+              errorMessage: n.editorErrorMessage,
+            ),
+            builder: (context, data, _) {
+              final editorImages = data.imagePath == null
+                  ? const <GeneratedImage>[]
+                  : [GeneratedImage.file(data.imagePath!)];
+              return FrameAnimationPreviewPanel(
+                title: l10n.imageEditorSlicePreviewTitle,
+                emptyMessage: l10n.imageEditorSlicePreviewEmpty,
+                errorMessage: data.errorMessage,
+                debugRecord: null,
+                generatedImages: editorImages,
+                isGenerating: false,
+                rows: data.rows,
+                columns: data.columns,
+                gridSpec: data.gridSpec,
+                selectedFrameIndex: data.targetFrameIndex,
+                onFrameSelected: widget.onTargetFrameChanged,
+                enablePlayback: false,
+                labelBuilder: (index) => editorFrameGridLabelWithText(
+                  index,
+                  columns: data.columns,
+                  labelBuilder: l10n.spriteSheetFrameGridLabel,
+                ),
+                onExportSpriteSheet: widget.onExportSpriteSheet,
+                onSendToGif: widget.onSendToGif,
+              );
+            },
+          ),
     );
   }
 }

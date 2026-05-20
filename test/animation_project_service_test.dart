@@ -405,6 +405,148 @@ void main() {
   });
 
   test(
+    'edits timeline frame assets and keeps project references valid',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'animation_project_frame_edit_test_',
+      );
+      addTearDown(() async {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+
+      final store = AppLocalStore(baseDirectoryOverride: tempDir);
+      final original = File('${tempDir.path}${Platform.pathSeparator}red.png');
+      final replacement = File(
+        '${tempDir.path}${Platform.pathSeparator}green.png',
+      );
+      await original.writeAsBytes(
+        _singleFramePng(
+          width: 2,
+          height: 2,
+          color: image_lib.ColorRgb8(255, 0, 0),
+        ),
+      );
+      await replacement.writeAsBytes(
+        _singleFramePng(
+          width: 4,
+          height: 4,
+          color: image_lib.ColorRgb8(0, 255, 0),
+        ),
+      );
+      final createdAt = DateTime.parse('2026-05-17T08:00:00Z');
+      final project = AnimationProject(
+        id: 'project-frame-edit',
+        title: 'Frame Edit',
+        createdAt: createdAt,
+        updatedAt: createdAt,
+        canvasWidth: 2,
+        canvasHeight: 2,
+        tracks: [
+          _track(
+            id: 'track-frame-edit',
+            name: 'Edit',
+            assetIds: const ['asset-original'],
+            delays: const [100],
+          ),
+        ],
+        assets: [_asset('asset-original', original.path, width: 2, height: 2)],
+        timeline: const TimelineSettings(defaultFrameDelayMs: 100),
+        exportSettings: const ExportSettings(),
+      );
+
+      final editor = const AnimationProjectFrameEditor();
+      final replaced = (await editor.replaceFrameWithImage(
+        store: store,
+        project: project,
+        trackId: 'track-frame-edit',
+        frameIndex: 0,
+        imagePath: replacement.path,
+      ))!.project;
+      final replacedFrame = replaced.tracks.single.orderedFrames.single;
+      final replacedAsset = replaced.assetById(replacedFrame.assetId)!;
+      expect(replacedFrame.assetId, isNot('asset-original'));
+      expect(replaced.assetById('asset-original'), isNull);
+      expect(replacedAsset.source, FrameAssetSource.importedFile);
+      expect(replacedAsset.width, 2);
+      expect(replacedAsset.height, 2);
+
+      final cleared = (await editor.clearFrame(
+        store: store,
+        project: replaced,
+        trackId: 'track-frame-edit',
+        frameIndex: 0,
+      ))!.project;
+      final clearedAsset = cleared.assetById(
+        cleared.tracks.single.orderedFrames.single.assetId,
+      )!;
+      final clearedImage = image_lib.decodePng(
+        await File(clearedAsset.path).readAsBytes(),
+      )!;
+      expect(clearedAsset.source, FrameAssetSource.editedFrame);
+      expect(clearedImage.getPixel(0, 0).a, 0);
+
+      final blankInserted = (await editor.insertBlankFrame(
+        store: store,
+        project: replaced,
+        trackId: 'track-frame-edit',
+        insertIndex: 1,
+      ))!.project;
+      final blankFrames = blankInserted.tracks.single.orderedFrames;
+      expect(blankFrames, hasLength(2));
+      expect(blankFrames.map((frame) => frame.delayMs), [100, 100]);
+      final blankAsset = blankInserted.assetById(blankFrames[1].assetId)!;
+      final blankImage = image_lib.decodePng(
+        await File(blankAsset.path).readAsBytes(),
+      )!;
+      expect(blankAsset.source, FrameAssetSource.editedFrame);
+      expect(blankImage.width, 2);
+      expect(blankImage.height, 2);
+      expect(blankImage.getPixel(0, 0).a, 0);
+
+      final imageInserted = (await editor.insertFrameWithImage(
+        store: store,
+        project: blankInserted,
+        trackId: 'track-frame-edit',
+        insertIndex: 1,
+        imagePath: replacement.path,
+        delayMs: 140,
+      ))!.project;
+      final imageFrames = imageInserted.tracks.single.orderedFrames;
+      expect(imageFrames, hasLength(3));
+      expect(imageFrames.map((frame) => frame.delayMs), [100, 140, 100]);
+      final imageAsset = imageInserted.assetById(imageFrames[1].assetId)!;
+      final image = image_lib.decodePng(
+        await File(imageAsset.path).readAsBytes(),
+      )!;
+      expect(imageAsset.source, FrameAssetSource.importedFile);
+      expect(imageAsset.width, 2);
+      expect(imageAsset.height, 2);
+      expect(image.width, 2);
+      expect(image.height, 2);
+      expect(image.getPixel(0, 0).g, greaterThan(image.getPixel(0, 0).r));
+
+      final pixelated = (await editor.pixelateFrame(
+        store: store,
+        project: replaced,
+        trackId: 'track-frame-edit',
+        frameIndex: 0,
+        blockSize: 2,
+      ))!.project;
+      final pixelatedAsset = pixelated.assetById(
+        pixelated.tracks.single.orderedFrames.single.assetId,
+      )!;
+      expect(pixelatedAsset.source, FrameAssetSource.editedFrame);
+      expect(await File(pixelatedAsset.path).exists(), isTrue);
+      final diagnostics = await const AnimationProjectAssetInspector().inspect(
+        pixelated,
+      );
+      expect(diagnostics.hasIssues, isFalse);
+    },
+  );
+
+  test(
     'composes visible project tracks in order and loops shorter tracks',
     () async {
       final tempDir = await Directory.systemTemp.createTemp(
@@ -608,12 +750,12 @@ AnimationTrack _track({
   );
 }
 
-FrameAsset _asset(String id, String path) {
+FrameAsset _asset(String id, String path, {int width = 2, int height = 1}) {
   return FrameAsset(
     id: id,
     path: path,
-    width: 2,
-    height: 1,
+    width: width,
+    height: height,
     source: FrameAssetSource.importedFile,
     sourceFrameIndex: 0,
   );

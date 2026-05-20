@@ -17,6 +17,58 @@ typedef ImageLibraryItemKindBuilder =
 typedef ImageLibraryItemTitleBuilder =
     String Function(int index, GeneratedImage image);
 
+class ImageLibraryGifLabels {
+  const ImageLibraryGifLabels({
+    required this.title,
+    required this.source,
+    required this.prompt,
+  });
+
+  final String title;
+  final String source;
+  final String prompt;
+}
+
+class ImageLibraryAnimationProjectLabels {
+  const ImageLibraryAnimationProjectLabels({
+    required this.source,
+    required this.prompt,
+  });
+
+  final String source;
+  final String prompt;
+}
+
+class ImageLibrarySpriteSheetLabels {
+  const ImageLibrarySpriteSheetLabels({
+    required this.title,
+    required this.source,
+    required this.prompt,
+  });
+
+  final String title;
+  final String source;
+  final String prompt;
+}
+
+class ImageLibraryEditedSpriteSheetLabels {
+  const ImageLibraryEditedSpriteSheetLabels({
+    required this.title,
+    required this.source,
+    required this.prompt,
+  });
+
+  final String title;
+  final String source;
+  final String prompt;
+}
+
+class ImageLibrarySpriteFrameLabels {
+  const ImageLibrarySpriteFrameLabels({required this.title});
+
+  final String title;
+}
+
 class ImageLibraryService {
   const ImageLibraryService();
 
@@ -127,15 +179,15 @@ class ImageLibraryService {
   Future<ImageLibraryItem> addGif({
     required AppLocalStore store,
     required String path,
-    required int frameCount,
+    required ImageLibraryGifLabels labels,
   }) {
     return addItem(
       store: store,
       path: path,
       kind: ImageAssetKind.gif,
-      title: 'GIF 合成',
-      source: 'GIF 合成',
-      prompt: '$frameCount 张图片合成',
+      title: labels.title,
+      source: labels.source,
+      prompt: labels.prompt,
     );
   }
 
@@ -143,6 +195,7 @@ class ImageLibraryService {
     required AppLocalStore store,
     required String path,
     required AnimationProject project,
+    required ImageLibraryAnimationProjectLabels labels,
   }) {
     final summary = AnimationProjectSummary.fromProject(project);
     return addItem(
@@ -150,10 +203,8 @@ class ImageLibraryService {
       path: path,
       kind: ImageAssetKind.animationProject,
       title: project.title,
-      source: '动画工程',
-      prompt:
-          '${summary.trackCount} 条轨道 · ${summary.frameCount} 帧 · '
-          '${summary.canvasWidth} x ${summary.canvasHeight}',
+      source: labels.source,
+      prompt: labels.prompt,
       groupId: project.id,
       animationProject: summary,
     );
@@ -164,15 +215,16 @@ class ImageLibraryService {
     required String path,
     required int rows,
     required int columns,
+    required ImageLibrarySpriteSheetLabels labels,
     SpriteSheetGridSpec? gridSpec,
   }) {
     return addItem(
       store: store,
       path: path,
       kind: ImageAssetKind.spriteSheet,
-      title: '导出 Sprite Sheet',
-      source: 'Sprite Sheet 导出',
-      prompt: '$rows x $columns',
+      title: labels.title,
+      source: labels.source,
+      prompt: labels.prompt,
       rows: rows,
       columns: columns,
       gridSpec: gridSpec,
@@ -185,15 +237,16 @@ class ImageLibraryService {
     required int frameIndex,
     required int rows,
     required int columns,
+    required ImageLibraryEditedSpriteSheetLabels labels,
     SpriteSheetGridSpec? gridSpec,
   }) {
     return addItem(
       store: store,
       path: path,
       kind: ImageAssetKind.editedImage,
-      title: '编辑后的 Sprite Sheet',
-      source: '图片编辑',
-      prompt: '替换第 ${frameIndex + 1} 帧 · $rows x $columns',
+      title: labels.title,
+      source: labels.source,
+      prompt: labels.prompt,
       rows: rows,
       columns: columns,
       gridSpec: gridSpec,
@@ -292,6 +345,7 @@ class ImageLibraryService {
     required ImageLibraryItem sheet,
     required int frameIndex,
     required Uint8List bytes,
+    required ImageLibrarySpriteFrameLabels labels,
   }) async {
     final groupId = sheet.groupId;
     if (groupId == null) {
@@ -308,7 +362,7 @@ class ImageLibraryService {
       store: store,
       path: file.path,
       kind: ImageAssetKind.spriteFrame,
-      title: '${sheet.displayTitle} · 帧 ${frameIndex + 1}',
+      title: labels.title,
       source: sheet.source.isEmpty ? 'Sprite Sheet' : sheet.source,
       prompt: sheet.prompt,
       generation: sheet.generation,

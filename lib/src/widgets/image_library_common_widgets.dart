@@ -2,9 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_l10n.dart';
 import '../models/image_asset_kind.dart';
 import '../models/image_library_item.dart';
-import '../utils/display_labels.dart';
+import '../utils/localized_display_labels.dart';
 
 class ImageLibraryPreview extends StatelessWidget {
   const ImageLibraryPreview({required this.item, super.key});
@@ -14,12 +15,20 @@ class ImageLibraryPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final semanticLabel =
+        '${localizedImageAssetKindLabel(appL10nOf(context), item.kind)} · '
+        '${item.displayTitle}';
     if (!item.isImageFile) {
       final icon = item.kind == ImageAssetKind.animationProject
           ? Icons.movie_creation_outlined
           : Icons.gif_box_outlined;
-      return Center(
-        child: Icon(icon, size: 42, color: theme.colorScheme.primary),
+      return Semantics(
+        container: true,
+        label: semanticLabel,
+        image: true,
+        child: Center(
+          child: Icon(icon, size: 42, color: theme.colorScheme.primary),
+        ),
       );
     }
 
@@ -35,21 +44,26 @@ class ImageLibraryPreview extends StatelessWidget {
           devicePixelRatio,
         );
 
-        return Image.file(
-          File(item.path),
-          fit: BoxFit.contain,
-          cacheWidth: cacheWidth,
-          cacheHeight: cacheHeight,
-          filterQuality: FilterQuality.low,
-          gaplessPlayback: true,
-          errorBuilder: (context, error, stackTrace) {
-            return Center(
-              child: Icon(
-                Icons.broken_image_outlined,
-                color: theme.colorScheme.error,
-              ),
-            );
-          },
+        return Semantics(
+          container: true,
+          label: semanticLabel,
+          image: true,
+          child: Image.file(
+            File(item.path),
+            fit: BoxFit.contain,
+            cacheWidth: cacheWidth,
+            cacheHeight: cacheHeight,
+            filterQuality: FilterQuality.low,
+            gaplessPlayback: true,
+            errorBuilder: (context, error, stackTrace) {
+              return Center(
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: theme.colorScheme.error,
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -78,7 +92,7 @@ class ImageKindChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        imageAssetKindLabel(kind),
+        localizedImageAssetKindLabel(appL10nOf(context), kind),
         style: theme.textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSecondaryContainer,
         ),

@@ -7,17 +7,19 @@ class _GenerationTimeoutField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     return TextField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: false),
       decoration: InputDecoration(
-        labelText: '请求超时（秒）',
+        labelText: l10n.apiTimeoutLabel,
         hintText: '${ApiConfig.defaultGenerationTimeoutSeconds}',
-        helperText:
-            '默认 ${ApiConfig.defaultGenerationTimeoutSeconds} 秒，范围 '
-            '${ApiConfig.minGenerationTimeoutSeconds}–'
-            '${ApiConfig.maxGenerationTimeoutSeconds}；image-2 等慢模型可调大',
+        helperText: l10n.apiTimeoutHelper(
+          ApiConfig.defaultGenerationTimeoutSeconds,
+          ApiConfig.minGenerationTimeoutSeconds,
+          ApiConfig.maxGenerationTimeoutSeconds,
+        ),
         helperMaxLines: 2,
         prefixIcon: const Icon(Icons.timer_outlined),
       ),
@@ -41,13 +43,14 @@ class _ApiConfigNameField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     return TextField(
       controller: controller,
       decoration: InputDecoration(
-        labelText: '接口名称',
-        hintText: '例如 OpenAI 官方、内网代理、备用接口',
+        labelText: l10n.apiConfigNameLabel,
+        hintText: l10n.apiConfigNameHint,
         suffixIcon: PopupMenuButton<String>(
-          tooltip: '切换接口配置',
+          tooltip: l10n.apiConfigSwitchTooltip,
           enabled: apiConfigs.isNotEmpty,
           icon: const Icon(Icons.arrow_drop_down),
           onSelected: onConfigSelected,
@@ -86,37 +89,43 @@ class _ApiProviderKindDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DropdownButtonFormField<ApiProviderKind>(
-          key: ValueKey('api-provider-$value'),
-          initialValue: value,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: '供应商'),
-          items: [
-            for (final kind in ApiProviderKind.values)
-              DropdownMenuItem<ApiProviderKind>(
-                value: kind,
-                child: Row(
-                  children: [
-                    Icon(apiProviderKindIcon(kind), size: 18),
-                    const SizedBox(width: 8),
-                    Text(apiProviderKindLabel(kind)),
-                  ],
+        Semantics(
+          container: true,
+          label: l10n.apiProviderLabel,
+          value: localizedApiProviderKindLabel(l10n, value),
+          child: DropdownButtonFormField<ApiProviderKind>(
+            key: ValueKey('api-provider-$value'),
+            initialValue: value,
+            isExpanded: true,
+            decoration: InputDecoration(labelText: l10n.apiProviderLabel),
+            items: [
+              for (final kind in ApiProviderKind.values)
+                DropdownMenuItem<ApiProviderKind>(
+                  value: kind,
+                  child: Row(
+                    children: [
+                      Icon(apiProviderKindIcon(kind), size: 18),
+                      const SizedBox(width: 8),
+                      Text(localizedApiProviderKindLabel(l10n, kind)),
+                    ],
+                  ),
                 ),
-              ),
-          ],
-          onChanged: (kind) {
-            if (kind != null) {
-              onChanged(kind);
-            }
-          },
+            ],
+            onChanged: (kind) {
+              if (kind != null) {
+                onChanged(kind);
+              }
+            },
+          ),
         ),
         const SizedBox(height: 4),
         Text(
-          apiProviderKindDescription(value),
+          localizedApiProviderKindDescription(l10n, value),
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -145,6 +154,7 @@ class _ApiConfigActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final saveButton = FilledButton.icon(
       onPressed: saveStatus == ApiConfigSaveStatus.saving
           ? null
@@ -153,7 +163,11 @@ class _ApiConfigActions extends StatelessWidget {
         isBusy: saveStatus == ApiConfigSaveStatus.saving,
         icon: Icons.save_outlined,
       ),
-      label: Text(saveStatus == ApiConfigSaveStatus.saving ? '保存中' : '保存配置'),
+      label: Text(
+        saveStatus == ApiConfigSaveStatus.saving
+            ? l10n.apiSaving
+            : l10n.apiSaveConfig,
+      ),
     );
     final testButton = OutlinedButton.icon(
       onPressed: isTestingApiConfig ? null : onTestApiConfig,
@@ -161,14 +175,14 @@ class _ApiConfigActions extends StatelessWidget {
         isBusy: isTestingApiConfig,
         icon: Icons.cloud_sync_outlined,
       ),
-      label: Text(isTestingApiConfig ? '测试中' : '测试接口'),
+      label: Text(isTestingApiConfig ? l10n.apiTesting : l10n.apiTestConfig),
     );
     final basicTestButton = Tooltip(
-      message: '只发送 model/prompt/size/n，先确认接口本身可用',
+      message: l10n.apiBasicTestTooltip,
       child: TextButton.icon(
         onPressed: isTestingApiConfig ? null : onBasicTestApiConfig,
         icon: const Icon(Icons.bolt_outlined, size: 18),
-        label: const Text('基础测试'),
+        label: Text(l10n.apiBasicTest),
       ),
     );
     final debugButton = RequestDebugButton(record: apiTestDebugRecord);
@@ -215,28 +229,33 @@ class _ApiConfigSaveIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final (label, color, icon) = switch (status) {
       ApiConfigSaveStatus.saved => (
-        '已保存',
+        l10n.apiSaveStatusSaved,
         colorScheme.primary,
         Icons.check_circle_outline,
       ),
       ApiConfigSaveStatus.pending => (
-        '未保存',
+        l10n.apiSaveStatusPending,
         colorScheme.secondary,
         Icons.schedule,
       ),
-      ApiConfigSaveStatus.saving => ('保存中', colorScheme.secondary, Icons.sync),
+      ApiConfigSaveStatus.saving => (
+        l10n.apiSaveStatusSaving,
+        colorScheme.secondary,
+        Icons.sync,
+      ),
       ApiConfigSaveStatus.failed => (
-        '保存失败',
+        l10n.apiSaveStatusFailed,
         colorScheme.error,
         Icons.error_outline,
       ),
     };
     final tooltip = status == ApiConfigSaveStatus.failed
-        ? '保存失败：${errorMessage ?? '未知错误'}'
+        ? l10n.apiSaveFailedTooltip(errorMessage ?? l10n.unknownError)
         : label;
 
     return Tooltip(
@@ -296,6 +315,7 @@ class _ImageSizeCapabilityOverrideDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final availableOverrides = ImageSizeCapabilityOverride.values
         .where(
@@ -320,33 +340,56 @@ class _ImageSizeCapabilityOverrideDropdown extends StatelessWidget {
       providerKind: providerKind,
       model: model,
     );
+    final imageSizeLabels = localizedImageSizeDisplayLabels(l10n);
     final helperText = selectedValue == ImageSizeCapabilityOverride.auto
-        ? '自动识别：${imageSizeCapabilityLabel(autoCapabilities)}。'
-        : '${imageSizeCapabilityLabel(capabilities)}：'
-              '${imageSizeCapabilityDescription(capabilities)}';
+        ? l10n.apiImageSizeCapabilityAuto(
+            imageSizeCapabilityLabel(autoCapabilities, labels: imageSizeLabels),
+          )
+        : l10n.apiImageSizeCapabilityDescription(
+            imageSizeCapabilityLabel(capabilities, labels: imageSizeLabels),
+            imageSizeCapabilityDescription(
+              capabilities,
+              labels: imageSizeLabels,
+            ),
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DropdownButtonFormField<ImageSizeCapabilityOverride>(
-          key: ValueKey(
-            'image-size-capability-$providerKind-$model-$selectedValue',
+        Semantics(
+          container: true,
+          label: l10n.apiImageSizeCapabilityLabel,
+          value: imageSizeCapabilityOverrideLabel(
+            selectedValue,
+            labels: imageSizeLabels,
           ),
-          initialValue: selectedValue,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: '生图尺寸能力'),
-          items: [
-            for (final override in availableOverrides)
-              DropdownMenuItem<ImageSizeCapabilityOverride>(
-                value: override,
-                child: Text(imageSizeCapabilityOverrideLabel(override)),
-              ),
-          ],
-          onChanged: (override) {
-            if (override != null) {
-              onChanged(override);
-            }
-          },
+          child: DropdownButtonFormField<ImageSizeCapabilityOverride>(
+            key: ValueKey(
+              'image-size-capability-$providerKind-$model-$selectedValue',
+            ),
+            initialValue: selectedValue,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.apiImageSizeCapabilityLabel,
+            ),
+            items: [
+              for (final override in availableOverrides)
+                DropdownMenuItem<ImageSizeCapabilityOverride>(
+                  value: override,
+                  child: Text(
+                    imageSizeCapabilityOverrideLabel(
+                      override,
+                      labels: imageSizeLabels,
+                    ),
+                  ),
+                ),
+            ],
+            onChanged: (override) {
+              if (override != null) {
+                onChanged(override);
+              }
+            },
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -391,10 +434,13 @@ class _ConnectionSettingsFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final hasFetchedModels = modelFetchedAt != null;
     final hasAnyModels = availableModels.isNotEmpty;
-    final fetchActionLabel = hasFetchedModels ? '刷新模型列表' : '获取模型列表';
+    final fetchActionLabel = hasFetchedModels
+        ? l10n.apiRefreshModelList
+        : l10n.apiFetchModelList;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -415,7 +461,7 @@ class _ConnectionSettingsFields extends StatelessWidget {
             labelText: 'API Key',
             hintText: apiKeyHintForProviderKind(providerKind),
             suffixIcon: IconButton(
-              tooltip: showApiKey ? '隐藏密钥' : '显示密钥',
+              tooltip: showApiKey ? l10n.apiHideKey : l10n.apiShowKey,
               onPressed: onToggleApiKeyVisibility,
               icon: Icon(
                 showApiKey
@@ -429,13 +475,14 @@ class _ConnectionSettingsFields extends StatelessWidget {
         TextField(
           controller: modelController,
           decoration: InputDecoration(
-            labelText: '模型',
-            hintText: apiModelHintForProviderKind(providerKind),
+            labelText: l10n.apiModelLabel,
+            hintText: localizedApiModelHintForProviderKind(l10n, providerKind),
             helperText: apiModelFetchHelperText(
               availableModels: availableModels,
               isFetchingModels: isFetchingModels,
               modelFetchErrorMessage: modelFetchErrorMessage,
               modelFetchedAt: modelFetchedAt,
+              l10n: l10n,
             ),
             helperMaxLines: 2,
             suffixIcon: _ModelPickerButton(
@@ -499,7 +546,10 @@ class _ModelPickerButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tooltip = hasAnyModels ? '从已获取列表选择模型，或刷新列表' : fetchActionLabel;
+    final l10n = appL10nOf(context);
+    final tooltip = hasAnyModels
+        ? l10n.apiModelPickerTooltip
+        : fetchActionLabel;
     final normalizedCurrent = normalizeModelIdForSelection(currentModelId);
 
     return PopupMenuButton<String>(

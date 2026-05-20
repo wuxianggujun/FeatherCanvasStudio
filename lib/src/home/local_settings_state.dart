@@ -63,18 +63,14 @@ class _SpriteSheetPresetSnapshot {
     required this.prompt,
     required this.negativePrompt,
     required this.size,
-    required this.rows,
-    required this.columns,
-    required this.gridSpec,
+    required this.spriteSheetImportConfig,
     required this.advancedSettings,
   });
 
   final String prompt;
   final String negativePrompt;
   final String size;
-  final int rows;
-  final int columns;
-  final SpriteSheetGridSpec gridSpec;
+  final SpriteSheetImportConfig spriteSheetImportConfig;
   final ImageAdvancedSettings advancedSettings;
 
   @override
@@ -84,9 +80,7 @@ class _SpriteSheetPresetSnapshot {
             prompt == other.prompt &&
             negativePrompt == other.negativePrompt &&
             size == other.size &&
-            rows == other.rows &&
-            columns == other.columns &&
-            gridSpec == other.gridSpec &&
+            spriteSheetImportConfig == other.spriteSheetImportConfig &&
             advancedSettings == other.advancedSettings;
   }
 
@@ -95,9 +89,7 @@ class _SpriteSheetPresetSnapshot {
     prompt,
     negativePrompt,
     size,
-    rows,
-    columns,
-    gridSpec,
+    spriteSheetImportConfig,
     advancedSettings,
   );
 }
@@ -144,12 +136,8 @@ mixin _LocalSettingsStateMixin
   List<AppPreset> get _appPresets;
   set _appPresets(List<AppPreset> value);
   TextEditingController get _animationPromptController;
-  int get _animationRows;
-  set _animationRows(int value);
-  int get _animationColumns;
-  set _animationColumns(int value);
-  SpriteSheetGridSpec get _animationGridSpec;
-  set _animationGridSpec(SpriteSheetGridSpec value);
+  SpriteSheetImportConfig get _spriteSheetImportConfig;
+  set _spriteSheetImportConfig(SpriteSheetImportConfig value);
   int get _gifDefaultFrameDelayMs;
   set _gifDefaultFrameDelayMs(int value);
   int get _gifLoopCount;
@@ -281,7 +269,7 @@ mixin _LocalSettingsStateMixin
     _pushGenerationFormFieldHistory<String>(
       feature: feature,
       key: _sizeHistoryKey,
-      label: '调整分辨率为 $after',
+      label: appL10nOf(context).localSettingsStateAdjustSizeHistory(after),
       before: before,
       after: after,
       restore: _restoreSize,
@@ -308,7 +296,9 @@ mixin _LocalSettingsStateMixin
     _pushGenerationFormFieldHistory<int>(
       feature: feature,
       key: _imageCountHistoryKey,
-      label: '调整生成数量为 $normalized 张',
+      label: appL10nOf(
+        context,
+      ).localSettingsStateAdjustImageCountHistory(normalized),
       before: before,
       after: normalized,
       restore: _restoreImageCount,
@@ -333,7 +323,7 @@ mixin _LocalSettingsStateMixin
   void _handlePromptTextChanged() {
     _handleGenerationTextChanged(
       key: _textPromptHistoryKey,
-      label: '修改正向提示词',
+      label: appL10nOf(context).localSettingsStateEditPositivePromptHistory,
       before: _lastPromptText,
       after: _promptController.text,
       remember: (value) => _lastPromptText = value,
@@ -354,7 +344,7 @@ mixin _LocalSettingsStateMixin
   void _handleAnimationPromptChanged() {
     _handleGenerationTextChanged(
       key: _animationPromptHistoryKey,
-      label: '修改动画工程提示词',
+      label: appL10nOf(context).localSettingsStateEditAnimationPromptHistory,
       before: _lastAnimationPromptText,
       after: _animationPromptController.text,
       remember: (value) => _lastAnimationPromptText = value,
@@ -379,7 +369,7 @@ mixin _LocalSettingsStateMixin
     );
     _handleGenerationTextChanged(
       key: _negativePromptHistoryKey,
-      label: '修改负向提示词',
+      label: appL10nOf(context).localSettingsStateEditNegativePromptHistory,
       before: _lastNegativePromptText,
       after: _negativePromptController.text,
       remember: (value) => _lastNegativePromptText = value,
@@ -655,28 +645,43 @@ mixin _LocalSettingsStateMixin
     ImageAdvancedSettings before,
     ImageAdvancedSettings after,
   ) {
+    final l10n = appL10nOf(context);
     if (before.quality != after.quality) {
-      return '调整质量为 ${imageQualityLabel(after.quality)}';
+      return l10n.localSettingsStateAdjustQualityHistory(
+        localizedImageQualityLabel(l10n, after.quality),
+      );
     }
     if (before.background != after.background) {
-      return '调整背景为 ${imageBackgroundLabel(after.background)}';
+      return l10n.localSettingsStateAdjustBackgroundHistory(
+        localizedImageBackgroundLabel(l10n, after.background),
+      );
     }
     if (before.outputFormat != after.outputFormat) {
-      return '调整输出格式为 ${imageOutputFormatLabel(after.outputFormat)}';
+      return l10n.localSettingsStateAdjustOutputFormatHistory(
+        localizedImageOutputFormatLabel(after.outputFormat),
+      );
     }
     if (before.outputCompression != after.outputCompression) {
-      return '调整输出压缩率为 ${after.outputCompression}%';
+      return l10n.localSettingsStateAdjustOutputCompressionHistory(
+        after.outputCompression,
+      );
     }
     if (before.moderation != after.moderation) {
-      return '调整审核强度为 ${imageModerationLabel(after.moderation)}';
+      return l10n.localSettingsStateAdjustModerationHistory(
+        localizedImageModerationLabel(l10n, after.moderation),
+      );
     }
     if (before.inputFidelity != after.inputFidelity) {
-      return '调整参考图保真度为 ${after.inputFidelity == 'high' ? '高' : '低'}';
+      return l10n.localSettingsStateAdjustInputFidelityHistory(
+        after.inputFidelity == 'high'
+            ? l10n.imageAdvancedSettingsHigh
+            : l10n.imageAdvancedSettingsLow,
+      );
     }
     if (before.user != after.user) {
-      return '修改最终用户 ID';
+      return l10n.localSettingsStateEditFinalUserHistory;
     }
-    return '调整高级输出参数';
+    return l10n.localSettingsStateAdjustAdvancedSettingsHistory;
   }
 
   Future<void> _savePreset(AppPresetKind kind) async {
@@ -684,7 +689,9 @@ mixin _LocalSettingsStateMixin
     final preset = switch (kind) {
       AppPresetKind.localGeneration => AppPreset(
         id: AppPreset.newId(),
-        name: '文本生图 ${_appPresets.length + 1}',
+        name: appL10nOf(
+          context,
+        ).localSettingsStateTextPresetName(_appPresets.length + 1),
         kind: kind,
         prompt: _promptController.text,
         negativePrompt: _negativePromptController.text,
@@ -696,15 +703,17 @@ mixin _LocalSettingsStateMixin
       ),
       AppPresetKind.spriteSheet => AppPreset(
         id: AppPreset.newId(),
-        name: '动画工程 ${_appPresets.length + 1}',
+        name: appL10nOf(
+          context,
+        ).localSettingsStateAnimationPresetName(_appPresets.length + 1),
         kind: kind,
         prompt: _animationPromptController.text,
         negativePrompt: _negativePromptController.text,
         size: _size,
-        rows: _animationRows,
-        columns: _animationColumns,
+        rows: _spriteSheetImportConfig.rows,
+        columns: _spriteSheetImportConfig.columns,
         advancedSettings: _advancedSettings,
-        gridSpec: _animationGridSpec,
+        gridSpec: _spriteSheetImportConfig.gridSpec,
         createdAt: now,
         updatedAt: now,
       ),
@@ -726,10 +735,11 @@ mixin _LocalSettingsStateMixin
       return;
     }
     setState(() => _appPresets = presets);
-    _showMessage('已保存预设：${preset.name}');
+    _showMessage(appL10nOf(context).localSettingsStatePresetSaved(preset.name));
   }
 
   Future<void> _applyPreset(AppPreset preset) async {
+    final l10n = appL10nOf(context);
     _flushPendingGenerationTextHistory();
 
     switch (preset.kind) {
@@ -749,7 +759,7 @@ mixin _LocalSettingsStateMixin
         );
         await _restoreLocalGenerationPresetSnapshot(after);
         _pushPresetHistory<_LocalGenerationPresetSnapshot>(
-          label: '应用预设：${preset.name}',
+          label: l10n.localSettingsStateApplyPresetHistory(preset.name),
           before: before,
           after: after,
           restore: _restoreLocalGenerationPresetSnapshot,
@@ -765,19 +775,21 @@ mixin _LocalSettingsStateMixin
             model: _modelController.text,
             capabilityOverride: _imageSizeCapabilityOverride,
           ),
-          rows: preset.rows,
-          columns: preset.columns,
-          gridSpec:
-              preset.gridSpec ??
-              before.gridSpec.copyWith(
-                rows: preset.rows,
-                columns: preset.columns,
-              ),
+          spriteSheetImportConfig: SpriteSheetImportConfig(
+            rows: preset.rows,
+            columns: preset.columns,
+            gridSpec:
+                preset.gridSpec ??
+                before.spriteSheetImportConfig.gridSpec.copyWith(
+                  rows: preset.rows,
+                  columns: preset.columns,
+                ),
+          ),
           advancedSettings: preset.advancedSettings,
         );
         await _restoreSpriteSheetPresetSnapshot(after);
         _pushPresetHistory<_SpriteSheetPresetSnapshot>(
-          label: '应用预设：${preset.name}',
+          label: l10n.localSettingsStateApplyPresetHistory(preset.name),
           before: before,
           after: after,
           restore: _restoreSpriteSheetPresetSnapshot,
@@ -791,13 +803,13 @@ mixin _LocalSettingsStateMixin
         );
         await _restoreGifPresetSnapshot(after);
         _pushPresetHistory<_GifPresetSnapshot>(
-          label: '应用预设：${preset.name}',
+          label: l10n.localSettingsStateApplyPresetHistory(preset.name),
           before: before,
           after: after,
           restore: _restoreGifPresetSnapshot,
         );
     }
-    _showMessage('已应用预设：${preset.name}');
+    _showMessage(l10n.localSettingsStatePresetApplied(preset.name));
   }
 
   _LocalGenerationPresetSnapshot _captureLocalGenerationPresetSnapshot() {
@@ -815,9 +827,7 @@ mixin _LocalSettingsStateMixin
       prompt: _animationPromptController.text,
       negativePrompt: _negativePromptController.text,
       size: _size,
-      rows: _animationRows,
-      columns: _animationColumns,
-      gridSpec: _animationGridSpec,
+      spriteSheetImportConfig: _spriteSheetImportConfig,
       advancedSettings: _advancedSettings,
     );
   }
@@ -914,9 +924,7 @@ mixin _LocalSettingsStateMixin
           model: _modelController.text,
           capabilityOverride: _imageSizeCapabilityOverride,
         );
-        _animationRows = snapshot.rows;
-        _animationColumns = snapshot.columns;
-        _animationGridSpec = snapshot.gridSpec;
+        _spriteSheetImportConfig = snapshot.spriteSheetImportConfig;
         _advancedSettings = snapshot.advancedSettings;
         if (_userController.text != snapshot.advancedSettings.user) {
           _userController.text = snapshot.advancedSettings.user;
@@ -959,10 +967,13 @@ mixin _LocalSettingsStateMixin
       return;
     }
     setState(() => _appPresets = presets);
-    _showMessage('已删除预设：${preset.name}');
+    _showMessage(
+      appL10nOf(context).localSettingsStatePresetDeleted(preset.name),
+    );
   }
 
   Future<void> _cleanupLocalStorage() async {
+    final l10n = appL10nOf(context);
     if (_isCleaningStorage) {
       return;
     }
@@ -976,13 +987,16 @@ mixin _LocalSettingsStateMixin
         return;
       }
       _showMessage(
-        '已清理 ${summary.removedFiles} 个文件，释放 ${formatBytes(summary.freedBytes)}',
+        l10n.localSettingsStateCleanupDone(
+          summary.removedFiles,
+          formatBytes(summary.freedBytes),
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showMessage('清理失败：$error');
+      _showMessage(l10n.localSettingsStateCleanupFailed(error));
     } finally {
       if (mounted) {
         setState(() => _isCleaningStorage = false);
@@ -991,6 +1005,7 @@ mixin _LocalSettingsStateMixin
   }
 
   Future<void> _exportImageLibraryArchive() async {
+    final l10n = appL10nOf(context);
     if (_isExportingLibrary) {
       return;
     }
@@ -1014,17 +1029,22 @@ mixin _LocalSettingsStateMixin
       }
       final skipped = result.skippedMissingCount == 0
           ? ''
-          : '，跳过 ${result.skippedMissingCount} 个缺失文件';
+          : l10n.imageLibraryStateSkippedMissingFiles(
+              result.skippedMissingCount,
+            );
       _showMessage(
-        '已导出 ${result.exportedCount} 个作品$skipped：'
-        '${fileNameFromPath(result.path)}',
+        l10n.localSettingsStateLibraryArchiveExported(
+          result.exportedCount,
+          skipped,
+          fileNameFromPath(result.path),
+        ),
       );
     } on ImageLibraryArchiveException catch (error) {
       if (!mounted) return;
-      _showMessage('导出作品库失败：${error.message}');
+      _showMessage(l10n.localSettingsStateExportLibraryFailed(error.message));
     } catch (error) {
       if (!mounted) return;
-      _showMessage('导出作品库失败：$error');
+      _showMessage(l10n.localSettingsStateExportLibraryFailed(error));
     } finally {
       if (mounted) {
         setState(() => _isExportingLibrary = false);
@@ -1033,6 +1053,7 @@ mixin _LocalSettingsStateMixin
   }
 
   Future<void> _importImageLibraryArchive() async {
+    final l10n = appL10nOf(context);
     if (_isImportingLibrary) {
       return;
     }
@@ -1063,7 +1084,7 @@ mixin _LocalSettingsStateMixin
       _pushHistory(
         WorkspaceFeature.localSettings,
         HistoryAction(
-          label: '导入作品库',
+          label: l10n.localSettingsStateImportLibraryHistory,
           apply: () async {
             final importedIds = {
               for (final item in result.importedItems) item.id,
@@ -1095,14 +1116,19 @@ mixin _LocalSettingsStateMixin
       );
       final skipped = result.skippedItems == 0
           ? ''
-          : '，跳过 ${result.skippedItems} 个无效条目';
-      _showMessage('已导入 ${result.importedCount} 个作品$skipped');
+          : l10n.localSettingsStateSkippedInvalidItems(result.skippedItems);
+      _showMessage(
+        l10n.localSettingsStateLibraryArchiveImported(
+          result.importedCount,
+          skipped,
+        ),
+      );
     } on ImageLibraryArchiveException catch (error) {
       if (!mounted) return;
-      _showMessage('导入作品库失败：${error.message}');
+      _showMessage(l10n.localSettingsStateImportLibraryFailed(error.message));
     } catch (error) {
       if (!mounted) return;
-      _showMessage('导入作品库失败：$error');
+      _showMessage(l10n.localSettingsStateImportLibraryFailed(error));
     } finally {
       if (mounted) {
         setState(() => _isImportingLibrary = false);

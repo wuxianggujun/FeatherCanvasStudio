@@ -4,6 +4,7 @@ import '../../models/api_provider.dart';
 import '../../models/app_config.dart';
 import '../../models/ui_state.dart';
 import '../../services/image_api_client.dart';
+import '../../l10n/app_l10n.dart';
 import '../api_settings_widgets.dart';
 import '../layout_navigation_widgets.dart';
 
@@ -74,9 +75,10 @@ class ApiSettingsWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     return WorkspacePage(
-      title: '接口配置',
-      description: '集中管理不同供应商的接口，其他功能页只需要选择这里保存的配置',
+      title: l10n.apiSettingsWorkspaceTitle,
+      description: l10n.apiSettingsWorkspaceDescription,
       children: [
         ApiSettingsPanel(
           apiConfigs: apiConfigs,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show Tristate;
 
 import 'package:feather_canvas_studio/main.dart';
 import 'package:feather_canvas_studio/src/models/image_asset_kind.dart';
@@ -54,11 +55,21 @@ void main() {
     await tester.pumpWidget(const FeatherCanvasApp());
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
-    await tester.tap(find.byIcon(Icons.collections_outlined));
+    final imageLibraryNav = find.text('作品库').first;
+    await tester.ensureVisible(imageLibraryNav);
+    await tester.tap(imageLibraryNav);
     await tester.pumpAndSettle();
 
     final menuButton = find.byTooltip('更多操作');
     expect(menuButton, findsOneWidget);
+    final menuSemantics = tester.getSemantics(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == '更多操作',
+      ),
+    );
+    expect(menuSemantics.flagsCollection.isButton, isTrue);
+    expect(menuSemantics.flagsCollection.isEnabled, Tristate.isTrue);
+
     await tester.ensureVisible(menuButton);
     await tester.tap(menuButton);
     await tester.pumpAndSettle();

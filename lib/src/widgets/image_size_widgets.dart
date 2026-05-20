@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_l10n.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/api_provider.dart';
 import '../models/app_config.dart';
 import '../theme/layout_constants.dart';
 import '../utils/image_dimensions.dart';
+import '../utils/localized_display_labels.dart';
 import 'common_form_widgets.dart';
 
 const String _customSizeValue = '__custom_pixels__';
@@ -82,6 +85,8 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    final imageSizeLabels = localizedImageSizeDisplayLabels(l10n);
     final capabilities = imageModelCapabilitiesFor(
       providerKind: widget.providerKind,
       model: widget.model,
@@ -92,11 +97,12 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
       providerKind: widget.providerKind,
       model: widget.model,
       capabilityOverride: widget.capabilityOverride,
+      labels: imageSizeLabels,
     );
     final isCustom = _selectedValue == _customSizeValue;
     final picker = capabilities.allowsCustomPixels
-        ? _customPixelPresetPicker(capabilities)
-        : _presetPicker(capabilities);
+        ? _customPixelPresetPicker(l10n, capabilities)
+        : _presetPicker(l10n, capabilities);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,16 +111,21 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
         if (isCustom) ...[
           const SizedBox(height: fieldGap),
           ResponsivePair(
-            first: _customSideInput(controller: _widthController, label: '宽度'),
+            first: _customSideInput(
+              l10n: l10n,
+              controller: _widthController,
+              label: l10n.imageSizeWidth,
+            ),
             second: _customSideInput(
+              l10n: l10n,
               controller: _heightController,
-              label: '高度',
+              label: l10n.imageSizeHeight,
             ),
           ),
         ],
         const SizedBox(height: 6),
         Text(
-          _buildHelperText(capabilities, validation),
+          _buildHelperText(l10n, capabilities, validation),
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: validation.isValid
                 ? null
@@ -125,44 +136,56 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
     );
   }
 
-  Widget _presetPicker(ImageModelCapabilities capabilities) {
-    return DropdownButtonFormField<String>(
-      key: ValueKey(
-        '${widget.providerKind}:${widget.model}:'
-        '${widget.capabilityOverride}:$_selectedValue',
-      ),
-      decoration: InputDecoration(labelText: _pickerLabel(capabilities)),
-      initialValue: _selectedValue,
-      items: [
-        for (final preset in capabilities.presets)
-          DropdownMenuItem<String>(
-            value: preset.size,
-            child: Text('${preset.label} · ${preset.size}'),
-          ),
-        if (capabilities.allowsCustomPixels)
-          const DropdownMenuItem<String>(
-            value: _customSizeValue,
-            child: Text('自定义尺寸'),
-          ),
-      ],
-      onChanged: widget.enabled
-          ? (value) {
-              if (value != null) {
-                _applySelection(value);
+  Widget _presetPicker(
+    AppLocalizations l10n,
+    ImageModelCapabilities capabilities,
+  ) {
+    final label = _pickerLabel(l10n, capabilities);
+    final selectedLabel = _selectedValue == _customSizeValue
+        ? l10n.imageSizeCustomSize
+        : _presetLabelForValue(l10n, capabilities, _selectedValue);
+
+    return Semantics(
+      container: true,
+      label: label,
+      value: selectedLabel,
+      enabled: widget.enabled,
+      child: DropdownButtonFormField<String>(
+        key: ValueKey(
+          '${widget.providerKind}:${widget.model}:'
+          '${widget.capabilityOverride}:$_selectedValue',
+        ),
+        decoration: InputDecoration(labelText: label),
+        initialValue: _selectedValue,
+        items: [
+          for (final preset in capabilities.presets)
+            DropdownMenuItem<String>(
+              value: preset.size,
+              child: Text(_presetMenuLabel(l10n, preset)),
+            ),
+        ],
+        onChanged: widget.enabled
+            ? (value) {
+                if (value != null) {
+                  _applySelection(value);
+                }
               }
-            }
-          : null,
+            : null,
+      ),
     );
   }
 
-  Widget _customPixelPresetPicker(ImageModelCapabilities capabilities) {
+  Widget _customPixelPresetPicker(
+    AppLocalizations l10n,
+    ImageModelCapabilities capabilities,
+  ) {
     final scaleValues = _scaleValuesFor(capabilities);
     final selectedPreset = _selectedPresetFor(capabilities);
     final selectedScale = _selectedValue == _customSizeValue
         ? _customSizeValue
         : selectedPreset == null
         ? scaleValues.first
-        : _scaleLabelForPreset(selectedPreset);
+        : imageSizePresetScaleLabel(selectedPreset);
     final availableOrientations = selectedScale == _customSizeValue
         ? <_ImagePresetOrientation>[]
         : _orientationsForScale(capabilities, selectedScale);
@@ -171,58 +194,73 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
         ? null
         : _orientationForDimensions(selectedPreset.dimensions);
 
-    final scaleDropdown = DropdownButtonFormField<String>(
-      key: ValueKey(
-        '${widget.providerKind}:${widget.model}:'
-        '${widget.capabilityOverride}:scale:$selectedScale',
-      ),
-      decoration: const InputDecoration(labelText: '尺寸档位'),
-      initialValue: selectedScale,
-      items: [
-        for (final scale in scaleValues)
-          DropdownMenuItem<String>(value: scale, child: Text(scale)),
-        const DropdownMenuItem<String>(
-          value: _customSizeValue,
-          child: Text('自定义尺寸'),
+    final scaleDropdown = Semantics(
+      container: true,
+      label: l10n.imageSizeScaleLabel,
+      value: selectedScale == _customSizeValue
+          ? l10n.imageSizeCustomSize
+          : selectedScale,
+      enabled: widget.enabled,
+      child: DropdownButtonFormField<String>(
+        key: ValueKey(
+          '${widget.providerKind}:${widget.model}:'
+          '${widget.capabilityOverride}:scale:$selectedScale',
         ),
-      ],
-      onChanged: widget.enabled
-          ? (value) {
-              if (value != null) {
-                _applyScaleSelection(value);
+        decoration: InputDecoration(labelText: l10n.imageSizeScaleLabel),
+        initialValue: selectedScale,
+        items: [
+          for (final scale in scaleValues)
+            DropdownMenuItem<String>(value: scale, child: Text(scale)),
+          DropdownMenuItem<String>(
+            value: _customSizeValue,
+            child: Text(l10n.imageSizeCustomSize),
+          ),
+        ],
+        onChanged: widget.enabled
+            ? (value) {
+                if (value != null) {
+                  _applyScaleSelection(value);
+                }
               }
-            }
-          : null,
+            : null,
+      ),
     );
 
     if (selectedScale == _customSizeValue) {
       return scaleDropdown;
     }
 
-    final orientationDropdown =
-        DropdownButtonFormField<_ImagePresetOrientation>(
-          key: ValueKey(
-            '${widget.providerKind}:${widget.model}:'
-            '${widget.capabilityOverride}:orientation:$selectedScale:'
-            '$selectedOrientation',
-          ),
-          decoration: const InputDecoration(labelText: '方向'),
-          initialValue: selectedOrientation,
-          items: [
-            for (final orientation in availableOrientations)
-              DropdownMenuItem<_ImagePresetOrientation>(
-                value: orientation,
-                child: Text(_orientationLabel(orientation)),
-              ),
-          ],
-          onChanged: !widget.enabled || availableOrientations.length <= 1
-              ? null
-              : (orientation) {
-                  if (orientation != null) {
-                    _applyOrientationSelection(selectedScale, orientation);
-                  }
-                },
-        );
+    final orientationDropdown = Semantics(
+      container: true,
+      label: l10n.imageSizeOrientation,
+      value: selectedOrientation == null
+          ? null
+          : _orientationLabel(l10n, selectedOrientation),
+      enabled: widget.enabled && availableOrientations.length > 1,
+      child: DropdownButtonFormField<_ImagePresetOrientation>(
+        key: ValueKey(
+          '${widget.providerKind}:${widget.model}:'
+          '${widget.capabilityOverride}:orientation:$selectedScale:'
+          '$selectedOrientation',
+        ),
+        decoration: InputDecoration(labelText: l10n.imageSizeOrientation),
+        initialValue: selectedOrientation,
+        items: [
+          for (final orientation in availableOrientations)
+            DropdownMenuItem<_ImagePresetOrientation>(
+              value: orientation,
+              child: Text(_orientationLabel(l10n, orientation)),
+            ),
+        ],
+        onChanged: !widget.enabled || availableOrientations.length <= 1
+            ? null
+            : (orientation) {
+                if (orientation != null) {
+                  _applyOrientationSelection(selectedScale, orientation);
+                }
+              },
+      ),
+    );
 
     return ResponsivePair(first: scaleDropdown, second: orientationDropdown);
   }
@@ -230,7 +268,7 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
   List<String> _scaleValuesFor(ImageModelCapabilities capabilities) {
     final scales = <String>[];
     for (final preset in capabilities.presets) {
-      final scale = _scaleLabelForPreset(preset);
+      final scale = imageSizePresetScaleLabel(preset);
       if (!scales.contains(scale)) {
         scales.add(scale);
       }
@@ -244,7 +282,7 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
   ) {
     final orientations = <_ImagePresetOrientation>[];
     for (final preset in capabilities.presets) {
-      if (_scaleLabelForPreset(preset) != scale) {
+      if (imageSizePresetScaleLabel(preset) != scale) {
         continue;
       }
       final orientation = _orientationForDimensions(preset.dimensions);
@@ -273,10 +311,10 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
   }) {
     return capabilities.presets.firstWhere(
       (preset) =>
-          _scaleLabelForPreset(preset) == scale &&
+          imageSizePresetScaleLabel(preset) == scale &&
           _orientationForDimensions(preset.dimensions) == orientation,
       orElse: () => capabilities.presets.firstWhere(
-        (preset) => _scaleLabelForPreset(preset) == scale,
+        (preset) => imageSizePresetScaleLabel(preset) == scale,
         orElse: () => capabilities.presets.first,
       ),
     );
@@ -336,15 +374,6 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
     _notifyValidityForSize(preset.size);
   }
 
-  String _scaleLabelForPreset(ImageSizePreset preset) {
-    final label = preset.label.trim();
-    final separatorIndex = label.indexOf(' ');
-    if (separatorIndex <= 0) {
-      return label;
-    }
-    return label.substring(0, separatorIndex);
-  }
-
   _ImagePresetOrientation _orientationForDimensions(
     ImageDimensions dimensions,
   ) {
@@ -356,15 +385,38 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
         : _ImagePresetOrientation.portrait;
   }
 
-  String _orientationLabel(_ImagePresetOrientation orientation) {
+  String _orientationLabel(
+    AppLocalizations l10n,
+    _ImagePresetOrientation orientation,
+  ) {
     return switch (orientation) {
-      _ImagePresetOrientation.square => '方图',
-      _ImagePresetOrientation.landscape => '横图',
-      _ImagePresetOrientation.portrait => '竖图',
+      _ImagePresetOrientation.square => l10n.imageAspectSquare,
+      _ImagePresetOrientation.landscape => l10n.imageAspectLandscape,
+      _ImagePresetOrientation.portrait => l10n.imageAspectPortrait,
     };
   }
 
+  String _presetMenuLabel(AppLocalizations l10n, ImageSizePreset preset) {
+    return '${localizedImageSizePresetLabel(l10n, preset)} · ${preset.size}';
+  }
+
+  String _presetLabelForValue(
+    AppLocalizations l10n,
+    ImageModelCapabilities capabilities,
+    String value,
+  ) {
+    ImageSizePreset? preset;
+    for (final candidate in capabilities.presets) {
+      if (candidate.size == value) {
+        preset = candidate;
+        break;
+      }
+    }
+    return preset == null ? value : _presetMenuLabel(l10n, preset);
+  }
+
   TextField _customSideInput({
+    required AppLocalizations l10n,
     required TextEditingController controller,
     required String label,
   }) {
@@ -385,8 +437,11 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
       ],
       decoration: InputDecoration(
         labelText: label,
-        helperText:
-            '${constraints.minSide}-${constraints.maxSide}，${constraints.step}px 倍数',
+        helperText: l10n.imageSizeConstraintHelper(
+          constraints.minSide,
+          constraints.maxSide,
+          constraints.step,
+        ),
       ),
       onChanged: (_) => _commitCustomSize(),
     );
@@ -431,11 +486,12 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
   }
 
   String _buildHelperText(
+    AppLocalizations l10n,
     ImageModelCapabilities capabilities,
     ImageSizeValidationResult validation,
   ) {
     if (!validation.isValid) {
-      return validation.message ?? '当前图片尺寸无效。';
+      return validation.message ?? l10n.imageSizeInvalidFallback;
     }
 
     final dimensions = validation.dimensions!;
@@ -443,24 +499,41 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
       dimensions,
       presets: capabilities.presets,
     );
-    final fallbackLabel = imageAspectName(dimensions.width, dimensions.height);
+    final fallbackLabel = imageAspectName(
+      dimensions.width,
+      dimensions.height,
+      l10n: l10n,
+    );
     if (capabilities.sizeMode == ImageSizeMode.aspectRatio) {
       final aspectRatio = geminiAspectRatioForDimensions(dimensions);
-      return '${preset?.label ?? fallbackLabel} · Gemini 画幅比例 $aspectRatio';
+      return l10n.imageSizeGeminiAspectSummary(
+        preset == null
+            ? fallbackLabel
+            : localizedImageSizePresetLabel(l10n, preset),
+        aspectRatio,
+      );
     }
 
     if (capabilities.allowsCustomPixels && preset == null) {
-      return '自定义尺寸 · 请求尺寸 ${dimensions.size}';
+      return l10n.imageSizeCustomRequestSummary(dimensions.size);
     }
 
-    return '${preset?.label ?? '固定分辨率'} · 请求尺寸 ${dimensions.size}';
+    return l10n.imageSizeRequestSummary(
+      preset == null
+          ? l10n.imageSizeFixedResolution
+          : localizedImageSizePresetLabel(l10n, preset),
+      dimensions.size,
+    );
   }
 
-  String _pickerLabel(ImageModelCapabilities capabilities) {
+  String _pickerLabel(
+    AppLocalizations l10n,
+    ImageModelCapabilities capabilities,
+  ) {
     return switch (capabilities.sizeMode) {
-      ImageSizeMode.customPixels => '分辨率',
-      ImageSizeMode.aspectRatio => '画幅比例',
-      ImageSizeMode.fixedPresets => '分辨率档位',
+      ImageSizeMode.customPixels => l10n.imageSizeModeResolution,
+      ImageSizeMode.aspectRatio => l10n.imageSizeModeAspectRatio,
+      ImageSizeMode.fixedPresets => l10n.imageSizeModeFixedPresets,
     };
   }
 
@@ -517,9 +590,13 @@ class _ImageSizeInputState extends State<ImageSizeInput> {
   }
 }
 
-String imageAspectName(int width, int height) {
+String imageAspectName(
+  int width,
+  int height, {
+  required AppLocalizations l10n,
+}) {
   if (width == height) {
-    return '方图';
+    return l10n.imageAspectSquare;
   }
-  return width > height ? '横图' : '竖图';
+  return width > height ? l10n.imageAspectLandscape : l10n.imageAspectPortrait;
 }

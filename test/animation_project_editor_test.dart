@@ -196,6 +196,45 @@ void main() {
     expect(transform.opacity, 0.5);
     expect(transform.flipX, isTrue);
 
+    const insertedAsset = FrameAsset(
+      id: 'asset-inserted',
+      path: '/tmp/inserted.png',
+      width: 4,
+      height: 4,
+      source: FrameAssetSource.editedFrame,
+      sourceFrameIndex: 1,
+    );
+    final inserted = editor.insertFrameAsset(
+      project: project,
+      trackId: 'track-main',
+      insertIndex: 1,
+      asset: insertedAsset,
+      delayMs: 150,
+    )!;
+    final insertedFrames = inserted.project
+        .trackById('track-main')!
+        .orderedFrames;
+    expect(insertedFrames.map(_assetId), [
+      'asset-first',
+      'asset-inserted',
+      'asset-second',
+    ]);
+    expect(insertedFrames.map((frame) => frame.delayMs), [100, 150, 120]);
+    expect(
+      inserted.project.assetById('asset-inserted')?.source,
+      FrameAssetSource.editedFrame,
+    );
+    expect(inserted.selectedTrackId, 'track-main');
+    expect(
+      editor.insertFrameAsset(
+        project: project,
+        trackId: 'track-main',
+        insertIndex: 3,
+        asset: insertedAsset,
+      ),
+      isNull,
+    );
+
     final lockedProject = editor
         .setTrackLocked(project: project, trackId: 'track-main', locked: true)!
         .project;
@@ -222,6 +261,15 @@ void main() {
         trackId: 'track-main',
         frameIndex: 0,
         transform: const FrameTransform(offsetX: 1),
+      ),
+      isNull,
+    );
+    expect(
+      editor.insertFrameAsset(
+        project: lockedProject,
+        trackId: 'track-main',
+        insertIndex: 1,
+        asset: insertedAsset,
       ),
       isNull,
     );

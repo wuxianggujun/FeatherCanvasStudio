@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_l10n.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/sprite_sheet_grid_spec.dart';
 import '../services/image_api_client.dart';
 import '../theme/layout_constants.dart';
@@ -53,18 +55,20 @@ class AppPanel extends StatelessWidget {
 }
 
 class FrameCountBadge extends StatelessWidget {
-  const FrameCountBadge({required this.count, this.label = '帧', super.key});
+  const FrameCountBadge({required this.count, this.label, super.key});
 
   final int count;
-  final String label;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final resolvedLabel = label ?? l10n.frameCountBadgeDefaultLabel;
 
     return Tooltip(
-      message: '共 $count $label',
+      message: l10n.frameCountBadgeTooltip(count, resolvedLabel),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colorScheme.secondaryContainer.withValues(alpha: 0.72),
@@ -83,7 +87,7 @@ class FrameCountBadge extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                '$count $label',
+                '$count $resolvedLabel',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelMedium?.copyWith(
@@ -131,32 +135,38 @@ class OptionDropdown<T> extends StatelessWidget {
       selectedValue = options.first;
     }
 
-    return DropdownButtonFormField<T>(
-      key: fieldKey,
-      initialValue: selectedValue,
-      decoration: InputDecoration(
-        labelText: label,
-        helperText: helperText,
-        isDense: isDense,
-      ),
-      items: [
-        for (final option in options)
-          DropdownMenuItem<T>(
-            value: option,
-            child: Text(
-              labelBuilder(option),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+    return Semantics(
+      container: true,
+      label: label,
+      value: selectedValue == null ? null : labelBuilder(selectedValue),
+      enabled: onChanged != null,
+      child: DropdownButtonFormField<T>(
+        key: fieldKey,
+        initialValue: selectedValue,
+        decoration: InputDecoration(
+          labelText: label,
+          helperText: helperText,
+          isDense: isDense,
+        ),
+        items: [
+          for (final option in options)
+            DropdownMenuItem<T>(
+              value: option,
+              child: Text(
+                labelBuilder(option),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-      ],
-      onChanged: onChanged == null
-          ? null
-          : (value) {
-              if (value != null) {
-                onChanged!(value);
-              }
-            },
+        ],
+        onChanged: onChanged == null
+            ? null
+            : (value) {
+                if (value != null) {
+                  onChanged!(value);
+                }
+              },
+      ),
     );
   }
 }
@@ -205,6 +215,7 @@ class SpriteSheetGridSpecControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
 
     return Container(
@@ -229,7 +240,12 @@ class SpriteSheetGridSpecControls extends StatelessWidget {
           ),
           title: Row(
             children: [
-              Expanded(child: Text('切片校准', style: theme.textTheme.titleSmall)),
+              Expanded(
+                child: Text(
+                  l10n.spriteSheetGridSpecTitle,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
               if (!gridSpec.isDefault)
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -241,7 +257,7 @@ class SpriteSheetGridSpecControls extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '已调整',
+                    l10n.spriteSheetGridSpecAdjusted,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSecondaryContainer,
                     ),
@@ -250,7 +266,7 @@ class SpriteSheetGridSpecControls extends StatelessWidget {
             ],
           ),
           subtitle: Text(
-            _gridSpecSummary(gridSpec),
+            _gridSpecSummary(l10n, gridSpec),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall,
@@ -259,20 +275,20 @@ class SpriteSheetGridSpecControls extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '用于处理 Sprite Sheet 外边距或格子间隔，预览、切片和替换都会按这里计算。',
+                l10n.spriteSheetGridSpecDescription,
                 style: theme.textTheme.bodySmall,
               ),
             ),
             const SizedBox(height: fieldGap),
             ResponsivePair(
               first: _GridSpecNumberField(
-                label: '左边距',
+                label: l10n.spriteSheetGridMarginLeft,
                 value: gridSpec.marginLeft,
                 onChanged: (value) =>
                     onChanged(gridSpec.copyWith(marginLeft: value)),
               ),
               second: _GridSpecNumberField(
-                label: '上边距',
+                label: l10n.spriteSheetGridMarginTop,
                 value: gridSpec.marginTop,
                 onChanged: (value) =>
                     onChanged(gridSpec.copyWith(marginTop: value)),
@@ -281,13 +297,13 @@ class SpriteSheetGridSpecControls extends StatelessWidget {
             const SizedBox(height: fieldGap),
             ResponsivePair(
               first: _GridSpecNumberField(
-                label: '右边距',
+                label: l10n.spriteSheetGridMarginRight,
                 value: gridSpec.marginRight,
                 onChanged: (value) =>
                     onChanged(gridSpec.copyWith(marginRight: value)),
               ),
               second: _GridSpecNumberField(
-                label: '下边距',
+                label: l10n.spriteSheetGridMarginBottom,
                 value: gridSpec.marginBottom,
                 onChanged: (value) =>
                     onChanged(gridSpec.copyWith(marginBottom: value)),
@@ -296,13 +312,13 @@ class SpriteSheetGridSpecControls extends StatelessWidget {
             const SizedBox(height: fieldGap),
             ResponsivePair(
               first: _GridSpecNumberField(
-                label: '列间距',
+                label: l10n.spriteSheetGridColumnGap,
                 value: gridSpec.columnGap,
                 onChanged: (value) =>
                     onChanged(gridSpec.copyWith(columnGap: value)),
               ),
               second: _GridSpecNumberField(
-                label: '行间距',
+                label: l10n.spriteSheetGridRowGap,
                 value: gridSpec.rowGap,
                 onChanged: (value) =>
                     onChanged(gridSpec.copyWith(rowGap: value)),
@@ -320,7 +336,7 @@ class SpriteSheetGridSpecControls extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.restart_alt),
-                  label: const Text('重置切片校准'),
+                  label: Text(l10n.spriteSheetGridReset),
                 ),
               ),
             ],
@@ -423,37 +439,44 @@ class _GridSpecNumberFieldState extends State<_GridSpecNumberField> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _controller,
-            focusNode: _focusNode,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: widget.label,
-              suffixText: 'px',
-              isDense: true,
+    final l10n = appL10nOf(context);
+
+    return Semantics(
+      container: true,
+      label: widget.label,
+      value: '${widget.value}px',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                labelText: widget.label,
+                suffixText: 'px',
+                isDense: true,
+              ),
+              onChanged: _handleTextChanged,
+              onSubmitted: (value) => _setText(_normalizedValue(value)),
             ),
-            onChanged: _handleTextChanged,
-            onSubmitted: (value) => _setText(_normalizedValue(value)),
           ),
-        ),
-        const SizedBox(width: 6),
-        _GridSpecStepButton(
-          tooltip: '${widget.label}减少 1px',
-          icon: Icons.remove,
-          onPressed: widget.value <= 0 ? null : () => _changeBy(-1),
-        ),
-        _GridSpecStepButton(
-          tooltip: '${widget.label}增加 1px',
-          icon: Icons.add,
-          onPressed: widget.value >= _maxValue ? null : () => _changeBy(1),
-        ),
-      ],
+          const SizedBox(width: 6),
+          _GridSpecStepButton(
+            tooltip: l10n.sharedDecreasePxTooltip(widget.label),
+            icon: Icons.remove,
+            onPressed: widget.value <= 0 ? null : () => _changeBy(-1),
+          ),
+          _GridSpecStepButton(
+            tooltip: l10n.sharedIncreasePxTooltip(widget.label),
+            icon: Icons.add,
+            onPressed: widget.value >= _maxValue ? null : () => _changeBy(1),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -617,61 +640,76 @@ class _IntegerStepperFieldState extends State<IntegerStepperField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final enabled = widget.enabled;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _controller,
-            focusNode: _focusNode,
-            enabled: enabled,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: widget.label,
-              suffixText: widget.suffixText,
-              helperText: widget.helperText,
+    final semanticValue =
+        '$_normalizedValue${widget.suffixText == null ? '' : ' ${widget.suffixText}'}';
+
+    return Semantics(
+      container: true,
+      label: widget.label,
+      value: semanticValue,
+      enabled: enabled,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              enabled: enabled,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                labelText: widget.label,
+                suffixText: widget.suffixText,
+                helperText: widget.helperText,
+              ),
+              onChanged: _handleTextChanged,
+              onSubmitted: (value) => _setText(_normalizedText(value)),
             ),
-            onChanged: _handleTextChanged,
-            onSubmitted: (value) => _setText(_normalizedText(value)),
           ),
-        ),
-        const SizedBox(width: 6),
-        _GridSpecStepButton(
-          tooltip: '${widget.label}减少 1',
-          icon: Icons.remove,
-          onPressed: enabled && _normalizedValue > _minValue
-              ? () => _changeBy(-1)
-              : null,
-        ),
-        _GridSpecStepButton(
-          tooltip: '${widget.label}增加 1',
-          icon: Icons.add,
-          onPressed:
-              enabled && (_maxValue == null || _normalizedValue < _maxValue!)
-              ? () => _changeBy(1)
-              : null,
-        ),
-      ],
+          const SizedBox(width: 6),
+          _GridSpecStepButton(
+            tooltip: l10n.sharedDecreaseTooltip(widget.label),
+            icon: Icons.remove,
+            onPressed: enabled && _normalizedValue > _minValue
+                ? () => _changeBy(-1)
+                : null,
+          ),
+          _GridSpecStepButton(
+            tooltip: l10n.sharedIncreaseTooltip(widget.label),
+            icon: Icons.add,
+            onPressed:
+                enabled && (_maxValue == null || _normalizedValue < _maxValue!)
+                ? () => _changeBy(1)
+                : null,
+          ),
+        ],
+      ),
     );
   }
 }
 
-String _gridSpecSummary(SpriteSheetGridSpec gridSpec) {
+String _gridSpecSummary(AppLocalizations l10n, SpriteSheetGridSpec gridSpec) {
   final parts = <String>[
-    if (gridSpec.marginLeft > 0) '左 ${gridSpec.marginLeft}px',
-    if (gridSpec.marginTop > 0) '上 ${gridSpec.marginTop}px',
-    if (gridSpec.marginRight > 0) '右 ${gridSpec.marginRight}px',
-    if (gridSpec.marginBottom > 0) '下 ${gridSpec.marginBottom}px',
-    if (gridSpec.columnGap > 0) '列间距 ${gridSpec.columnGap}px',
-    if (gridSpec.rowGap > 0) '行间距 ${gridSpec.rowGap}px',
+    if (gridSpec.marginLeft > 0)
+      l10n.spriteSheetGridMarginLeftSummary(gridSpec.marginLeft),
+    if (gridSpec.marginTop > 0)
+      l10n.spriteSheetGridMarginTopSummary(gridSpec.marginTop),
+    if (gridSpec.marginRight > 0)
+      l10n.spriteSheetGridMarginRightSummary(gridSpec.marginRight),
+    if (gridSpec.marginBottom > 0)
+      l10n.spriteSheetGridMarginBottomSummary(gridSpec.marginBottom),
+    if (gridSpec.columnGap > 0)
+      l10n.spriteSheetGridColumnGapSummary(gridSpec.columnGap),
+    if (gridSpec.rowGap > 0) l10n.spriteSheetGridRowGapSummary(gridSpec.rowGap),
   ];
 
   if (parts.isEmpty) {
-    return '默认：无边距 / 无间距';
+    return l10n.spriteSheetGridSpecDefaultSummary;
   }
   return parts.join(' · ');
 }
@@ -683,14 +721,18 @@ class RequestDebugButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+
     return Tooltip(
-      message: record == null ? '生成后可查看请求和返回值' : '查看请求参数和返回值',
+      message: record == null
+          ? l10n.requestDebugUnavailableTooltip
+          : l10n.requestDebugAvailableTooltip,
       child: OutlinedButton.icon(
         onPressed: record == null
             ? null
             : () => showRequestDebugDialog(context, record!),
         icon: const Icon(Icons.bug_report_outlined),
-        label: const Text('调试详情'),
+        label: Text(l10n.requestDebugButtonLabel),
       ),
     );
   }
@@ -701,9 +743,9 @@ class TemplateImagePicker extends StatelessWidget {
     required this.imagePath,
     required this.onPick,
     required this.onClear,
-    this.title = '模板图片',
+    this.title,
     this.pickLabel,
-    this.clearTooltip = '清除模板图片',
+    this.clearTooltip,
     this.previewHeight,
     super.key,
   });
@@ -711,15 +753,17 @@ class TemplateImagePicker extends StatelessWidget {
   final String? imagePath;
   final VoidCallback? onPick;
   final VoidCallback? onClear;
-  final String title;
+  final String? title;
   final String? pickLabel;
-  final String clearTooltip;
+  final String? clearTooltip;
   final double? previewHeight;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final path = imagePath;
+    final resolvedTitle = title ?? l10n.templateImagePickerDefaultTitle;
 
     return Container(
       width: double.infinity,
@@ -736,7 +780,7 @@ class TemplateImagePicker extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  path == null ? title : fileNameFromPath(path),
+                  path == null ? resolvedTitle : fileNameFromPath(path),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall,
@@ -745,10 +789,13 @@ class TemplateImagePicker extends StatelessWidget {
               TextButton.icon(
                 onPressed: onPick,
                 icon: const Icon(Icons.image_search_outlined),
-                label: Text(pickLabel ?? (path == null ? '选择' : '更换')),
+                label: Text(
+                  pickLabel ??
+                      (path == null ? l10n.selectAction : l10n.replaceAction),
+                ),
               ),
               IconButton(
-                tooltip: clearTooltip,
+                tooltip: clearTooltip ?? l10n.templateImagePickerClearTooltip,
                 onPressed: onClear,
                 icon: const Icon(Icons.close),
               ),
@@ -764,11 +811,12 @@ class TemplateImagePicker extends StatelessWidget {
                 child: Image.file(
                   File(path),
                   fit: BoxFit.contain,
+                  semanticLabel: fileNameFromPath(path),
                   errorBuilder: (context, error, stackTrace) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('模板图片加载失败。'),
+                        padding: const EdgeInsets.all(16),
+                        child: Text(l10n.templateImagePickerLoadFailed),
                       ),
                     );
                   },
@@ -789,9 +837,10 @@ Future<void> showRequestDebugDialog(
   return showDialog<void>(
     context: context,
     builder: (context) {
+      final l10n = appL10nOf(context);
       final theme = Theme.of(context);
       return AlertDialog(
-        title: const Text('请求调试详情'),
+        title: Text(l10n.requestDebugDialogTitle),
         content: SizedBox(
           width: 760,
           child: SingleChildScrollView(
@@ -810,14 +859,14 @@ Future<void> showRequestDebugDialog(
               Clipboard.setData(ClipboardData(text: record.formattedJson));
               ScaffoldMessenger.of(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('调试详情已复制。')));
+              ).showSnackBar(SnackBar(content: Text(l10n.requestDebugCopied)));
             },
             icon: const Icon(Icons.copy_outlined),
-            label: const Text('复制'),
+            label: Text(l10n.copyAction),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('关闭'),
+            child: Text(l10n.closeAction),
           ),
         ],
       );

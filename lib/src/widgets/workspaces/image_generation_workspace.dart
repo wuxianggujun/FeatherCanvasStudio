@@ -5,6 +5,7 @@ import '../../models/app_config.dart';
 import '../../models/generated_image.dart';
 import '../../models/image_advanced_settings.dart';
 import '../../state/image_generation_notifier.dart';
+import '../../l10n/app_l10n.dart';
 import '../../utils/image_dimensions.dart';
 import '../generation_form_widgets.dart';
 import '../layout_navigation_widgets.dart';
@@ -57,9 +58,10 @@ class ImageGenerationWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     return WorkspacePage(
-      title: '文本生图',
-      description: '选择已保存的接口配置，再填写提示词生成图片',
+      title: l10n.imageGenerationWorkspaceTitle,
+      description: l10n.imageGenerationWorkspaceDescription,
       controller: controller,
       trailing: historyControls,
       children: [

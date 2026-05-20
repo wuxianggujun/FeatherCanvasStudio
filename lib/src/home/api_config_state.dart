@@ -179,6 +179,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
 
   Future<void> _testCurrentApiConfig({bool basic = false}) async {
     final apiConfig = _currentApiConfigDraft;
+    final l10n = appL10nOf(context);
 
     setState(() {
       _isTestingApiConfig = true;
@@ -189,6 +190,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
       client: _client,
       apiConfig: apiConfig,
       basic: basic,
+      labels: localizedApiConfigServiceLabels(l10n),
       onDebugRecord: (record) {
         _apiTestDebugRecord = record;
       },
@@ -208,6 +210,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
   Future<void> _fetchCurrentApiModels() async {
     final apiConfig = _currentApiConfigDraft;
     final requestKey = apiModelRequestKey(apiConfig);
+    final l10n = appL10nOf(context);
 
     setState(() {
       _isFetchingApiModels = true;
@@ -221,6 +224,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
     final result = await fetchApiModelsForConfig(
       client: _client,
       apiConfig: apiConfig,
+      labels: localizedApiConfigServiceLabels(l10n),
     );
 
     if (!mounted) {
@@ -387,7 +391,7 @@ mixin _ApiConfigStateMixin on State<FeatherCanvasHomePage> {
 
   Future<void> _deleteSelectedApiConfig() async {
     if (_apiConfigs.length <= 1) {
-      _showMessage('至少需要保留一个接口配置');
+      _showMessage(appL10nOf(context).apiConfigDeleteLastMessage);
       return;
     }
 

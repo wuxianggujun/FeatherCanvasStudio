@@ -227,6 +227,28 @@ class AppTheme {
           return scheme.surfaceContainerHighest;
         }),
       ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbVisibility: const WidgetStatePropertyAll(true),
+        trackVisibility: const WidgetStatePropertyAll(false),
+        interactive: true,
+        thickness: const WidgetStatePropertyAll(8.0),
+        radius: const Radius.circular(4),
+        crossAxisMargin: 2,
+        mainAxisMargin: 4,
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.dragged)) {
+            return scheme.primary.withValues(alpha: 0.85);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return scheme.primary.withValues(alpha: 0.65);
+          }
+          return scheme.outline.withValues(alpha: isDark ? 0.55 : 0.45);
+        }),
+        trackColor: WidgetStatePropertyAll(
+          scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        ),
+        trackBorderColor: WidgetStatePropertyAll(scheme.outlineVariant),
+      ),
       textTheme: _buildTextTheme(scheme),
     );
   }

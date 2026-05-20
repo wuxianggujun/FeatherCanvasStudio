@@ -5,12 +5,17 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
     ThemeData theme,
     SpriteSheetPreviewData previewData,
   ) {
+    final l10n = appL10nOf(context);
+
     return Column(
       children: [
         for (var row = 0; row < previewData.rows; row++) ...[
           _FrameDirectionSection(
-            title: '第 ${row + 1} 行',
-            subtitle: '第 ${row + 1} 行 · ${previewData.columns} 列',
+            title: l10n.framePreviewRowTitle(row + 1),
+            subtitle: l10n.framePreviewRowSubtitle(
+              row + 1,
+              previewData.columns,
+            ),
             isCollapsed: _collapsedRows.contains(row),
             isSelected: row == _selectedRow,
             onToggle: () => _toggleCollapsedRow(row),
@@ -27,6 +32,7 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
     SpriteSheetPreviewData previewData,
     int row,
   ) {
+    final l10n = appL10nOf(context);
     final rowFrames = previewData.framesForRow(row);
     final start = row * previewData.columns;
     final frameCount = rowFrames.length;
@@ -59,6 +65,9 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                       key: ValueKey('sprite-frame-tile-${start + index}'),
                       frameBytes: rowFrames[index],
                       aspectRatio: previewData.frameAspectRatio,
+                      semanticsLabel:
+                          widget.labelBuilder?.call(start + index) ??
+                          l10n.framePreviewFrameOption(start + index + 1),
                       isSelected: _currentFrameIndex == start + index,
                       onTap: () => _selectFrameIndex(start + index),
                     ),
@@ -80,6 +89,10 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
     final safeFrameIndex = safeRow * previewData.columns + safeColumn;
     final currentFrame = previewData.frameAt(safeRow, safeColumn);
     final isTargetSelection = widget.onFrameSelected != null;
+    final l10n = appL10nOf(context);
+    final frameNavigationDisabledReason = previewData.columns <= 1
+        ? l10n.framePreviewPlaybackSingleFrameUnavailable
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +106,9 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
               width: 172,
               child: OptionDropdown<int>(
                 fieldKey: ValueKey('preview-frame-$safeFrameIndex'),
-                label: isTargetSelection ? '目标帧' : '帧号',
+                label: isTargetSelection
+                    ? l10n.framePreviewTargetFrameLabel
+                    : l10n.framePreviewFrameNumberLabel,
                 value: safeFrameIndex,
                 options: [
                   for (
@@ -103,7 +118,8 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                   )
                     index,
                 ],
-                labelBuilder: (index) => '第 ${index + 1} 帧',
+                labelBuilder: (index) =>
+                    l10n.framePreviewFrameOption(index + 1),
                 onChanged: _selectFrameIndex,
               ),
             ),
@@ -111,10 +127,10 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
               width: 172,
               child: OptionDropdown<int>(
                 fieldKey: ValueKey('preview-row-$safeRow'),
-                label: '行号',
+                label: l10n.framePreviewRowNumberLabel,
                 value: safeRow,
                 options: [for (var row = 0; row < previewData.rows; row++) row],
-                labelBuilder: (row) => '第 ${row + 1} 行',
+                labelBuilder: (row) => l10n.framePreviewRowTitle(row + 1),
                 onChanged: _selectRow,
               ),
             ),
@@ -123,7 +139,7 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                 width: 156,
                 child: OptionDropdown<int>(
                   fieldKey: ValueKey('preview-speed-$_frameDelayMs'),
-                  label: '播放速度',
+                  label: l10n.framePreviewPlaybackSpeedLabel,
                   value: _frameDelayMs,
                   options: FrameAnimationPreviewPanelState._playbackSpeeds,
                   labelBuilder: (speed) => '$speed ms',
@@ -131,75 +147,98 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
                 ),
               ),
             if (widget.enablePlayback)
-              FilledButton.tonalIcon(
-                onPressed: previewData.columns <= 1 ? null : _togglePlayback,
-                icon: Icon(
-                  _isPlaying ? Icons.pause_circle_outline : Icons.play_arrow,
+              _DisabledActionSemantics(
+                label: _isPlaying ? l10n.pauseAction : l10n.playAction,
+                disabledReason: frameNavigationDisabledReason,
+                child: FilledButton.tonalIcon(
+                  onPressed: previewData.columns <= 1 ? null : _togglePlayback,
+                  icon: Icon(
+                    _isPlaying ? Icons.pause_circle_outline : Icons.play_arrow,
+                  ),
+                  label: Text(_isPlaying ? l10n.pauseAction : l10n.playAction),
                 ),
-                label: Text(_isPlaying ? '暂停' : '播放'),
               ),
             FilledButton.tonalIcon(
               onPressed: () =>
                   widget.onExportSpriteSheet(previewData.sheetBytes),
               icon: const Icon(Icons.download_outlined),
-              label: const Text('导出 PNG'),
+              label: Text(l10n.framePreviewExportPng),
             ),
             if (widget.onSendToGif != null)
               FilledButton.tonalIcon(
                 onPressed: () => widget.onSendToGif!(previewData),
                 icon: const Icon(Icons.gif_box_outlined),
-                label: const Text('转 GIF'),
+                label: Text(l10n.framePreviewConvertGif),
               ),
             if (widget.onOpenInEditor != null)
               FilledButton.tonalIcon(
                 onPressed: () => widget.onOpenInEditor!(previewData),
                 icon: const Icon(Icons.grid_on_outlined),
-                label: const Text('像素化编辑'),
+                label: Text(l10n.framePreviewPixelEdit),
               ),
             Tooltip(
-              message: '上一帧',
-              child: IconButton(
-                onPressed: previewData.columns <= 1
-                    ? null
-                    : () => _stepFrame(-1),
-                icon: const Icon(Icons.chevron_left),
+              message: l10n.framePreviewPreviousFrameTooltip,
+              child: _DisabledActionSemantics(
+                label: l10n.framePreviewPreviousFrameTooltip,
+                disabledReason: frameNavigationDisabledReason,
+                child: IconButton(
+                  onPressed: previewData.columns <= 1
+                      ? null
+                      : () => _stepFrame(-1),
+                  icon: const Icon(Icons.chevron_left),
+                ),
               ),
             ),
             Tooltip(
-              message: '下一帧',
-              child: IconButton(
-                onPressed: previewData.columns <= 1
-                    ? null
-                    : () => _stepFrame(1),
-                icon: const Icon(Icons.chevron_right),
+              message: l10n.framePreviewNextFrameTooltip,
+              child: _DisabledActionSemantics(
+                label: l10n.framePreviewNextFrameTooltip,
+                disabledReason: frameNavigationDisabledReason,
+                child: IconButton(
+                  onPressed: previewData.columns <= 1
+                      ? null
+                      : () => _stepFrame(1),
+                  icon: const Icon(Icons.chevron_right),
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: fieldGap),
         Text(
-          '${isTargetSelection ? '当前目标' : '当前播放'}：第 ${safeFrameIndex + 1} 帧 · 第 ${safeRow + 1} 行 · 第 ${safeColumn + 1} / ${previewData.columns} 列',
+          l10n.framePreviewCurrentStatus(
+            isTargetSelection
+                ? l10n.framePreviewCurrentTargetPrefix
+                : l10n.framePreviewCurrentPlaybackPrefix,
+            safeFrameIndex + 1,
+            safeRow + 1,
+            safeColumn + 1,
+            previewData.columns,
+          ),
           style: theme.textTheme.labelLarge,
         ),
         const SizedBox(height: 6),
         Text(
           isTargetSelection
-              ? '点击右侧 Sprite Sheet 或网格切片，可以直接选择要替换的目标帧。'
-              : '点击右侧 Sprite Sheet 或网格切片，可以直接查看对应帧。',
+              ? l10n.framePreviewTargetSelectionHint
+              : l10n.framePreviewPlaybackHint,
           style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: fieldGap),
         LayoutBuilder(
           builder: (context, constraints) {
             final frameCard = _PreviewSurfaceCard(
-              title: '播放帧',
+              title: l10n.framePreviewPlaybackFrameTitle,
               aspectRatio: previewData.frameAspectRatio,
               child: _ZoomableFramePreview(frameBytes: currentFrame),
             );
             final sheetCard = _PreviewSurfaceCard(
-              title: 'Sprite Sheet',
-              subtitle:
-                  '${previewData.rows} 行 x ${previewData.columns} 列，来源 ${widget.generatedImages.length} 张结果图',
+              title: l10n.framePreviewSpriteSheetTitle,
+              subtitle: l10n.framePreviewSpriteSheetSubtitle(
+                previewData.rows,
+                previewData.columns,
+                widget.generatedImages.length,
+              ),
               aspectRatio: previewData.sheetAspectRatio,
               child: _SpriteSheetPreviewCanvas(
                 previewData: previewData,
@@ -230,6 +269,35 @@ extension _FrameAnimationPreviewBuilders on FrameAnimationPreviewPanelState {
           },
         ),
       ],
+    );
+  }
+}
+
+class _DisabledActionSemantics extends StatelessWidget {
+  const _DisabledActionSemantics({
+    required this.label,
+    required this.disabledReason,
+    required this.child,
+  });
+
+  final String label;
+  final String? disabledReason;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (disabledReason == null) {
+      return child;
+    }
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: label,
+      value: disabledReason,
+      button: true,
+      enabled: false,
+      child: child,
     );
   }
 }

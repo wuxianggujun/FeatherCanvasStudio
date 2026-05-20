@@ -12,10 +12,18 @@ class BatchGenerationFailureUpdate {
   final bool queuedForRetry;
 }
 
+typedef BatchAutoRetryMessageBuilder =
+    String Function({
+      required int retryAttempt,
+      required int maxRetryAttempts,
+      required String errorMessage,
+    });
+
 BatchGenerationFailureUpdate updateBatchJobAfterFailure({
   required List<BatchGenerationJob> jobs,
   required int jobIndex,
   required Object error,
+  BatchAutoRetryMessageBuilder? autoRetryMessageBuilder,
 }) {
   if (jobIndex < 0 || jobIndex >= jobs.length) {
     return BatchGenerationFailureUpdate(
@@ -28,14 +36,18 @@ BatchGenerationFailureUpdate updateBatchJobAfterFailure({
   final errorMessage = error.toString();
   if (current.canAutoRetry) {
     final retryAttempt = current.retryAttempt + 1;
+    final retryMessageBuilder =
+        autoRetryMessageBuilder ?? defaultBatchAutoRetryMessage;
     final retryJob = current.copyWith(
       status: BatchGenerationJobStatus.queued,
       retryAttempt: retryAttempt,
       resultImages: const <GeneratedImage>[],
       libraryItems: const <ImageLibraryItem>[],
-      errorMessage:
-          '上次失败，已移到队尾自动重试 '
-          '($retryAttempt/$maxBatchGenerationAutoRetryAttempts)：$errorMessage',
+      errorMessage: retryMessageBuilder(
+        retryAttempt: retryAttempt,
+        maxRetryAttempts: maxBatchGenerationAutoRetryAttempts,
+        errorMessage: errorMessage,
+      ),
     );
     return BatchGenerationFailureUpdate(
       jobs: [
@@ -60,4 +72,13 @@ BatchGenerationFailureUpdate updateBatchJobAfterFailure({
     ],
     queuedForRetry: false,
   );
+}
+
+String defaultBatchAutoRetryMessage({
+  required int retryAttempt,
+  required int maxRetryAttempts,
+  required String errorMessage,
+}) {
+  return '上次失败，已移到队尾自动重试 '
+      '($retryAttempt/$maxRetryAttempts)：$errorMessage';
 }

@@ -3,7 +3,6 @@
 part of 'package:feather_canvas_studio/main.dart';
 
 const int _historyDefaultMaxEntries = 50;
-const int _historyGifByteBudget = 64 * 1024 * 1024;
 
 mixin _HistoryStateMixin
     on
@@ -20,15 +19,10 @@ mixin _HistoryStateMixin
   bool _isApplyingHistory = false;
 
   HistoryStack _historyStackFor(WorkspaceFeature feature) {
-    return _historyStacks.putIfAbsent(feature, () {
-      if (feature == WorkspaceFeature.gifComposer) {
-        return HistoryStack(
-          maxEntries: _historyDefaultMaxEntries,
-          maxBytes: _historyGifByteBudget,
-        );
-      }
-      return HistoryStack(maxEntries: _historyDefaultMaxEntries);
-    });
+    return _historyStacks.putIfAbsent(
+      feature,
+      () => HistoryStack(maxEntries: _historyDefaultMaxEntries),
+    );
   }
 
   HistoryStack? _peekHistoryStack(WorkspaceFeature feature) =>
@@ -59,6 +53,7 @@ mixin _HistoryStateMixin
       return;
     }
 
+    final l10n = appL10nOf(context);
     var completed = 0;
     String? lastLabel;
     setState(() => _isApplyingHistory = true);
@@ -74,12 +69,12 @@ mixin _HistoryStateMixin
         lastLabel = action.label;
       }
       if (completed == 1 && lastLabel != null) {
-        _showMessage('已撤销：$lastLabel');
+        _showMessage(l10n.historyUndoSuccess(lastLabel));
       } else if (completed > 1 && lastLabel != null) {
-        _showMessage('已撤销 $completed 步：$lastLabel');
+        _showMessage(l10n.historyUndoMultiple(completed, lastLabel));
       }
     } catch (error) {
-      _showMessage('撤销失败：$error');
+      _showMessage(l10n.historyUndoFailed('$error'));
     } finally {
       if (mounted) {
         setState(() => _isApplyingHistory = false);
@@ -92,6 +87,7 @@ mixin _HistoryStateMixin
       return;
     }
 
+    final l10n = appL10nOf(context);
     var completed = 0;
     String? lastLabel;
     setState(() => _isApplyingHistory = true);
@@ -107,12 +103,12 @@ mixin _HistoryStateMixin
         lastLabel = action.label;
       }
       if (completed == 1 && lastLabel != null) {
-        _showMessage('已重做：$lastLabel');
+        _showMessage(l10n.historyRedoSuccess(lastLabel));
       } else if (completed > 1 && lastLabel != null) {
-        _showMessage('已重做 $completed 步：$lastLabel');
+        _showMessage(l10n.historyRedoMultiple(completed, lastLabel));
       }
     } catch (error) {
-      _showMessage('重做失败：$error');
+      _showMessage(l10n.historyRedoFailed('$error'));
     } finally {
       if (mounted) {
         setState(() => _isApplyingHistory = false);

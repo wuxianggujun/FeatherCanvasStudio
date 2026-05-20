@@ -1,8 +1,14 @@
+import '../l10n/generated/app_localizations.dart';
 import '../models/image_library_item.dart';
 import '../models/ui_state.dart';
 import 'display_labels.dart';
+import 'localized_display_labels.dart';
 
-bool imageLibraryItemMatchesSearch(ImageLibraryItem item, String query) {
+bool imageLibraryItemMatchesSearch(
+  ImageLibraryItem item,
+  String query, {
+  AppLocalizations? l10n,
+}) {
   final normalizedQuery = query.trim().toLowerCase();
   if (normalizedQuery.isEmpty) {
     return true;
@@ -21,13 +27,17 @@ bool imageLibraryItemMatchesSearch(ImageLibraryItem item, String query) {
     item.generation?.size ?? '',
     item.generation == null
         ? ''
-        : apiProviderKindLabel(item.generation!.providerKind),
+        : l10n == null
+        ? apiProviderKindLabel(item.generation!.providerKind)
+        : localizedApiProviderKindLabel(l10n, item.generation!.providerKind),
     item.animationProject?.title ?? '',
     item.animationProject == null
         ? ''
         : '${item.animationProject!.trackCount} ${item.animationProject!.frameCount} '
               '${item.animationProject!.canvasWidth}x${item.animationProject!.canvasHeight}',
-    imageAssetKindLabel(item.kind),
+    l10n == null
+        ? imageAssetKindLabel(item.kind)
+        : localizedImageAssetKindLabel(l10n, item.kind),
     fileNameFromPath(item.path),
   ].join(' ').toLowerCase();
 

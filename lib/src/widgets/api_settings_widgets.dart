@@ -4,11 +4,14 @@ import '../models/api_provider.dart';
 import '../models/app_config.dart';
 import '../models/ui_state.dart';
 import '../services/image_api_client.dart';
+import '../l10n/app_l10n.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/layout_constants.dart';
 import '../utils/api_config_logic.dart';
 import '../utils/date_formatting.dart';
 import '../utils/display_labels.dart';
 import '../utils/image_dimensions.dart';
+import '../utils/localized_display_labels.dart';
 import '../widgets/common_form_widgets.dart';
 import '../widgets/layout_navigation_widgets.dart';
 
@@ -19,16 +22,18 @@ String apiModelFetchHelperText({
   required bool isFetchingModels,
   required String? modelFetchErrorMessage,
   required DateTime? modelFetchedAt,
+  AppLocalizations? l10n,
 }) {
+  final strings = l10n ?? lookupAppLocalizations(const Locale('zh'));
   final hasFetchedModels = modelFetchedAt != null;
   if (isFetchingModels) {
     if (availableModels.isNotEmpty) {
-      return '正在刷新模型列表，当前显示 ${availableModels.length} 个缓存模型';
+      return strings.apiModelRefreshingCached(availableModels.length);
     }
     if (hasFetchedModels) {
-      return '正在刷新模型列表，当前缓存为空';
+      return strings.apiModelRefreshingEmptyCache;
     }
-    return '正在获取模型列表...';
+    return strings.apiModelFetching;
   }
 
   final hasModels = availableModels.isNotEmpty;
@@ -37,30 +42,38 @@ String apiModelFetchHelperText({
       modelFetchErrorMessage.trim().isNotEmpty;
   final fetchedAtLabel = modelFetchedAt == null
       ? null
-      : '上次成功：${formatTimestamp(modelFetchedAt)}';
+      : strings.apiModelLastSuccess(formatTimestamp(modelFetchedAt));
 
   if (hasError && hasModels) {
     return fetchedAtLabel == null
-        ? '刷新失败，继续显示 ${availableModels.length} 个缓存模型'
-        : '刷新失败，继续显示 ${availableModels.length} 个缓存模型，$fetchedAtLabel';
+        ? strings.apiModelRefreshFailedUsingCache(availableModels.length)
+        : strings.apiModelRefreshFailedUsingCacheWithTime(
+            availableModels.length,
+            fetchedAtLabel,
+          );
   }
   if (hasModels) {
     return fetchedAtLabel == null
-        ? '已获取 ${availableModels.length} 个模型'
-        : '已缓存 ${availableModels.length} 个模型，$fetchedAtLabel';
+        ? strings.apiModelFetchedCount(availableModels.length)
+        : strings.apiModelCachedCountWithTime(
+            availableModels.length,
+            fetchedAtLabel,
+          );
   }
   if (hasError) {
     if (hasFetchedModels) {
       return fetchedAtLabel == null
-          ? '模型列表刷新失败，当前缓存为空，可修正配置后重试'
-          : '模型列表刷新失败，当前缓存为空，$fetchedAtLabel';
+          ? strings.apiModelRefreshFailedEmptyCache
+          : strings.apiModelRefreshFailedEmptyCacheWithTime(fetchedAtLabel);
     }
-    return '模型列表获取失败，可修正配置后重试';
+    return strings.apiModelFetchFailed;
   }
   if (hasFetchedModels) {
-    return fetchedAtLabel == null ? '已获取 0 个模型' : '已缓存 0 个模型，$fetchedAtLabel';
+    return fetchedAtLabel == null
+        ? strings.apiModelFetchedCount(0)
+        : strings.apiModelCachedCountWithTime(0, fetchedAtLabel);
   }
-  return '尚未获取模型列表';
+  return strings.apiModelNotFetched;
 }
 
 class ApiConfigSelector extends StatelessWidget {
@@ -81,6 +94,7 @@ class ApiConfigSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final selectedExists = apiConfigs.any(
       (config) => config.id == selectedApiConfigId,
     );
@@ -93,33 +107,48 @@ class ApiConfigSelector extends StatelessWidget {
       selectedValue = apiConfigs.first.id;
     }
 
+    final selectedLabel = selectedValue == null
+        ? null
+        : apiConfigs
+              .firstWhere(
+                (config) => config.id == selectedValue,
+                orElse: () => apiConfigs.first,
+              )
+              .name;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: DropdownButtonFormField<String>(
-            key: ValueKey('api-config-$selectedValue'),
-            initialValue: selectedValue,
-            decoration: const InputDecoration(labelText: '接口配置'),
-            items: [
-              for (final config in apiConfigs)
-                DropdownMenuItem<String>(
-                  value: config.id,
-                  child: Text(config.name),
-                ),
-            ],
-            onChanged: !enabled || apiConfigs.isEmpty
-                ? null
-                : (value) {
-                    if (value != null) {
-                      onChanged(value);
-                    }
-                  },
+          child: Semantics(
+            container: true,
+            label: l10n.apiConfigLabel,
+            value: selectedLabel,
+            enabled: enabled && apiConfigs.isNotEmpty,
+            child: DropdownButtonFormField<String>(
+              key: ValueKey('api-config-$selectedValue'),
+              initialValue: selectedValue,
+              decoration: InputDecoration(labelText: l10n.apiConfigLabel),
+              items: [
+                for (final config in apiConfigs)
+                  DropdownMenuItem<String>(
+                    value: config.id,
+                    child: Text(config.name),
+                  ),
+              ],
+              onChanged: !enabled || apiConfigs.isEmpty
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        onChanged(value);
+                      }
+                    },
+            ),
           ),
         ),
         const SizedBox(width: 12),
         Tooltip(
-          message: '管理接口配置',
+          message: l10n.manageApiConfigTooltip,
           child: IconButton.filledTonal(
             onPressed: onOpenSettings,
             icon: const Icon(Icons.tune_outlined),
@@ -197,8 +226,10 @@ class ApiSettingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    final canDeleteApiConfig = apiConfigs.length > 1;
     return AppPanel(
-      title: '接口配置',
+      title: l10n.apiSettingsPanelTitle,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -208,14 +239,26 @@ class ApiSettingsPanel extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           IconButton(
-            tooltip: '新增配置',
+            tooltip: l10n.apiSettingsAddConfigTooltip,
             onPressed: onAddApiConfig,
             icon: const Icon(Icons.add),
           ),
-          IconButton(
-            tooltip: '删除当前配置',
-            onPressed: apiConfigs.length <= 1 ? null : onDeleteApiConfig,
-            icon: const Icon(Icons.delete_outline),
+          Semantics(
+            container: true,
+            excludeSemantics: !canDeleteApiConfig,
+            label: canDeleteApiConfig
+                ? null
+                : l10n.apiSettingsDeleteConfigTooltip,
+            value: canDeleteApiConfig
+                ? null
+                : l10n.apiSettingsDeleteConfigUnavailable,
+            button: !canDeleteApiConfig,
+            enabled: canDeleteApiConfig,
+            child: IconButton(
+              tooltip: l10n.apiSettingsDeleteConfigTooltip,
+              onPressed: canDeleteApiConfig ? onDeleteApiConfig : null,
+              icon: const Icon(Icons.delete_outline),
+            ),
           ),
         ],
       ),

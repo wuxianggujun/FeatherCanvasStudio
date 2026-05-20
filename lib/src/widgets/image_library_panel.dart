@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/image_library_item.dart';
 import '../models/image_asset_kind.dart';
 import '../models/ui_state.dart';
+import '../l10n/app_l10n.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/layout_constants.dart';
 import '../utils/date_formatting.dart';
-import '../utils/display_labels.dart';
+import '../utils/localized_display_labels.dart';
 import '../widgets/common_form_widgets.dart';
 import 'image_library_common_widgets.dart';
 
@@ -97,30 +100,34 @@ class ImageLibraryPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final selectedCount = selectedItemIds.length;
     final visibleSelectedCount = items
         .where((item) => selectedItemIds.contains(item.id))
         .length;
+    final canSelectVisible =
+        items.isNotEmpty && visibleSelectedCount < items.length;
     final controls = _buildControls(
+      l10n: l10n,
       selectedCount: selectedCount,
       visibleSelectedCount: visibleSelectedCount,
+      canSelectVisible: canSelectVisible,
     );
 
     return AppPanel(
-      title: '应用内作品',
+      title: l10n.imageLibraryPanelTitle,
       trailing: Text(
         items.length == totalCount
-            ? '$totalCount 个作品'
-            : '${items.length} / $totalCount',
+            ? l10n.imageLibraryTotalCount(totalCount)
+            : l10n.imageLibraryFilteredCount(items.length, totalCount),
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
       expandChild: fillAvailableHeight,
       child: fillAvailableHeight
-          ? CustomScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          ? _ImageLibrarySliverScrollView(
               slivers: [
                 SliverToBoxAdapter(
                   child: Column(
@@ -152,19 +159,21 @@ class ImageLibraryPanel extends StatelessWidget {
   }
 
   List<Widget> _buildControls({
+    required AppLocalizations l10n,
     required int selectedCount,
     required int visibleSelectedCount,
+    required bool canSelectVisible,
   }) {
     return [
       TextField(
         controller: searchController,
         decoration: InputDecoration(
-          labelText: '搜索作品',
+          labelText: l10n.imageLibrarySearchLabel,
           prefixIcon: const Icon(Icons.search),
           suffixIcon: searchQuery.trim().isEmpty
               ? null
               : IconButton(
-                  tooltip: '清空搜索',
+                  tooltip: l10n.imageLibraryClearSearchTooltip,
                   onPressed: onClearSearch,
                   icon: const Icon(Icons.close),
                 ),
@@ -181,10 +190,11 @@ class ImageLibraryPanel extends StatelessWidget {
               SizedBox(
                 width: 180,
                 child: OptionDropdown<String>(
-                  label: '项目',
+                  label: l10n.imageLibraryProjectLabel,
                   value: selectedProject,
                   options: ['', ...availableProjects],
-                  labelBuilder: (value) => value.isEmpty ? '全部项目' : value,
+                  labelBuilder: (value) =>
+                      value.isEmpty ? l10n.imageLibraryAllProjects : value,
                   onChanged: onProjectChanged,
                   isDense: true,
                 ),
@@ -193,10 +203,11 @@ class ImageLibraryPanel extends StatelessWidget {
               SizedBox(
                 width: 180,
                 child: OptionDropdown<String>(
-                  label: '标签',
+                  label: l10n.imageLibraryTagLabel,
                   value: selectedTag,
                   options: ['', ...availableTags],
-                  labelBuilder: (value) => value.isEmpty ? '全部标签' : value,
+                  labelBuilder: (value) =>
+                      value.isEmpty ? l10n.imageLibraryAllTags : value,
                   onChanged: onTagChanged,
                   isDense: true,
                 ),
@@ -212,7 +223,7 @@ class ImageLibraryPanel extends StatelessWidget {
           for (final filter in ImageLibraryKindFilter.values)
             FilterChip(
               selected: selectedFilter == filter,
-              label: Text(imageLibraryKindFilterLabel(filter)),
+              label: Text(localizedImageLibraryKindFilterLabel(l10n, filter)),
               onSelected: (_) => onFilterChanged(filter),
             ),
         ],
@@ -226,20 +237,27 @@ class ImageLibraryPanel extends StatelessWidget {
           SizedBox(
             width: 180,
             child: OptionDropdown<ImageLibrarySortOrder>(
-              label: '排序',
+              label: l10n.imageLibrarySortLabel,
               value: sortOrder,
               options: ImageLibrarySortOrder.values,
-              labelBuilder: imageLibrarySortOrderLabel,
+              labelBuilder: (sortOrder) =>
+                  localizedImageLibrarySortOrderLabel(l10n, sortOrder),
               onChanged: onSortOrderChanged,
               isDense: true,
             ),
           ),
-          OutlinedButton.icon(
-            onPressed: items.isEmpty || visibleSelectedCount == items.length
+          _DisabledActionSemantics(
+            label: l10n.imageLibrarySelectVisible,
+            disabledReason: canSelectVisible
                 ? null
-                : onSelectVisible,
-            icon: const Icon(Icons.checklist_outlined),
-            label: const Text('选择当前结果'),
+                : items.isEmpty
+                ? l10n.imageLibrarySelectVisibleEmptyUnavailable
+                : l10n.imageLibrarySelectVisibleAllSelectedUnavailable,
+            child: OutlinedButton.icon(
+              onPressed: canSelectVisible ? onSelectVisible : null,
+              icon: const Icon(Icons.checklist_outlined),
+              label: Text(l10n.imageLibrarySelectVisible),
+            ),
           ),
           if (groupedFrameCount > 0)
             FilterChip(
@@ -250,24 +268,24 @@ class ImageLibraryPanel extends StatelessWidget {
                     : Icons.visibility_off_outlined,
                 size: 18,
               ),
-              label: Text('展开切片 ($groupedFrameCount)'),
+              label: Text(l10n.imageLibraryExpandSlices(groupedFrameCount)),
               onSelected: onToggleStandaloneFrames,
             ),
           if (selectedCount > 0) ...[
             TextButton.icon(
               onPressed: onClearSelection,
               icon: const Icon(Icons.close),
-              label: Text('已选 $selectedCount'),
+              label: Text(l10n.imageLibrarySelectedCount(selectedCount)),
             ),
             OutlinedButton.icon(
               onPressed: onExportSelected,
               icon: const Icon(Icons.file_download_outlined),
-              label: const Text('导出已选'),
+              label: Text(l10n.imageLibraryExportSelected),
             ),
             FilledButton.icon(
               onPressed: onDeleteSelected,
               icon: const Icon(Icons.delete_outline),
-              label: const Text('删除已选'),
+              label: Text(l10n.imageLibraryDeleteSelected),
             ),
           ],
         ],
@@ -287,7 +305,9 @@ class ImageLibraryPanel extends StatelessWidget {
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Text(
-        totalCount == 0 ? '暂无作品。生成、导出、编辑或合成后的图片会保存到这里。' : '当前条件下没有作品。',
+        totalCount == 0
+            ? appL10nOf(context).imageLibraryEmptyAll
+            : appL10nOf(context).imageLibraryEmptyFiltered,
         style: theme.textTheme.bodyMedium,
       ),
     );
@@ -313,6 +333,35 @@ class ImageLibraryPanel extends StatelessWidget {
       savedFrameCountFor: savedFrameCountFor,
       shrinkWrap: !fillAvailableHeight,
       asSliver: asSliver,
+    );
+  }
+}
+
+class _DisabledActionSemantics extends StatelessWidget {
+  const _DisabledActionSemantics({
+    required this.label,
+    required this.disabledReason,
+    required this.child,
+  });
+
+  final String label;
+  final String? disabledReason;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (disabledReason == null) {
+      return child;
+    }
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: label,
+      value: disabledReason,
+      button: true,
+      enabled: false,
+      child: child,
     );
   }
 }
@@ -533,101 +582,115 @@ class _ImageLibraryPaginationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final isFirstPage = pageIndex <= 0;
     final isLastPage = pageIndex >= pageCount - 1;
     final rangeLabel = totalCount == 0
-        ? '0 / 0'
-        : '${startIndex + 1}-$endIndex / $totalCount';
+        ? l10n.imageLibraryPageEmptyRange
+        : l10n.imageLibraryPageRange(startIndex + 1, endIndex, totalCount);
+    final statusLabel = l10n.imageLibraryPageStatus(
+      pageIndex + 1,
+      pageCount,
+      rangeLabel,
+    );
+    final semanticLabel = l10n.imageLibraryPaginationSemanticLabel(
+      statusLabel,
+      pageSize,
+    );
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text(
-              '第 ${pageIndex + 1} / $pageCount 页 · $rangeLabel',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+    return Semantics(
+      container: true,
+      label: semanticLabel,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                statusLabel,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _PaginationIconButton(
-                  tooltip: '第一页',
-                  icon: Icons.first_page,
-                  onPressed: isFirstPage ? null : () => onPageChanged(0),
-                ),
-                _PaginationIconButton(
-                  tooltip: '上一页',
-                  icon: Icons.chevron_left,
-                  onPressed: isFirstPage
-                      ? null
-                      : () => onPageChanged(pageIndex - 1),
-                ),
-                _PaginationIconButton(
-                  tooltip: '下一页',
-                  icon: Icons.chevron_right,
-                  onPressed: isLastPage
-                      ? null
-                      : () => onPageChanged(pageIndex + 1),
-                ),
-                _PaginationIconButton(
-                  tooltip: '最后一页',
-                  icon: Icons.last_page,
-                  onPressed: isLastPage
-                      ? null
-                      : () => onPageChanged(pageCount - 1),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '每页',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _PaginationIconButton(
+                    tooltip: l10n.imageLibraryFirstPageTooltip,
+                    icon: Icons.first_page,
+                    onPressed: isFirstPage ? null : () => onPageChanged(0),
                   ),
-                ),
-                const SizedBox(width: 6),
-                DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: pageSize,
-                    isDense: true,
-                    items: [
-                      for (final size in _imageLibraryPageSizeOptions)
-                        DropdownMenuItem<int>(
-                          value: size,
-                          child: Text('$size'),
-                        ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        onPageSizeChanged(value);
-                      }
-                    },
+                  _PaginationIconButton(
+                    tooltip: l10n.imageLibraryPreviousPageTooltip,
+                    icon: Icons.chevron_left,
+                    onPressed: isFirstPage
+                        ? null
+                        : () => onPageChanged(pageIndex - 1),
                   ),
-                ),
-                const SizedBox(width: 2),
-                Text(
-                  '个',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  _PaginationIconButton(
+                    tooltip: l10n.imageLibraryNextPageTooltip,
+                    icon: Icons.chevron_right,
+                    onPressed: isLastPage
+                        ? null
+                        : () => onPageChanged(pageIndex + 1),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  _PaginationIconButton(
+                    tooltip: l10n.imageLibraryLastPageTooltip,
+                    icon: Icons.last_page,
+                    onPressed: isLastPage
+                        ? null
+                        : () => onPageChanged(pageCount - 1),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    l10n.imageLibraryPageSizePrefix,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: pageSize,
+                      isDense: true,
+                      items: [
+                        for (final size in _imageLibraryPageSizeOptions)
+                          DropdownMenuItem<int>(
+                            value: size,
+                            child: Text('$size'),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          onPageSizeChanged(value);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    l10n.imageLibraryPageSizeSuffix,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -812,3 +875,36 @@ const SliverGridDelegateWithMaxCrossAxisExtent _imageLibraryGridDelegate =
       crossAxisSpacing: 14,
       childAspectRatio: 0.88,
     );
+
+class _ImageLibrarySliverScrollView extends StatefulWidget {
+  const _ImageLibrarySliverScrollView({required this.slivers});
+
+  final List<Widget> slivers;
+
+  @override
+  State<_ImageLibrarySliverScrollView> createState() =>
+      _ImageLibrarySliverScrollViewState();
+}
+
+class _ImageLibrarySliverScrollViewState
+    extends State<_ImageLibrarySliverScrollView> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scrollbar(
+      controller: _controller,
+      child: CustomScrollView(
+        controller: _controller,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: widget.slivers,
+      ),
+    );
+  }
+}

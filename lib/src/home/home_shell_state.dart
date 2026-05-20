@@ -24,9 +24,7 @@ class _ResetDefaultsSnapshot {
     required this.size,
     required this.imageCount,
     required this.advancedSettings,
-    required this.animationRows,
-    required this.animationColumns,
-    required this.animationGridSpec,
+    required this.spriteSheetImportConfig,
     required this.editorRows,
     required this.editorColumns,
     required this.editorGridSpec,
@@ -45,9 +43,6 @@ class _ResetDefaultsSnapshot {
     required this.generalEditorImageInfo,
     required this.generalEditorErrorMessage,
     required this.editorErrorMessage,
-    required this.gifSourceFrames,
-    required this.gifOutputPath,
-    required this.gifErrorMessage,
     required this.gifDefaultFrameDelayMs,
     required this.gifLoopCount,
     required this.gifPlaybackMode,
@@ -71,9 +66,7 @@ class _ResetDefaultsSnapshot {
   final String size;
   final int imageCount;
   final ImageAdvancedSettings advancedSettings;
-  final int animationRows;
-  final int animationColumns;
-  final SpriteSheetGridSpec animationGridSpec;
+  final SpriteSheetImportConfig spriteSheetImportConfig;
   final int editorRows;
   final int editorColumns;
   final SpriteSheetGridSpec editorGridSpec;
@@ -92,9 +85,6 @@ class _ResetDefaultsSnapshot {
   final ImageInspectionResult? generalEditorImageInfo;
   final String? generalEditorErrorMessage;
   final String? editorErrorMessage;
-  final List<GifSourceFrame> gifSourceFrames;
-  final String? gifOutputPath;
-  final String? gifErrorMessage;
   final int gifDefaultFrameDelayMs;
   final int gifLoopCount;
   final GifPlaybackMode gifPlaybackMode;
@@ -116,7 +106,6 @@ mixin _HomeShellStateMixin
   AppLocalStore get _store;
   ImageGenerationNotifier get _imageGenerationNotifier;
   BatchGenerationNotifier get _batchGenerationNotifier;
-  GifComposerNotifier get _gifComposerNotifier;
   ImageEditorNotifier get _imageEditorNotifier;
   ImageLibraryNotifier get _imageLibraryNotifier;
   @override
@@ -152,11 +141,6 @@ mixin _HomeShellStateMixin
   set _isImageEditorFocusMode(bool value);
   bool get _isPixelArtFocusMode;
   set _isPixelArtFocusMode(bool value);
-  @override
-  List<GifSourceFrame> get _gifSourceFrames;
-  @override
-  set _gifSourceFrames(List<GifSourceFrame> value);
-  @override
   set _animationErrorMessage(String? value);
   @override
   set _imageRequestDebugRecord(ImageRequestDebugRecord? value);
@@ -167,11 +151,9 @@ mixin _HomeShellStateMixin
   @override
   set _animationFrames(List<GeneratedImage> value);
   @override
-  set _animationRows(int value);
+  SpriteSheetImportConfig get _spriteSheetImportConfig;
   @override
-  set _animationColumns(int value);
-  @override
-  set _animationGridSpec(SpriteSheetGridSpec value);
+  set _spriteSheetImportConfig(SpriteSheetImportConfig value);
   @override
   set _editorRows(int value);
   @override
@@ -182,11 +164,6 @@ mixin _HomeShellStateMixin
   set _editorTargetFrameIndex(int value);
   @override
   set _editorFrameFit(SpriteSheetFrameFit value);
-  @override
-  set _gifOutputPath(String? value);
-  @override
-  set _gifErrorMessage(String? value);
-  @override
   set _gifDefaultFrameDelayMs(int value);
   @override
   set _gifLoopCount(int value);
@@ -359,6 +336,7 @@ mixin _HomeShellStateMixin
   Future<void> _resetToDefaults() async {
     _flushPendingGenerationTextHistory();
 
+    final l10n = appL10nOf(context);
     final before = _captureResetDefaultsSnapshot(includeCurrentApiDraft: true);
     final after = _defaultResetDefaultsSnapshot();
     await _restoreResetDefaultsSnapshot(after);
@@ -366,13 +344,13 @@ mixin _HomeShellStateMixin
     _pushHistory(
       WorkspaceFeature.localSettings,
       HistoryAction(
-        label: '恢复默认表单',
+        label: l10n.homeResetDefaultsAction,
         apply: () => _restoreResetDefaultsSnapshot(after),
         revert: () => _restoreResetDefaultsSnapshot(before),
       ),
     );
     if (mounted) {
-      _showMessage('表单已重置，可用 Ctrl+Z 撤销');
+      _showMessage(l10n.homeResetDefaultsMessage);
     }
   }
 
@@ -403,9 +381,7 @@ mixin _HomeShellStateMixin
       size: _size,
       imageCount: _imageCount,
       advancedSettings: _advancedSettings,
-      animationRows: _animationRows,
-      animationColumns: _animationColumns,
-      animationGridSpec: _animationGridSpec,
+      spriteSheetImportConfig: _spriteSheetImportConfig,
       editorRows: _editorRows,
       editorColumns: _editorColumns,
       editorGridSpec: _editorGridSpec,
@@ -424,9 +400,6 @@ mixin _HomeShellStateMixin
       generalEditorImageInfo: _generalEditorImageInfo,
       generalEditorErrorMessage: _generalEditorErrorMessage,
       editorErrorMessage: _editorErrorMessage,
-      gifSourceFrames: List<GifSourceFrame>.unmodifiable(_gifSourceFrames),
-      gifOutputPath: _gifOutputPath,
-      gifErrorMessage: _gifErrorMessage,
       gifDefaultFrameDelayMs: _gifDefaultFrameDelayMs,
       gifLoopCount: _gifLoopCount,
       gifPlaybackMode: _gifPlaybackMode,
@@ -454,12 +427,7 @@ mixin _HomeShellStateMixin
       size: defaultAppSettings.size,
       imageCount: defaultAppSettings.imageCount,
       advancedSettings: defaultAppSettings.advancedSettings,
-      animationRows: defaultAnimationRows,
-      animationColumns: defaultAnimationColumns,
-      animationGridSpec: const SpriteSheetGridSpec(
-        rows: defaultAnimationRows,
-        columns: defaultAnimationColumns,
-      ),
+      spriteSheetImportConfig: SpriteSheetImportConfig.defaults(),
       editorRows: defaultEditorRows,
       editorColumns: defaultEditorColumns,
       editorGridSpec: const SpriteSheetGridSpec(
@@ -481,9 +449,6 @@ mixin _HomeShellStateMixin
       generalEditorImageInfo: null,
       generalEditorErrorMessage: null,
       editorErrorMessage: null,
-      gifSourceFrames: const [],
-      gifOutputPath: null,
-      gifErrorMessage: null,
       gifDefaultFrameDelayMs: defaultGifFrameDelayMs,
       gifLoopCount: defaultGifLoopCount,
       gifPlaybackMode: defaultGifPlaybackMode,
@@ -525,9 +490,7 @@ mixin _HomeShellStateMixin
       );
       _imageCount = normalizeImageGenerationTargetCount(snapshot.imageCount);
       _advancedSettings = snapshot.advancedSettings;
-      _animationRows = snapshot.animationRows;
-      _animationColumns = snapshot.animationColumns;
-      _animationGridSpec = snapshot.animationGridSpec;
+      _spriteSheetImportConfig = snapshot.spriteSheetImportConfig;
       _editorRows = snapshot.editorRows;
       _editorColumns = snapshot.editorColumns;
       _editorGridSpec = snapshot.editorGridSpec;
@@ -546,9 +509,6 @@ mixin _HomeShellStateMixin
       _generalEditorImageInfo = snapshot.generalEditorImageInfo;
       _generalEditorErrorMessage = snapshot.generalEditorErrorMessage;
       _editorErrorMessage = snapshot.editorErrorMessage;
-      _gifSourceFrames = snapshot.gifSourceFrames;
-      _gifOutputPath = snapshot.gifOutputPath;
-      _gifErrorMessage = snapshot.gifErrorMessage;
       _gifDefaultFrameDelayMs = snapshot.gifDefaultFrameDelayMs;
       _gifLoopCount = snapshot.gifLoopCount;
       _gifPlaybackMode = snapshot.gifPlaybackMode;
@@ -672,9 +632,6 @@ mixin _HomeShellStateMixin
         ChangeNotifierProvider<BatchGenerationNotifier>.value(
           value: _batchGenerationNotifier,
         ),
-        ChangeNotifierProvider<GifComposerNotifier>.value(
-          value: _gifComposerNotifier,
-        ),
         ChangeNotifierProvider<ImageEditorNotifier>.value(
           value: _imageEditorNotifier,
         ),
@@ -721,9 +678,7 @@ mixin _HomeShellStateMixin
                 ],
                 Expanded(
                   child: Column(
-                    children: [
-                      Expanded(child: _buildSelectedWorkspace()),
-                    ],
+                    children: [Expanded(child: _buildSelectedWorkspace())],
                   ),
                 ),
               ],
@@ -738,9 +693,11 @@ mixin _HomeShellStateMixin
     if (!_workspaceSupportsHistory(_selectedFeature)) {
       return const SizedBox.shrink();
     }
+    final l10n = appL10nOf(context);
     final stack = _peekHistoryStack(_selectedFeature);
     if (stack == null) {
       return _buildHistoryButtonRow(
+        l10n: l10n,
         isApplyingHistory: _isApplyingHistory,
         canUndo: false,
         canRedo: false,
@@ -754,6 +711,7 @@ mixin _HomeShellStateMixin
     return ListenableBuilder(
       listenable: stack,
       builder: (context, _) => _buildHistoryButtonRow(
+        l10n: l10n,
         isApplyingHistory: _isApplyingHistory,
         canUndo: !_isApplyingHistory && stack.canUndo,
         canRedo: !_isApplyingHistory && stack.canRedo,
@@ -767,6 +725,7 @@ mixin _HomeShellStateMixin
   }
 
   Widget _buildHistoryButtonRow({
+    required AppLocalizations l10n,
     required bool isApplyingHistory,
     required bool canUndo,
     required bool canRedo,
@@ -777,50 +736,81 @@ mixin _HomeShellStateMixin
     bool compact = false,
   }) {
     final hasHistory = undoActions.isNotEmpty || redoActions.isNotEmpty;
+    final undoTooltipBase = '${l10n.historyUndo} (Ctrl+Z)';
+    final redoTooltipBase = '${l10n.historyRedo} (Ctrl+Y)';
     final buttons = [
-      IconButton(
-        icon: const Icon(Icons.undo, size: 20),
-        tooltip: isApplyingHistory
-            ? '历史操作执行中'
-            : canUndo
-            ? '撤销 (Ctrl+Z)：${undoLabel ?? ''}'
-            : '撤销 (Ctrl+Z)',
-        onPressed: canUndo ? () => unawaited(_undoCurrentWorkspace()) : null,
-        visualDensity: VisualDensity.compact,
+      _HistoryActionSemantics(
+        label: l10n.historyUndo,
+        disabledReason: canUndo
+            ? null
+            : isApplyingHistory
+            ? l10n.historyApplying
+            : l10n.historyUndoUnavailable,
+        child: IconButton(
+          icon: const Icon(Icons.undo, size: 20),
+          tooltip: isApplyingHistory
+              ? l10n.historyApplying
+              : canUndo
+              ? (undoLabel == null
+                    ? undoTooltipBase
+                    : '$undoTooltipBase：$undoLabel')
+              : undoTooltipBase,
+          onPressed: canUndo ? () => unawaited(_undoCurrentWorkspace()) : null,
+          visualDensity: VisualDensity.compact,
+        ),
       ),
-      IconButton(
-        icon: const Icon(Icons.redo, size: 20),
-        tooltip: isApplyingHistory
-            ? '历史操作执行中'
-            : canRedo
-            ? '重做 (Ctrl+Y)：${redoLabel ?? ''}'
-            : '重做 (Ctrl+Y)',
-        onPressed: canRedo ? () => unawaited(_redoCurrentWorkspace()) : null,
-        visualDensity: VisualDensity.compact,
+      _HistoryActionSemantics(
+        label: l10n.historyRedo,
+        disabledReason: canRedo
+            ? null
+            : isApplyingHistory
+            ? l10n.historyApplying
+            : l10n.historyRedoUnavailable,
+        child: IconButton(
+          icon: const Icon(Icons.redo, size: 20),
+          tooltip: isApplyingHistory
+              ? l10n.historyApplying
+              : canRedo
+              ? (redoLabel == null
+                    ? redoTooltipBase
+                    : '$redoTooltipBase：$redoLabel')
+              : redoTooltipBase,
+          onPressed: canRedo ? () => unawaited(_redoCurrentWorkspace()) : null,
+          visualDensity: VisualDensity.compact,
+        ),
       ),
-      PopupMenuButton<int>(
-        tooltip: isApplyingHistory
-            ? '历史操作执行中'
-            : hasHistory
-            ? '历史记录'
-            : '暂无历史',
-        enabled: !isApplyingHistory && hasHistory,
-        icon: const Icon(Icons.history, size: 20),
-        iconSize: 20,
-        padding: EdgeInsets.zero,
-        onSelected: (steps) {
-          if (_isApplyingHistory) {
-            return;
-          }
-          if (steps > 0) {
-            unawaited(_undoCurrentWorkspace(steps: steps));
-          } else if (steps < 0) {
-            unawaited(_redoCurrentWorkspace(steps: -steps));
-          }
-        },
-        itemBuilder: (context) => _buildHistoryMenuItems(
-          undoActions: undoActions,
-          redoActions: redoActions,
+      _HistoryActionSemantics(
+        label: l10n.historyMenuTitle,
+        disabledReason: !isApplyingHistory && hasHistory
+            ? null
+            : isApplyingHistory
+            ? l10n.historyApplying
+            : l10n.historyMenuEmpty,
+        child: PopupMenuButton<int>(
+          tooltip: isApplyingHistory
+              ? l10n.historyApplying
+              : hasHistory
+              ? l10n.historyMenuTitle
+              : l10n.historyMenuEmpty,
+          enabled: !isApplyingHistory && hasHistory,
+          icon: const Icon(Icons.history, size: 20),
+          iconSize: 20,
+          padding: EdgeInsets.zero,
+          onSelected: (steps) {
+            if (_isApplyingHistory) {
+              return;
+            }
+            if (steps > 0) {
+              unawaited(_undoCurrentWorkspace(steps: steps));
+            } else if (steps < 0) {
+              unawaited(_redoCurrentWorkspace(steps: -steps));
+            }
+          },
+          itemBuilder: (context) => _buildHistoryMenuItems(
+            l10n: l10n,
+            undoActions: undoActions,
+            redoActions: redoActions,
+          ),
         ),
       ),
     ];
@@ -836,20 +826,23 @@ mixin _HomeShellStateMixin
   }
 
   List<PopupMenuEntry<int>> _buildHistoryMenuItems({
+    required AppLocalizations l10n,
     required List<HistoryAction> undoActions,
     required List<HistoryAction> redoActions,
   }) {
     final items = <PopupMenuEntry<int>>[];
 
     if (undoActions.isNotEmpty) {
-      items.add(_historyMenuHeader('撤销到'));
+      items.add(_historyMenuHeader(l10n.historyUndoTo));
       for (var index = 0; index < undoActions.length; index++) {
         items.add(
           _historyMenuAction(
             value: index + 1,
             icon: Icons.undo,
             label: undoActions[index].label,
-            stepLabel: index == 0 ? '下一步' : '${index + 1} 步',
+            stepLabel: index == 0
+                ? l10n.historyNextStep
+                : l10n.historyStepCount(index + 1),
           ),
         );
       }
@@ -860,14 +853,16 @@ mixin _HomeShellStateMixin
     }
 
     if (redoActions.isNotEmpty) {
-      items.add(_historyMenuHeader('重做到'));
+      items.add(_historyMenuHeader(l10n.historyRedoTo));
       for (var index = 0; index < redoActions.length; index++) {
         items.add(
           _historyMenuAction(
             value: -(index + 1),
             icon: Icons.redo,
             label: redoActions[index].label,
-            stepLabel: index == 0 ? '下一步' : '${index + 1} 步',
+            stepLabel: index == 0
+                ? l10n.historyNextStep
+                : l10n.historyStepCount(index + 1),
           ),
         );
       }
@@ -911,7 +906,6 @@ mixin _HomeShellStateMixin
         feature == WorkspaceFeature.animationProject ||
         feature == WorkspaceFeature.imageEditor ||
         feature == WorkspaceFeature.pixelArtEditor ||
-        feature == WorkspaceFeature.gifComposer ||
         feature == WorkspaceFeature.imageLibrary ||
         feature == WorkspaceFeature.localSettings;
   }
@@ -921,6 +915,7 @@ mixin _HomeShellStateMixin
     int width,
     int height,
   ) async {
+    final l10n = appL10nOf(context);
     try {
       final groupId = 'pixel_art_${DateTime.now().microsecondsSinceEpoch}';
       final file = await _store.saveGeneratedImageBytes(
@@ -932,9 +927,9 @@ mixin _HomeShellStateMixin
         store: _store,
         path: file.path,
         kind: ImageAssetKind.editedImage,
-        title: '像素画',
-        source: '像素画编辑',
-        prompt: '像素画编辑 · $width x $height',
+        title: l10n.homePixelArtTitle,
+        source: l10n.homePixelArtSource,
+        prompt: l10n.homePixelArtPrompt(width, height),
         groupId: groupId,
       );
       if (!mounted) {
@@ -943,13 +938,13 @@ mixin _HomeShellStateMixin
       _imageLibrary = [item, ..._imageLibrary];
       _pushImageLibraryAppendHistory(
         feature: WorkspaceFeature.pixelArtEditor,
-        label: '保存像素画',
+        label: l10n.homePixelArtSaveAction,
         appendedItems: [item],
       );
-      _showMessage('像素画已保存到作品库：${fileNameFromPath(file.path)}');
+      _showMessage(l10n.homePixelArtSavedMessage(fileNameFromPath(file.path)));
     } catch (error) {
       if (mounted) {
-        _showMessage('保存像素画失败：$error');
+        _showMessage(l10n.homePixelArtSaveFailedMessage('$error'));
       }
     }
   }
@@ -967,10 +962,38 @@ mixin _HomeShellStateMixin
             setState(() => _isPixelArtFocusMode = value),
         historyControls: _buildCompactHistoryControls(),
       ),
-      WorkspaceFeature.gifComposer => _buildGifComposerWorkspace(),
       WorkspaceFeature.imageLibrary => _buildImageLibraryWorkspace(),
       WorkspaceFeature.apiSettings => _buildApiSettingsWorkspace(),
       WorkspaceFeature.localSettings => _buildLocalSettingsWorkspace(),
     };
+  }
+}
+
+class _HistoryActionSemantics extends StatelessWidget {
+  const _HistoryActionSemantics({
+    required this.label,
+    required this.disabledReason,
+    required this.child,
+  });
+
+  final String label;
+  final String? disabledReason;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (disabledReason == null) {
+      return child;
+    }
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: label,
+      value: disabledReason,
+      button: true,
+      enabled: false,
+      child: child,
+    );
   }
 }

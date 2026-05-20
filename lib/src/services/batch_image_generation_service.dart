@@ -14,6 +14,8 @@ class BatchImageGenerationService {
     required AppLocalStore store,
     required ImageLibraryService imageLibraryService,
     required ImageGenerationService imageGenerationService,
+    required String titlePrefix,
+    required String source,
     void Function(ImageRequestDebugRecord record)? onDebugRecord,
   }) async {
     final result = await imageGenerationService.generateTextImages(
@@ -28,8 +30,8 @@ class BatchImageGenerationService {
       advancedSettings: job.advancedSettings,
       user: job.user,
       libraryKind: ImageAssetKind.generatedImage,
-      titlePrefix: '批量生图',
-      source: '批量生成',
+      titlePrefix: titlePrefix,
+      source: source,
       onDebugRecord: onDebugRecord,
     );
 

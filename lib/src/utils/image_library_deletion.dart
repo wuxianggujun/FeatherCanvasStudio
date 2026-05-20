@@ -1,6 +1,5 @@
 import '../models/image_asset_kind.dart';
 import '../models/image_library_item.dart';
-import '../services/gif_composer_service.dart';
 
 class ImageLibraryDeletePlan {
   const ImageLibraryDeletePlan({
@@ -44,14 +43,12 @@ class ImageLibraryReferenceCleanup {
     required this.editorImagePath,
     required this.editorPatchImagePath,
     required this.animationTemplateImagePath,
-    required this.gifSourceFrames,
   });
 
   final Set<String> selectedItemIds;
   final String? editorImagePath;
   final String? editorPatchImagePath;
   final String? animationTemplateImagePath;
-  final List<GifSourceFrame> gifSourceFrames;
 }
 
 ImageLibraryDeletePlan buildImageLibraryDeletePlan({
@@ -109,7 +106,6 @@ ImageLibraryReferenceCleanup cleanDeletedImageLibraryReferences({
   required String? editorImagePath,
   required String? editorPatchImagePath,
   required String? animationTemplateImagePath,
-  required List<GifSourceFrame> gifSourceFrames,
 }) {
   return ImageLibraryReferenceCleanup(
     selectedItemIds: {
@@ -122,10 +118,6 @@ ImageLibraryReferenceCleanup cleanDeletedImageLibraryReferences({
       animationTemplateImagePath,
       removedPaths,
     ),
-    gifSourceFrames: [
-      for (final frame in gifSourceFrames)
-        if (!removedPaths.contains(frame.path)) frame,
-    ],
   );
 }
 

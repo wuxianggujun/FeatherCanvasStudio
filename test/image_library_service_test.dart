@@ -88,13 +88,22 @@ void main() {
     final gif = await service.addGif(
       store: store,
       path: '/tmp/output.gif',
-      frameCount: 3,
+      labels: const ImageLibraryGifLabels(
+        title: 'GIF 合成',
+        source: 'GIF 合成',
+        prompt: '3 张图片合成',
+      ),
     );
     final exportedSheet = await service.addExportedSpriteSheet(
       store: store,
       path: '/tmp/sheet.png',
       rows: 2,
       columns: 4,
+      labels: const ImageLibrarySpriteSheetLabels(
+        title: '导出 Sprite Sheet',
+        source: 'Sprite Sheet 导出',
+        prompt: '2 x 4',
+      ),
     );
     final editedSheet = await service.addEditedSpriteSheet(
       store: store,
@@ -102,6 +111,11 @@ void main() {
       frameIndex: 1,
       rows: 2,
       columns: 4,
+      labels: const ImageLibraryEditedSpriteSheetLabels(
+        title: '编辑后的 Sprite Sheet',
+        source: '图片编辑',
+        prompt: '替换第 2 帧 · 2 x 4',
+      ),
     );
     final restored = await store.loadImageLibrary();
 
@@ -145,6 +159,10 @@ void main() {
       store: store,
       path: projectFile.path,
       project: project,
+      labels: const ImageLibraryAnimationProjectLabels(
+        source: '动画工程',
+        prompt: '1 条轨道 · 0 帧 · 32 x 32',
+      ),
     );
     final restored = await store.loadImageLibrary();
 
@@ -401,6 +419,7 @@ void main() {
       sheet: sheet,
       frameIndex: 4,
       bytes: Uint8List.fromList([7, 8, 9]),
+      labels: const ImageLibrarySpriteFrameLabels(title: 'sheet · 帧 5'),
     );
 
     final restored = await store.loadImageLibrary();

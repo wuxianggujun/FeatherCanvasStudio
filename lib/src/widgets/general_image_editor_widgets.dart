@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_l10n.dart';
+import '../l10n/generated/app_localizations.dart';
+import '../l10n/library_label_builders.dart';
 import '../services/general_image_editing_service.dart';
 import '../theme/layout_constants.dart';
 import '../utils/display_labels.dart';
@@ -149,12 +152,13 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildControls(BuildContext context) {
+    final l10n = appL10nOf(context);
     final hasImage = widget.imagePath != null && widget.imageInfo != null;
     final info = widget.imageInfo;
 
     return _BoundedHeightScrollView(
       child: AppPanel(
-        title: '通用图片编辑',
+        title: l10n.generalImageEditorTitle,
         trailing: info == null
             ? null
             : Text(
@@ -166,9 +170,11 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
           children: [
             TemplateImagePicker(
               imagePath: widget.imagePath,
-              title: '待编辑图片',
-              pickLabel: widget.imagePath == null ? '选择' : '更换',
-              clearTooltip: '清除图片',
+              title: l10n.generalImageEditorSourceImageTitle,
+              pickLabel: widget.imagePath == null
+                  ? l10n.selectAction
+                  : l10n.generalImageEditorReplaceAction,
+              clearTooltip: l10n.generalImageEditorClearImageTooltip,
               previewHeight: 132,
               onPick: widget.onPickImage,
               onClear: widget.imagePath == null ? null : widget.onClearImage,
@@ -176,8 +182,8 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
             const SizedBox(height: fieldGap),
             _EditorControlGroup(
               icon: Icons.auto_awesome_outlined,
-              title: '快捷处理',
-              subtitle: '常用导出风格与版本快照',
+              title: l10n.generalImageEditorQuickActionsTitle,
+              subtitle: l10n.generalImageEditorQuickActionsSubtitle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -188,8 +194,27 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
               ),
             ),
             const SizedBox(height: fieldGap),
-            _buildControlPanelTabs(),
+            KeyedSubtree(
+              key: const ValueKey('general-image-editor-panel-tabs'),
+              child: _buildControlPanelTabs(),
+            ),
             const SizedBox(height: fieldGap),
+            KeyedSubtree(
+              key: const ValueKey('general-image-editor-preview-actions'),
+              child: _buildPreviewActionBar(hasImage),
+            ),
+            if (hasImage &&
+                _activePanel == _GeneralImageEditorPanel.geometry) ...[
+              const SizedBox(height: fieldGap),
+              KeyedSubtree(
+                key: const ValueKey('general-image-editor-geometry-actions'),
+                child: _buildGeometryActionBar(),
+              ),
+            ],
+            const SizedBox(height: fieldGap),
+            _buildApplyAndSaveAction(hasImage),
+            if (_activePanel != _GeneralImageEditorPanel.geometry)
+              const SizedBox(height: fieldGap),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
               child: KeyedSubtree(
@@ -205,7 +230,6 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
               ),
               const SizedBox(height: fieldGap),
             ],
-            _buildActionBar(hasImage),
           ],
         ),
       ),
@@ -213,20 +237,22 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildControlPanelTabs() {
+    final l10n = appL10nOf(context);
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         _EditorPanelChoiceChip(
           icon: Icons.crop_rotate_outlined,
-          label: '几何',
+          label: l10n.generalImageEditorGeometryTab,
           selected: _activePanel == _GeneralImageEditorPanel.geometry,
           onSelected: () =>
               setState(() => _activePanel = _GeneralImageEditorPanel.geometry),
         ),
         _EditorPanelChoiceChip(
           icon: Icons.palette_outlined,
-          label: '外观',
+          label: l10n.generalImageEditorAppearanceTab,
           selected: _activePanel == _GeneralImageEditorPanel.appearance,
           onSelected: () => setState(
             () => _activePanel = _GeneralImageEditorPanel.appearance,
@@ -234,7 +260,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
         ),
         _EditorPanelChoiceChip(
           icon: Icons.edit_note_outlined,
-          label: '标注',
+          label: l10n.generalImageEditorAnnotationTab,
           selected: _activePanel == _GeneralImageEditorPanel.annotation,
           onSelected: () => setState(
             () => _activePanel = _GeneralImageEditorPanel.annotation,
@@ -242,7 +268,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
         ),
         _EditorPanelChoiceChip(
           icon: Icons.file_download_outlined,
-          label: '输出',
+          label: l10n.generalImageEditorOutputTab,
           selected: _activePanel == _GeneralImageEditorPanel.output,
           onSelected: () =>
               setState(() => _activePanel = _GeneralImageEditorPanel.output),
@@ -252,25 +278,14 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildActiveControlPanel(bool hasImage) {
+    final l10n = appL10nOf(context);
+
     return switch (_activePanel) {
-      _GeneralImageEditorPanel.geometry => _EditorControlGroup(
-        icon: Icons.crop_rotate_outlined,
-        title: '几何调整',
-        subtitle: '旋转、翻转、裁剪和输出尺寸',
-        child: Column(
-          children: [
-            _buildTransformSection(hasImage),
-            const SizedBox(height: fieldGap),
-            _buildCropSection(hasImage),
-            const SizedBox(height: fieldGap),
-            _buildResizeSection(hasImage),
-          ],
-        ),
-      ),
+      _GeneralImageEditorPanel.geometry => const SizedBox.shrink(),
       _GeneralImageEditorPanel.appearance => _EditorControlGroup(
         icon: Icons.palette_outlined,
-        title: '外观处理',
-        subtitle: '色彩、滤镜、锐化、透明与局部选区',
+        title: l10n.generalImageEditorAppearanceTitle,
+        subtitle: l10n.generalImageEditorAppearanceSubtitle,
         child: Column(
           children: [
             _buildColorSection(hasImage),
@@ -283,69 +298,152 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
       ),
       _GeneralImageEditorPanel.annotation => _EditorControlGroup(
         icon: Icons.edit_note_outlined,
-        title: '标注',
-        subtitle: '文字、形状、箭头与标记位置',
+        title: l10n.generalImageEditorAnnotationTab,
+        subtitle: l10n.generalImageEditorAnnotationSubtitle,
         child: _buildAnnotationSection(hasImage),
       ),
       _GeneralImageEditorPanel.output => _EditorControlGroup(
         icon: Icons.file_download_outlined,
-        title: '输出',
-        subtitle: '保存格式、质量和最终预览',
+        title: l10n.generalImageEditorOutputTab,
+        subtitle: l10n.generalImageEditorOutputSubtitle,
         child: _buildOutputSection(hasImage),
       ),
     };
   }
 
-  Widget _buildActionBar(bool hasImage) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _buildApplyAndSaveAction(bool hasImage) {
+    final l10n = appL10nOf(context);
+
+    return PrimaryActionButton(
+      onPressed: hasImage && !widget.isProcessing
+          ? () => widget.onApplyEdit(_currentOptions())
+          : null,
+      icon: Icons.save_alt_outlined,
+      label: l10n.generalImageEditorApplyAndSave,
+      busyLabel: l10n.generalImageEditorProcessing,
+      isBusy: widget.isProcessing,
+    );
+  }
+
+  Widget _buildPreviewActionBar(bool hasImage) {
+    final l10n = appL10nOf(context);
+    final canUndo = hasImage && _undoStack.isNotEmpty;
+    final canRedo = hasImage && _redoStack.isNotEmpty;
+    final canEdit = hasImage && !widget.isProcessing;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        ResponsivePair(
-          first: OutlinedButton.icon(
-            onPressed: hasImage && _undoStack.isNotEmpty ? _undoEdit : null,
+        Semantics(
+          container: true,
+          label: l10n.historyUndo,
+          value: canUndo ? null : l10n.historyUndoUnavailable,
+          button: true,
+          enabled: canUndo,
+          child: OutlinedButton.icon(
+            onPressed: canUndo ? _undoEdit : null,
             icon: const Icon(Icons.undo),
-            label: const Text('撤销'),
+            label: Text(l10n.historyUndo),
           ),
-          second: OutlinedButton.icon(
-            onPressed: hasImage && _redoStack.isNotEmpty ? _redoEdit : null,
+        ),
+        Semantics(
+          container: true,
+          label: l10n.historyRedo,
+          value: canRedo ? null : l10n.historyRedoUnavailable,
+          button: true,
+          enabled: canRedo,
+          child: OutlinedButton.icon(
+            onPressed: canRedo ? _redoEdit : null,
             icon: const Icon(Icons.redo),
-            label: const Text('重做'),
+            label: Text(l10n.historyRedo),
           ),
         ),
-        const SizedBox(height: fieldGap),
-        ResponsivePair(
-          first: OutlinedButton.icon(
-            onPressed: hasImage && !widget.isProcessing
-                ? _refreshPreview
-                : null,
-            icon: const Icon(Icons.visibility_outlined),
-            label: const Text('生成完整预览'),
-          ),
-          second: OutlinedButton.icon(
-            onPressed: !widget.isProcessing ? _resetOptions : null,
-            icon: const Icon(Icons.restart_alt),
-            label: const Text('重置参数'),
+        OutlinedButton.icon(
+          onPressed: canEdit ? _refreshPreview : null,
+          icon: const Icon(Icons.visibility_outlined),
+          label: Text(l10n.generalImageEditorGeneratePreview),
+        ),
+        OutlinedButton.icon(
+          onPressed: canEdit ? _resetOptions : null,
+          icon: const Icon(Icons.restart_alt),
+          label: Text(l10n.generalImageEditorResetOptions),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGeometryActionBar() {
+    final l10n = appL10nOf(context);
+    final canEdit = widget.imagePath != null && !widget.isProcessing;
+    final geometrySummary = '${_cropSummary(l10n)} · ${_resizeSummary(l10n)}';
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        Tooltip(
+          message: geometrySummary,
+          child: Chip(
+            avatar: const Icon(Icons.transform_outlined, size: 18),
+            label: Text(_transformSummary(l10n)),
           ),
         ),
-        const SizedBox(height: fieldGap),
-        PrimaryActionButton(
-          onPressed: hasImage && !widget.isProcessing
-              ? () => widget.onApplyEdit(_currentOptions())
+        Chip(
+          avatar: const Icon(Icons.crop_outlined, size: 18),
+          label: Text(_cropSummary(l10n)),
+        ),
+        Chip(
+          avatar: const Icon(Icons.photo_size_select_large_outlined, size: 18),
+          label: Text(_resizeSummary(l10n)),
+        ),
+        OutlinedButton.icon(
+          onPressed: canEdit ? _showCropDialog : null,
+          icon: const Icon(Icons.crop_outlined),
+          label: Text(l10n.generalImageEditorCropTitle),
+        ),
+        OutlinedButton.icon(
+          onPressed: canEdit ? _showResizeDialog : null,
+          icon: const Icon(Icons.photo_size_select_large_outlined),
+          label: Text(l10n.generalImageEditorResizeTitle),
+        ),
+        OutlinedButton.icon(
+          onPressed: canEdit ? () => _rotateBy(-1) : null,
+          icon: const Icon(Icons.rotate_left),
+          label: Text(l10n.generalImageEditorRotateLeft),
+        ),
+        OutlinedButton.icon(
+          onPressed: canEdit ? () => _rotateBy(1) : null,
+          icon: const Icon(Icons.rotate_right),
+          label: Text(l10n.generalImageEditorRotateRight),
+        ),
+        OutlinedButton.icon(
+          onPressed: canEdit
+              ? () => _commitOptionChange(
+                  () => _flipHorizontal = !_flipHorizontal,
+                )
               : null,
-          icon: Icons.save_alt_outlined,
-          label: '应用并保存',
-          busyLabel: '处理中',
-          isBusy: widget.isProcessing,
+          icon: const Icon(Icons.flip),
+          label: Text(l10n.generalImageEditorFlipHorizontal),
+        ),
+        OutlinedButton.icon(
+          onPressed: canEdit
+              ? () => _commitOptionChange(() => _flipVertical = !_flipVertical)
+              : null,
+          icon: const Icon(Icons.flip_camera_android_outlined),
+          label: Text(l10n.generalImageEditorFlipVertical),
         ),
       ],
     );
   }
 
   Widget _buildPresetSection(bool enabled) {
+    final l10n = appL10nOf(context);
+
     return _EditorExpansionSection(
       icon: Icons.auto_awesome_outlined,
-      title: '预设',
-      subtitle: '透明 / 社媒 / 清晰 / 像素风',
+      title: l10n.generalImageEditorPresetsTitle,
+      subtitle: l10n.generalImageEditorPresetsSubtitle,
       initiallyExpanded: enabled,
       child: Wrap(
         spacing: 8,
@@ -353,26 +451,26 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
         children: [
           _PresetActionChip(
             icon: Icons.layers_clear_outlined,
-            label: '透明 PNG',
+            label: l10n.generalImageEditorTransparentPngPreset,
             enabled: enabled,
             onPressed: () =>
                 _applyPreset(_GeneralImageEditorPreset.transparentPng),
           ),
           _PresetActionChip(
             icon: Icons.public_outlined,
-            label: '社媒 JPEG',
+            label: l10n.generalImageEditorSocialJpegPreset,
             enabled: enabled,
             onPressed: () => _applyPreset(_GeneralImageEditorPreset.socialJpeg),
           ),
           _PresetActionChip(
             icon: Icons.hdr_strong_outlined,
-            label: '清晰 JPEG',
+            label: l10n.generalImageEditorSharpJpegPreset,
             enabled: enabled,
             onPressed: () => _applyPreset(_GeneralImageEditorPreset.sharpJpeg),
           ),
           _PresetActionChip(
             icon: Icons.grid_on_outlined,
-            label: '像素风 PNG',
+            label: l10n.generalImageEditorPixelPngPreset,
             enabled: enabled,
             onPressed: () => _applyPreset(_GeneralImageEditorPreset.pixelPng),
           ),
@@ -382,21 +480,26 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildVersionSection(bool enabled) {
+    final l10n = appL10nOf(context);
+
     return _EditorExpansionSection(
       icon: Icons.history_edu_outlined,
-      title: '版本',
-      subtitle: _versionSummary,
+      title: l10n.generalImageEditorVersionTitle,
+      subtitle: _versionSummary(l10n),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           OutlinedButton.icon(
             onPressed: enabled ? _saveCurrentVersion : null,
             icon: const Icon(Icons.bookmark_add_outlined),
-            label: const Text('保存当前版本'),
+            label: Text(l10n.generalImageEditorSaveCurrentVersion),
           ),
           if (_savedSnapshots.isEmpty) ...[
             const SizedBox(height: fieldGap),
-            Text('暂无保存的版本', style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              l10n.generalImageEditorNoSavedVersions,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ] else ...[
             const SizedBox(height: fieldGap),
             for (var index = 0; index < _savedSnapshots.length; index++)
@@ -411,198 +514,17 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
     );
   }
 
-  Widget _buildTransformSection(bool enabled) {
-    return _EditorExpansionSection(
-      icon: Icons.transform_outlined,
-      title: '变换',
-      subtitle: _transformSummary,
-      initiallyExpanded: enabled,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ResponsivePair(
-            first: OutlinedButton.icon(
-              onPressed: enabled ? () => _rotateBy(-1) : null,
-              icon: const Icon(Icons.rotate_left_outlined),
-              label: const Text('左转 90°'),
-            ),
-            second: OutlinedButton.icon(
-              onPressed: enabled ? () => _rotateBy(1) : null,
-              icon: const Icon(Icons.rotate_right_outlined),
-              label: const Text('右转 90°'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          ResponsivePair(
-            first: FilterChip(
-              selected: _flipHorizontal,
-              onSelected: enabled
-                  ? (value) =>
-                        _commitOptionChange(() => _flipHorizontal = value)
-                  : null,
-              avatar: const Icon(Icons.swap_horiz_outlined),
-              label: const Text('水平翻转'),
-            ),
-            second: FilterChip(
-              selected: _flipVertical,
-              onSelected: enabled
-                  ? (value) => _commitOptionChange(() => _flipVertical = value)
-                  : null,
-              avatar: const Icon(Icons.swap_vert_outlined),
-              label: const Text('垂直翻转'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCropSection(bool enabled) {
-    final info = widget.imageInfo;
-    final maxHorizontal = info == null ? 1 : (info.width - 1).clamp(1, 99999);
-    final maxVertical = info == null ? 1 : (info.height - 1).clamp(1, 99999);
-
-    return _EditorExpansionSection(
-      icon: Icons.crop_outlined,
-      title: '裁剪',
-      subtitle: _cropSummary,
-      child: Column(
-        children: [
-          ResponsivePair(
-            first: IntegerStepperField(
-              label: '左边',
-              value: _cropLeft,
-              minValue: 0,
-              maxValue: maxHorizontal.toInt(),
-              suffixText: 'px',
-              enabled: enabled,
-              onChanged: (value) =>
-                  _commitOptionChange(() => _cropLeft = value),
-            ),
-            second: IntegerStepperField(
-              label: '上边',
-              value: _cropTop,
-              minValue: 0,
-              maxValue: maxVertical.toInt(),
-              suffixText: 'px',
-              enabled: enabled,
-              onChanged: (value) => _commitOptionChange(() => _cropTop = value),
-            ),
-          ),
-          const SizedBox(height: fieldGap),
-          ResponsivePair(
-            first: IntegerStepperField(
-              label: '右边',
-              value: _cropRight,
-              minValue: 0,
-              maxValue: maxHorizontal.toInt(),
-              suffixText: 'px',
-              enabled: enabled,
-              onChanged: (value) =>
-                  _commitOptionChange(() => _cropRight = value),
-            ),
-            second: IntegerStepperField(
-              label: '下边',
-              value: _cropBottom,
-              minValue: 0,
-              maxValue: maxVertical.toInt(),
-              suffixText: 'px',
-              enabled: enabled,
-              onChanged: (value) =>
-                  _commitOptionChange(() => _cropBottom = value),
-            ),
-          ),
-          const SizedBox(height: fieldGap),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: enabled ? () => _setCenteredCropRatio(1, 1) : null,
-                icon: const Icon(Icons.aspect_ratio_outlined),
-                label: const Text('1:1'),
-              ),
-              OutlinedButton.icon(
-                onPressed: enabled ? () => _setCenteredCropRatio(4, 3) : null,
-                icon: const Icon(Icons.aspect_ratio_outlined),
-                label: const Text('4:3'),
-              ),
-              OutlinedButton.icon(
-                onPressed: enabled ? () => _setCenteredCropRatio(16, 9) : null,
-                icon: const Icon(Icons.aspect_ratio_outlined),
-                label: const Text('16:9'),
-              ),
-              OutlinedButton.icon(
-                onPressed: enabled ? _clearCrop : null,
-                icon: const Icon(Icons.crop_free_outlined),
-                label: const Text('清除裁剪'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResizeSection(bool enabled) {
-    return _EditorExpansionSection(
-      icon: Icons.photo_size_select_large_outlined,
-      title: '尺寸',
-      subtitle: _resizeSummary,
-      child: Column(
-        children: [
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _resizeEnabled,
-            onChanged: enabled
-                ? (value) => _commitOptionChange(() => _resizeEnabled = value)
-                : null,
-            title: const Text('调整输出尺寸'),
-          ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _lockAspectRatio,
-            onChanged: enabled && _resizeEnabled
-                ? (value) => _commitOptionChange(
-                    () => _lockAspectRatio = value ?? true,
-                  )
-                : null,
-            title: const Text('保持比例'),
-          ),
-          ResponsivePair(
-            first: IntegerStepperField(
-              label: '宽度',
-              value: _resizeWidth,
-              minValue: 1,
-              maxValue: _maxEditDimension,
-              suffixText: 'px',
-              enabled: enabled && _resizeEnabled,
-              onChanged: _setResizeWidth,
-            ),
-            second: IntegerStepperField(
-              label: '高度',
-              value: _resizeHeight,
-              minValue: 1,
-              maxValue: _maxEditDimension,
-              suffixText: 'px',
-              enabled: enabled && _resizeEnabled,
-              onChanged: _setResizeHeight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildColorSection(bool enabled) {
+    final l10n = appL10nOf(context);
+
     return _EditorExpansionSection(
       icon: Icons.tune_outlined,
-      title: '色彩',
-      subtitle: _colorSummary,
+      title: l10n.generalImageEditorColorTitle,
+      subtitle: _colorSummary(l10n),
       child: Column(
         children: [
           _LabeledSlider(
-            label: '亮度',
+            label: l10n.generalImageEditorBrightness,
             value: _brightness,
             min: -100,
             max: 100,
@@ -611,7 +533,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                 _commitOptionChange(() => _brightness = value),
           ),
           _LabeledSlider(
-            label: '对比度',
+            label: l10n.generalImageEditorContrast,
             value: _contrast,
             min: -100,
             max: 100,
@@ -619,7 +541,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
             onChanged: (value) => _commitOptionChange(() => _contrast = value),
           ),
           _LabeledSlider(
-            label: '饱和度',
+            label: l10n.generalImageEditorSaturation,
             value: _saturation,
             min: -100,
             max: 100,
@@ -628,7 +550,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                 _commitOptionChange(() => _saturation = value),
           ),
           _LabeledSlider(
-            label: '冷暖',
+            label: l10n.generalImageEditorWarmth,
             value: _warmth,
             min: -100,
             max: 100,
@@ -641,17 +563,19 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildEffectSection(bool enabled) {
+    final l10n = appL10nOf(context);
+
     return _EditorExpansionSection(
       icon: Icons.auto_fix_high_outlined,
-      title: '效果',
-      subtitle: _effectSummary,
+      title: l10n.generalImageEditorEffectTitle,
+      subtitle: _effectSummary(l10n),
       child: Column(
         children: [
           OptionDropdown<ImageEditColorEffect>(
-            label: '滤镜',
+            label: l10n.generalImageEditorFilterLabel,
             value: _effect,
             options: ImageEditColorEffect.values,
-            labelBuilder: _effectLabel,
+            labelBuilder: (effect) => _effectLabel(l10n, effect),
             onChanged: enabled
                 ? (value) => _commitOptionChange(() => _effect = value)
                 : null,
@@ -663,10 +587,10 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
             onChanged: enabled
                 ? (value) => _commitOptionChange(() => _blurEnabled = value)
                 : null,
-            title: const Text('模糊'),
+            title: Text(l10n.generalImageEditorBlur),
           ),
           IntegerStepperField(
-            label: '模糊半径',
+            label: l10n.generalImageEditorBlurRadius,
             value: _blurRadius,
             minValue: 1,
             maxValue: 20,
@@ -682,10 +606,10 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
             onChanged: enabled
                 ? (value) => _commitOptionChange(() => _sharpenEnabled = value)
                 : null,
-            title: const Text('锐化'),
+            title: Text(l10n.generalImageEditorSharpen),
           ),
           _LabeledSlider(
-            label: '锐化强度',
+            label: l10n.generalImageEditorSharpenAmount,
             value: _sharpenAmount,
             min: 0,
             max: 100,
@@ -702,10 +626,10 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                     () => _transparentBackgroundEnabled = value,
                   )
                 : null,
-            title: const Text('边缘背景转透明'),
+            title: Text(l10n.generalImageEditorTransparentBackground),
           ),
           _LabeledSlider(
-            label: '透明容差',
+            label: l10n.generalImageEditorTransparentTolerance,
             value: _transparentTolerance,
             min: 0,
             max: 80,
@@ -720,10 +644,10 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                 ? (value) =>
                       _commitOptionChange(() => _pixelationEnabled = value)
                 : null,
-            title: const Text('像素化'),
+            title: Text(l10n.generalImageEditorPixelation),
           ),
           IntegerStepperField(
-            label: '像素块',
+            label: l10n.generalImageEditorPixelBlock,
             value: _pixelationBlockSize,
             minValue: PixelationDefaults.minBlockSize,
             maxValue: PixelationDefaults.maxBlockSize,
@@ -738,10 +662,12 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildEffectRegionSection(bool enabled) {
+    final l10n = appL10nOf(context);
+
     return _EditorExpansionSection(
       icon: Icons.select_all_outlined,
-      title: '选区',
-      subtitle: _effectRegionSummary,
+      title: l10n.generalImageEditorRegionTitle,
+      subtitle: _effectRegionSummary(l10n),
       child: Column(
         children: [
           SwitchListTile(
@@ -751,11 +677,11 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                 ? (value) =>
                       _commitOptionChange(() => _effectRegionEnabled = value)
                 : null,
-            title: const Text('只处理选区'),
+            title: Text(l10n.generalImageEditorProcessRegionOnly),
           ),
           ResponsivePair(
             first: IntegerStepperField(
-              label: '左边界',
+              label: l10n.generalImageEditorLeftBoundary,
               value: _effectRegionLeftPercent,
               minValue: 0,
               maxValue: _effectRegionRightPercent - 1,
@@ -765,7 +691,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                   _commitOptionChange(() => _effectRegionLeftPercent = value),
             ),
             second: IntegerStepperField(
-              label: '上边界',
+              label: l10n.generalImageEditorTopBoundary,
               value: _effectRegionTopPercent,
               minValue: 0,
               maxValue: _effectRegionBottomPercent - 1,
@@ -778,7 +704,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
           const SizedBox(height: fieldGap),
           ResponsivePair(
             first: IntegerStepperField(
-              label: '右边界',
+              label: l10n.generalImageEditorRightBoundary,
               value: _effectRegionRightPercent,
               minValue: _effectRegionLeftPercent + 1,
               maxValue: 100,
@@ -788,7 +714,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                   _commitOptionChange(() => _effectRegionRightPercent = value),
             ),
             second: IntegerStepperField(
-              label: '下边界',
+              label: l10n.generalImageEditorBottomBoundary,
               value: _effectRegionBottomPercent,
               minValue: _effectRegionTopPercent + 1,
               maxValue: 100,
@@ -805,14 +731,14 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                   ? () => _commitOptionChange(_setCenteredEffectRegionInPlace)
                   : null,
               icon: const Icon(Icons.center_focus_strong_outlined),
-              label: const Text('居中 50%'),
+              label: Text(l10n.generalImageEditorCenterHalfRegion),
             ),
             second: OutlinedButton.icon(
               onPressed: enabled && _effectRegionEnabled
                   ? () => _commitOptionChange(_setFullEffectRegionInPlace)
                   : null,
               icon: const Icon(Icons.fullscreen_outlined),
-              label: const Text('全图选区'),
+              label: Text(l10n.generalImageEditorFullImageRegion),
             ),
           ),
         ],
@@ -821,21 +747,22 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildAnnotationSection(bool enabled) {
+    final l10n = appL10nOf(context);
     final canFill = _annotationSupportsFill(_annotationKind);
 
     return _EditorExpansionSection(
       icon: Icons.edit_note_outlined,
-      title: '标注',
-      subtitle: _annotationSummary,
+      title: l10n.generalImageEditorAnnotationTab,
+      subtitle: _annotationSummary(l10n),
       initiallyExpanded: enabled,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           OptionDropdown<ImageAnnotationKind>(
-            label: '类型',
+            label: l10n.generalImageEditorAnnotationType,
             value: _annotationKind,
             options: ImageAnnotationKind.values,
-            labelBuilder: _annotationKindLabel,
+            labelBuilder: (kind) => _annotationKindLabel(l10n, kind),
             onChanged: enabled
                 ? (value) => _commitOptionChange(() => _annotationKind = value)
                 : null,
@@ -845,16 +772,21 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
             TextField(
               controller: _annotationTextController,
               enabled: enabled,
-              decoration: const InputDecoration(labelText: '文字'),
+              decoration: InputDecoration(
+                labelText: l10n.generalImageEditorAnnotationText,
+              ),
               textInputAction: TextInputAction.done,
             ),
           ],
           const SizedBox(height: fieldGap),
-          Text('位置（百分比）', style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            l10n.generalImageEditorAnnotationPositionPercent,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
           const SizedBox(height: 8),
           ResponsivePair(
             first: IntegerStepperField(
-              label: '起点 X',
+              label: l10n.generalImageEditorStartX,
               value: _annotationStartXPercent,
               minValue: 0,
               maxValue: 100,
@@ -864,7 +796,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                   _commitOptionChange(() => _annotationStartXPercent = value),
             ),
             second: IntegerStepperField(
-              label: '起点 Y',
+              label: l10n.generalImageEditorStartY,
               value: _annotationStartYPercent,
               minValue: 0,
               maxValue: 100,
@@ -877,7 +809,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
           const SizedBox(height: fieldGap),
           ResponsivePair(
             first: IntegerStepperField(
-              label: '终点 X',
+              label: l10n.generalImageEditorEndX,
               value: _annotationEndXPercent,
               minValue: 0,
               maxValue: 100,
@@ -887,7 +819,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                   _commitOptionChange(() => _annotationEndXPercent = value),
             ),
             second: IntegerStepperField(
-              label: '终点 Y',
+              label: l10n.generalImageEditorEndY,
               value: _annotationEndYPercent,
               minValue: 0,
               maxValue: 100,
@@ -902,7 +834,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
           const SizedBox(height: fieldGap),
           ResponsivePair(
             first: IntegerStepperField(
-              label: '线宽',
+              label: l10n.generalImageEditorStrokeWidth,
               value: _annotationStrokeWidth,
               minValue: 1,
               maxValue: 32,
@@ -912,7 +844,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                   _commitOptionChange(() => _annotationStrokeWidth = value),
             ),
             second: IntegerStepperField(
-              label: '字号',
+              label: l10n.generalImageEditorFontSize,
               value: _annotationFontSize,
               minValue: 14,
               maxValue: 48,
@@ -931,7 +863,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
                   ? (value) =>
                         _commitOptionChange(() => _annotationFilled = value)
                   : null,
-              title: const Text('填充形状'),
+              title: Text(l10n.generalImageEditorFillShape),
             ),
           ],
           const SizedBox(height: fieldGap),
@@ -939,14 +871,14 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
             first: OutlinedButton.icon(
               onPressed: enabled ? _addAnnotation : null,
               icon: const Icon(Icons.add_outlined),
-              label: const Text('添加标注'),
+              label: Text(l10n.generalImageEditorAddAnnotation),
             ),
             second: OutlinedButton.icon(
               onPressed: enabled && _annotations.isNotEmpty
                   ? _clearAnnotations
                   : null,
               icon: const Icon(Icons.layers_clear_outlined),
-              label: const Text('清空标注'),
+              label: Text(l10n.generalImageEditorClearAnnotations),
             ),
           ),
           if (_annotations.isNotEmpty) ...[
@@ -964,6 +896,8 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildAnnotationColorSelector(bool enabled) {
+    final l10n = appL10nOf(context);
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -971,7 +905,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
         for (final argb in _annotationColorOptions)
           _AnnotationColorSwatch(
             color: Color(argb),
-            label: _annotationColorLabel(argb),
+            label: _annotationColorLabel(l10n, argb),
             selected: _annotationColorArgb == argb,
             onTap: enabled
                 ? () => _commitOptionChange(() => _annotationColorArgb = argb)
@@ -982,15 +916,17 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildOutputSection(bool enabled) {
+    final l10n = appL10nOf(context);
+
     return _EditorExpansionSection(
       icon: Icons.file_download_outlined,
-      title: '输出',
-      subtitle: _outputSummary,
+      title: l10n.generalImageEditorOutputTab,
+      subtitle: _outputSummary(l10n),
       initiallyExpanded: enabled,
       child: Column(
         children: [
           OptionDropdown<GeneralImageOutputFormat>(
-            label: '保存格式',
+            label: l10n.generalImageEditorOutputFormat,
             value: _outputFormat,
             options: GeneralImageOutputFormat.values,
             labelBuilder: _outputFormatLabel,
@@ -1000,7 +936,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
           ),
           const SizedBox(height: fieldGap),
           IntegerStepperField(
-            label: 'JPEG 质量',
+            label: l10n.generalImageEditorJpegQuality,
             value: _jpegQuality,
             minValue: 1,
             maxValue: 100,
@@ -1015,67 +951,356 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   Widget _buildPreview(BuildContext context) {
+    final l10n = appL10nOf(context);
     final imagePath = widget.imagePath;
     final previewFuture = _previewFuture;
 
     if (imagePath == null) {
-      return const PreviewPanelShell(
-        title: '编辑预览',
-        child: PreviewStateSurface.empty(message: '选择图片后开始编辑'),
+      return _buildPreviewSurface(
+        hasImage: false,
+        preview: PreviewPanelShell(
+          key: const ValueKey('general-image-editor-preview-panel'),
+          title: l10n.generalImageEditorPreviewTitle,
+          child: PreviewStateSurface.empty(
+            message: l10n.generalImageEditorPreviewEmpty,
+          ),
+        ),
       );
     }
 
     if (previewFuture != null && _previewSourcePath == imagePath) {
-      return PreviewPanelShell(
-        title: '编辑预览',
-        child: FutureBuilder<GeneralImageEditResult>(
-          future: previewFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const PreviewStateSurface.loading(message: '正在生成预览');
-            }
-            if (snapshot.hasError || !snapshot.hasData) {
-              return PreviewStateSurface.error(
-                title: '预览失败',
-                message: '${snapshot.error ?? '没有可用的预览结果'}',
+      return _buildPreviewSurface(
+        hasImage: true,
+        preview: PreviewPanelShell(
+          key: const ValueKey('general-image-editor-preview-panel'),
+          title: l10n.generalImageEditorPreviewTitle,
+          child: FutureBuilder<GeneralImageEditResult>(
+            future: previewFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return PreviewStateSurface.loading(
+                  message: l10n.generalImageEditorPreviewLoading,
+                );
+              }
+              if (snapshot.hasError || !snapshot.hasData) {
+                return PreviewStateSurface.error(
+                  title: l10n.generalImageEditorPreviewFailed,
+                  message:
+                      '${snapshot.error ?? l10n.generalImageEditorNoPreviewResult}',
+                );
+              }
+              final result = snapshot.data!;
+              return _ImagePreviewSurface(
+                footer:
+                    '${result.width} x ${result.height} · ${result.summary}',
+                child: Image.memory(result.bytes, fit: BoxFit.contain),
               );
-            }
-            final result = snapshot.data!;
-            return _ImagePreviewSurface(
-              footer: '${result.width} x ${result.height} · ${result.summary}',
-              child: Image.memory(result.bytes, fit: BoxFit.contain),
-            );
-          },
+            },
+          ),
         ),
       );
     }
 
-    return PreviewPanelShell(
-      title: '编辑预览',
-      child: _ImagePreviewSurface(
-        footer: '${fileNameFromPath(imagePath)} · 拖拽裁剪框或选区，点击标注可删除',
-        child: _EditableImagePreview(
-          key: const ValueKey('general-image-editable-preview'),
-          imagePath: imagePath,
-          imageInfo: widget.imageInfo!,
-          displayInfo: _currentDisplayInfo(),
-          crop: ImageCropMargins(
-            left: _cropLeft,
-            top: _cropTop,
-            right: _cropRight,
-            bottom: _cropBottom,
+    return _buildPreviewSurface(
+      hasImage: true,
+      preview: PreviewPanelShell(
+        key: const ValueKey('general-image-editor-preview-panel'),
+        title: l10n.generalImageEditorPreviewTitle,
+        child: _ImagePreviewSurface(
+          footer: l10n.generalImageEditorPreviewFooter(
+            fileNameFromPath(imagePath),
           ),
-          quarterTurns: _quarterTurns,
-          flipHorizontal: _flipHorizontal,
-          flipVertical: _flipVertical,
-          effectRegion: _currentEffectRegion(),
-          annotations: _annotations,
-          onCropChanged: _setCropMargins,
-          onEffectRegionChanged: _setEffectRegion,
-          onAnnotationDeleted: _removeAnnotation,
+          child: _EditableImagePreview(
+            key: const ValueKey('general-image-editable-preview'),
+            imagePath: imagePath,
+            imageInfo: widget.imageInfo!,
+            displayInfo: _currentDisplayInfo(),
+            crop: ImageCropMargins(
+              left: _cropLeft,
+              top: _cropTop,
+              right: _cropRight,
+              bottom: _cropBottom,
+            ),
+            quarterTurns: _quarterTurns,
+            flipHorizontal: _flipHorizontal,
+            flipVertical: _flipVertical,
+            effectRegion: _currentEffectRegion(),
+            annotations: _annotations,
+            onCropChanged: _setCropMargins,
+            onEffectRegionChanged: _setEffectRegion,
+            onAnnotationDeleted: _removeAnnotation,
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildPreviewSurface({
+    required bool hasImage,
+    required Widget preview,
+  }) {
+    return preview;
+  }
+
+  Future<void> _showCropDialog() async {
+    final l10n = appL10nOf(context);
+    final info = widget.imageInfo;
+    if (info == null) {
+      return;
+    }
+
+    var left = _cropLeft;
+    var top = _cropTop;
+    var right = _cropRight;
+    var bottom = _cropBottom;
+    final maxHorizontal = (info.width - 1).clamp(1, 99999).toInt();
+    final maxVertical = (info.height - 1).clamp(1, 99999).toInt();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            void applyRatio(int ratioWidth, int ratioHeight) {
+              final crop = _centeredCropMarginsForRatio(
+                ratioWidth,
+                ratioHeight,
+              );
+              if (crop == null) {
+                return;
+              }
+              setDialogState(() {
+                left = crop.left;
+                top = crop.top;
+                right = crop.right;
+                bottom = crop.bottom;
+              });
+            }
+
+            return AlertDialog(
+              title: Text(l10n.generalImageEditorCropTitle),
+              content: SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ResponsivePair(
+                        first: IntegerStepperField(
+                          label: l10n.generalImageEditorLeftSide,
+                          value: left,
+                          minValue: 0,
+                          maxValue: maxHorizontal,
+                          suffixText: 'px',
+                          onChanged: (value) =>
+                              setDialogState(() => left = value),
+                        ),
+                        second: IntegerStepperField(
+                          label: l10n.generalImageEditorTopSide,
+                          value: top,
+                          minValue: 0,
+                          maxValue: maxVertical,
+                          suffixText: 'px',
+                          onChanged: (value) =>
+                              setDialogState(() => top = value),
+                        ),
+                      ),
+                      const SizedBox(height: fieldGap),
+                      ResponsivePair(
+                        first: IntegerStepperField(
+                          label: l10n.generalImageEditorRightSide,
+                          value: right,
+                          minValue: 0,
+                          maxValue: maxHorizontal,
+                          suffixText: 'px',
+                          onChanged: (value) =>
+                              setDialogState(() => right = value),
+                        ),
+                        second: IntegerStepperField(
+                          label: l10n.generalImageEditorBottomSide,
+                          value: bottom,
+                          minValue: 0,
+                          maxValue: maxVertical,
+                          suffixText: 'px',
+                          onChanged: (value) =>
+                              setDialogState(() => bottom = value),
+                        ),
+                      ),
+                      const SizedBox(height: fieldGap),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => applyRatio(1, 1),
+                            icon: const Icon(Icons.aspect_ratio_outlined),
+                            label: const Text('1:1'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => applyRatio(4, 3),
+                            icon: const Icon(Icons.aspect_ratio_outlined),
+                            label: const Text('4:3'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => applyRatio(16, 9),
+                            icon: const Icon(Icons.aspect_ratio_outlined),
+                            label: const Text('16:9'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => setDialogState(() {
+                              left = 0;
+                              top = 0;
+                              right = 0;
+                              bottom = 0;
+                            }),
+                            icon: const Icon(Icons.crop_free_outlined),
+                            label: Text(l10n.generalImageEditorClearCrop),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: Text(l10n.cancelAction),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: Text(l10n.saveAction),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    _commitOptionChange(() {
+      _cropLeft = left;
+      _cropTop = top;
+      _cropRight = right;
+      _cropBottom = bottom;
+    });
+  }
+
+  Future<void> _showResizeDialog() async {
+    final l10n = appL10nOf(context);
+    final info = widget.imageInfo;
+
+    var resizeEnabled = _resizeEnabled;
+    var lockAspectRatio = _lockAspectRatio;
+    var width = _resizeWidth;
+    var height = _resizeHeight;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            void setWidth(int value) {
+              setDialogState(() {
+                width = value;
+                if (lockAspectRatio && info != null && info.width > 0) {
+                  height = (value * info.height / info.width)
+                      .round()
+                      .clamp(1, _maxEditDimension)
+                      .toInt();
+                }
+              });
+            }
+
+            void setHeight(int value) {
+              setDialogState(() {
+                height = value;
+                if (lockAspectRatio && info != null && info.height > 0) {
+                  width = (value * info.width / info.height)
+                      .round()
+                      .clamp(1, _maxEditDimension)
+                      .toInt();
+                }
+              });
+            }
+
+            return AlertDialog(
+              title: Text(l10n.generalImageEditorResizeTitle),
+              content: SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: resizeEnabled,
+                        onChanged: (value) =>
+                            setDialogState(() => resizeEnabled = value),
+                        title: Text(l10n.generalImageEditorResizeOutput),
+                      ),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: lockAspectRatio,
+                        onChanged: resizeEnabled
+                            ? (value) => setDialogState(
+                                () => lockAspectRatio = value ?? true,
+                              )
+                            : null,
+                        title: Text(l10n.generalImageEditorLockAspectRatio),
+                      ),
+                      ResponsivePair(
+                        first: IntegerStepperField(
+                          label: l10n.generalImageEditorWidth,
+                          value: width,
+                          minValue: 1,
+                          maxValue: _maxEditDimension,
+                          suffixText: 'px',
+                          enabled: resizeEnabled,
+                          onChanged: setWidth,
+                        ),
+                        second: IntegerStepperField(
+                          label: l10n.generalImageEditorHeight,
+                          value: height,
+                          minValue: 1,
+                          maxValue: _maxEditDimension,
+                          suffixText: 'px',
+                          enabled: resizeEnabled,
+                          onChanged: setHeight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: Text(l10n.cancelAction),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: Text(l10n.saveAction),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    _commitOptionChange(() {
+      _resizeEnabled = resizeEnabled;
+      _lockAspectRatio = lockAspectRatio;
+      _resizeWidth = width;
+      _resizeHeight = height;
+    });
   }
 
   void _refreshPreview() {
@@ -1083,12 +1308,14 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
     if (imagePath == null) {
       return;
     }
+    final labels = generalImageEditSummaryLabels(appL10nOf(context));
     setState(() {
       _previewSourcePath = imagePath;
       _previewFuture = File(imagePath).readAsBytes().then(
         (bytes) => GeneralImageEditingService.editInBackground(
           bytes,
           options: _currentOptions(),
+          labels: labels,
         ),
       );
     });
@@ -1112,14 +1339,15 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
   }
 
   void _saveCurrentVersion() {
+    final l10n = appL10nOf(context);
     final snapshot = _snapshot();
-    final label = '版本 ${_savedSnapshotSerial++}';
+    final label = l10n.generalImageEditorVersionLabel(_savedSnapshotSerial++);
     setState(() {
       _savedSnapshots.insert(
         0,
         _GeneralImageEditorSavedSnapshot(
           label: label,
-          summary: _snapshotSummary(snapshot),
+          summary: _snapshotSummary(l10n, snapshot),
           snapshot: snapshot,
         ),
       );
@@ -1222,10 +1450,13 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
     });
   }
 
-  void _setCenteredCropRatio(int ratioWidth, int ratioHeight) {
+  ImageCropMargins? _centeredCropMarginsForRatio(
+    int ratioWidth,
+    int ratioHeight,
+  ) {
     final info = widget.imageInfo;
     if (info == null || ratioWidth <= 0 || ratioHeight <= 0) {
-      return;
+      return null;
     }
 
     final sourceRatio = info.width / info.height;
@@ -1253,51 +1484,7 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
       bottom = totalCrop - top;
     }
 
-    _commitOptionChange(() {
-      _cropLeft = left;
-      _cropRight = right;
-      _cropTop = top;
-      _cropBottom = bottom;
-    });
-  }
-
-  void _clearCrop() {
-    _commitOptionChange(() {
-      _cropLeft = 0;
-      _cropTop = 0;
-      _cropRight = 0;
-      _cropBottom = 0;
-    });
-  }
-
-  void _setResizeWidth(int value) {
-    _commitOptionChange(() {
-      _resizeWidth = value;
-      if (_lockAspectRatio) {
-        final info = widget.imageInfo;
-        if (info != null && info.width > 0) {
-          _resizeHeight = (value * info.height / info.width)
-              .round()
-              .clamp(1, _maxEditDimension)
-              .toInt();
-        }
-      }
-    });
-  }
-
-  void _setResizeHeight(int value) {
-    _commitOptionChange(() {
-      _resizeHeight = value;
-      if (_lockAspectRatio) {
-        final info = widget.imageInfo;
-        if (info != null && info.height > 0) {
-          _resizeWidth = (value * info.width / info.height)
-              .round()
-              .clamp(1, _maxEditDimension)
-              .toInt();
-        }
-      }
-    });
+    return ImageCropMargins(left: left, top: top, right: right, bottom: bottom);
   }
 
   void _setCenteredEffectRegionInPlace() {
@@ -1629,77 +1816,92 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent> {
     );
   }
 
-  String get _transformSummary {
+  String _transformSummary(AppLocalizations l10n) {
     final parts = <String>[
-      if (_quarterTurns != 0) '旋转 ${_quarterTurns * 90}°',
-      if (_flipHorizontal) '水平翻转',
-      if (_flipVertical) '垂直翻转',
+      if (_quarterTurns != 0)
+        l10n.generalImageEditorRotatedDegrees(_quarterTurns * 90),
+      if (_flipHorizontal) l10n.generalImageEditorFlipHorizontal,
+      if (_flipVertical) l10n.generalImageEditorFlipVertical,
     ];
-    return parts.isEmpty ? '未变换' : parts.join(' · ');
+    return parts.isEmpty
+        ? l10n.generalImageEditorNoTransform
+        : parts.join(' · ');
   }
 
-  String get _cropSummary {
+  String _cropSummary(AppLocalizations l10n) {
     final parts = <String>[
-      if (_cropLeft > 0) '左 $_cropLeft',
-      if (_cropTop > 0) '上 $_cropTop',
-      if (_cropRight > 0) '右 $_cropRight',
-      if (_cropBottom > 0) '下 $_cropBottom',
+      if (_cropLeft > 0) l10n.generalImageEditorCropLeftSummary(_cropLeft),
+      if (_cropTop > 0) l10n.generalImageEditorCropTopSummary(_cropTop),
+      if (_cropRight > 0) l10n.generalImageEditorCropRightSummary(_cropRight),
+      if (_cropBottom > 0)
+        l10n.generalImageEditorCropBottomSummary(_cropBottom),
     ];
-    return parts.isEmpty ? '不裁剪' : '${parts.join(' · ')} px';
+    return parts.isEmpty
+        ? l10n.generalImageEditorNoCrop
+        : l10n.generalImageEditorCropSummary(parts.join(' · '));
   }
 
-  String get _resizeSummary {
+  String _resizeSummary(AppLocalizations l10n) {
     if (!_resizeEnabled) {
-      return '保持原尺寸';
+      return l10n.generalImageEditorOriginalSize;
     }
     return '$_resizeWidth x $_resizeHeight';
   }
 
-  String get _colorSummary {
+  String _colorSummary(AppLocalizations l10n) {
     final parts = <String>[
-      if (_brightness != 0) '亮度 $_brightness',
-      if (_contrast != 0) '对比 $_contrast',
-      if (_saturation != 0) '饱和 $_saturation',
-      if (_warmth != 0) '冷暖 $_warmth',
+      if (_brightness != 0)
+        l10n.generalImageEditorBrightnessSummary(_brightness),
+      if (_contrast != 0) l10n.generalImageEditorContrastSummary(_contrast),
+      if (_saturation != 0)
+        l10n.generalImageEditorSaturationSummary(_saturation),
+      if (_warmth != 0) l10n.generalImageEditorWarmthSummary(_warmth),
     ];
-    return parts.isEmpty ? '未调整' : parts.join(' · ');
+    return parts.isEmpty
+        ? l10n.generalImageEditorNoColorAdjustment
+        : parts.join(' · ');
   }
 
-  String get _effectSummary {
+  String _effectSummary(AppLocalizations l10n) {
     final parts = <String>[
-      if (_effect != ImageEditColorEffect.none) _effectLabel(_effect),
-      if (_blurEnabled) '模糊 ${_blurRadius}px',
-      if (_sharpenEnabled) '锐化 $_sharpenAmount%',
-      if (_transparentBackgroundEnabled) '透明背景',
-      if (_pixelationEnabled) '像素化 $_pixelationBlockSize px',
+      if (_effect != ImageEditColorEffect.none) _effectLabel(l10n, _effect),
+      if (_blurEnabled) l10n.generalImageEditorBlurSummary(_blurRadius),
+      if (_sharpenEnabled)
+        l10n.generalImageEditorSharpenSummary(_sharpenAmount),
+      if (_transparentBackgroundEnabled)
+        l10n.generalImageEditorTransparentBackgroundSummary,
+      if (_pixelationEnabled)
+        l10n.generalImageEditorPixelationSummary(_pixelationBlockSize),
     ];
-    return parts.isEmpty ? '无滤镜' : parts.join(' · ');
+    return parts.isEmpty ? l10n.generalImageEditorNoFilter : parts.join(' · ');
   }
 
-  String get _effectRegionSummary {
+  String _effectRegionSummary(AppLocalizations l10n) {
     if (!_effectRegionEnabled) {
-      return '全图处理';
+      return l10n.generalImageEditorFullImageProcessing;
     }
     return '$_effectRegionLeftPercent,$_effectRegionTopPercent → '
         '$_effectRegionRightPercent,$_effectRegionBottomPercent%';
   }
 
-  String get _versionSummary {
-    return _savedSnapshots.isEmpty ? '未保存版本' : '${_savedSnapshots.length} 个版本';
+  String _versionSummary(AppLocalizations l10n) {
+    return _savedSnapshots.isEmpty
+        ? l10n.generalImageEditorNoSavedVersionSummary
+        : l10n.generalImageEditorSavedVersionCount(_savedSnapshots.length);
   }
 
-  String get _annotationSummary {
+  String _annotationSummary(AppLocalizations l10n) {
     if (_annotations.isEmpty) {
-      return '未添加';
+      return l10n.generalImageEditorNoAnnotationSummary;
     }
-    return '${_annotations.length} 个标注';
+    return l10n.generalImageEditorAnnotationCount(_annotations.length);
   }
 
-  String get _outputSummary {
+  String _outputSummary(AppLocalizations l10n) {
     if (_outputFormat == GeneralImageOutputFormat.jpeg) {
       return 'JPEG · $_jpegQuality%';
     }
-    return 'PNG · 保留透明';
+    return l10n.generalImageEditorPngTransparentSummary;
   }
 }
 
@@ -1902,23 +2104,33 @@ class _GeneralImageEditorSavedSnapshot {
   final _GeneralImageEditorSnapshot snapshot;
 }
 
-String _snapshotSummary(_GeneralImageEditorSnapshot snapshot) {
+String _snapshotSummary(
+  AppLocalizations l10n,
+  _GeneralImageEditorSnapshot snapshot,
+) {
   final parts = <String>[
     if (snapshot.resizeEnabled)
       '${snapshot.resizeWidth} x ${snapshot.resizeHeight}'
     else
-      '原尺寸',
+      l10n.generalImageEditorSnapshotOriginalSize,
     switch (snapshot.outputFormat) {
       GeneralImageOutputFormat.png => 'PNG',
       GeneralImageOutputFormat.jpeg => 'JPEG ${snapshot.jpegQuality}%',
     },
     if (snapshot.effect != ImageEditColorEffect.none)
-      _effectLabel(snapshot.effect),
-    if (snapshot.blurEnabled) '模糊 ${snapshot.blurRadius}px',
-    if (snapshot.sharpenEnabled) '锐化 ${snapshot.sharpenAmount}%',
-    if (snapshot.pixelationEnabled) '像素化 ${snapshot.pixelationBlockSize}px',
-    if (snapshot.effectRegionEnabled) '局部选区',
-    if (snapshot.annotations.isNotEmpty) '标注 ${snapshot.annotations.length}',
+      _effectLabel(l10n, snapshot.effect),
+    if (snapshot.blurEnabled)
+      l10n.generalImageEditorBlurSummary(snapshot.blurRadius),
+    if (snapshot.sharpenEnabled)
+      l10n.generalImageEditorSharpenSummary(snapshot.sharpenAmount),
+    if (snapshot.pixelationEnabled)
+      l10n.generalImageEditorPixelationSummary(snapshot.pixelationBlockSize),
+    if (snapshot.effectRegionEnabled)
+      l10n.generalImageEditorSnapshotLocalRegion,
+    if (snapshot.annotations.isNotEmpty)
+      l10n.generalImageEditorSnapshotAnnotationCount(
+        snapshot.annotations.length,
+      ),
   ];
   return parts.join(' · ');
 }
@@ -1937,6 +2149,7 @@ class _VersionSnapshotRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = appL10nOf(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1965,12 +2178,12 @@ class _VersionSnapshotRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: '恢复版本',
+            tooltip: l10n.generalImageEditorRestoreVersionTooltip,
             onPressed: onRestore,
             icon: const Icon(Icons.restore_outlined),
           ),
           IconButton(
-            tooltip: '删除版本',
+            tooltip: l10n.generalImageEditorDeleteVersionTooltip,
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline),
           ),
@@ -1994,6 +2207,7 @@ class _AnnotationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = appL10nOf(context);
     final color = Color(annotation.colorArgb);
 
     return Container(
@@ -2025,7 +2239,7 @@ class _AnnotationRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '${index + 1}. ${_annotationDescription(annotation)}',
+              '${index + 1}. ${_annotationDescription(l10n, annotation)}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall,
@@ -2033,7 +2247,7 @@ class _AnnotationRow extends StatelessWidget {
           ),
           IconButton(
             onPressed: onDelete,
-            tooltip: '删除标注',
+            tooltip: l10n.generalImageEditorDeleteAnnotationTooltip,
             icon: const Icon(Icons.delete_outline),
           ),
         ],
@@ -2064,30 +2278,36 @@ class _AnnotationColorSwatch extends StatelessWidget {
 
     return Tooltip(
       message: label,
-      child: Opacity(
-        opacity: onTap == null ? 0.52 : 1,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: selected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.outlineVariant,
-                  width: selected ? 2 : 1,
+      child: Semantics(
+        label: label,
+        button: true,
+        selected: selected,
+        enabled: onTap != null,
+        child: Opacity(
+          opacity: onTap == null ? 0.52 : 1,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outlineVariant,
+                    width: selected ? 2 : 1,
+                  ),
                 ),
+                child: selected
+                    ? Icon(Icons.check, size: 18, color: foreground)
+                    : null,
               ),
-              child: selected
-                  ? Icon(Icons.check, size: 18, color: foreground)
-                  : null,
             ),
           ),
         ),
@@ -2166,6 +2386,7 @@ class _EditableImagePreviewState extends State<_EditableImagePreview> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = appL10nOf(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -2184,63 +2405,70 @@ class _EditableImagePreviewState extends State<_EditableImagePreview> {
                 imageRect,
               );
 
-        return Stack(
-          children: [
-            Positioned.fromRect(
-              rect: imageRect,
-              child: _TransformedPreviewImage(
-                imagePath: widget.imagePath,
-                quarterTurns: widget.quarterTurns,
-                flipHorizontal: widget.flipHorizontal,
-                flipVertical: widget.flipVertical,
-              ),
-            ),
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapUp: (details) =>
-                    _selectAnnotation(details.localPosition, imageRect),
-                onPanStart: (details) => _startPreviewDrag(
-                  details.localPosition,
-                  cropRect,
-                  effectRegionRect,
+        return Semantics(
+          label: l10n.generalImageEditorPreviewFooter(
+            fileNameFromPath(widget.imagePath),
+          ),
+          image: true,
+          child: Stack(
+            children: [
+              Positioned.fromRect(
+                rect: imageRect,
+                child: _TransformedPreviewImage(
+                  imagePath: widget.imagePath,
+                  quarterTurns: widget.quarterTurns,
+                  flipHorizontal: widget.flipHorizontal,
+                  flipVertical: widget.flipVertical,
                 ),
-                onPanUpdate: (details) =>
-                    _updatePreviewDrag(details.delta, imageRect),
-                onPanEnd: (_) => _endPreviewDrag(),
-                onPanCancel: _endPreviewDrag,
-                child: CustomPaint(
-                  painter: _EditableImagePreviewPainter(
-                    imageRect: imageRect,
-                    cropRect: cropRect,
-                    effectRegionRect: effectRegionRect,
-                    annotations: widget.annotations,
-                    selectedAnnotationIndex: selectedIndex,
-                    primaryColor: theme.colorScheme.primary,
-                    outlineColor: theme.colorScheme.outline,
+              ),
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) =>
+                      _selectAnnotation(details.localPosition, imageRect),
+                  onPanStart: (details) => _startPreviewDrag(
+                    details.localPosition,
+                    cropRect,
+                    effectRegionRect,
+                  ),
+                  onPanUpdate: (details) =>
+                      _updatePreviewDrag(details.delta, imageRect),
+                  onPanEnd: (_) => _endPreviewDrag(),
+                  onPanCancel: _endPreviewDrag,
+                  child: CustomPaint(
+                    painter: _EditableImagePreviewPainter(
+                      imageRect: imageRect,
+                      cropRect: cropRect,
+                      effectRegionRect: effectRegionRect,
+                      annotations: widget.annotations,
+                      selectedAnnotationIndex: selectedIndex,
+                      primaryColor: theme.colorScheme.primary,
+                      outlineColor: theme.colorScheme.outline,
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (selectedIndex != null && selectedBounds != null)
-              Positioned(
-                left: (selectedBounds.right + 6)
-                    .clamp(0, math.max(0, bounds.width - 40))
-                    .toDouble(),
-                top: (selectedBounds.top - 6)
-                    .clamp(0, math.max(0, bounds.height - 40))
-                    .toDouble(),
-                child: IconButton.filledTonal(
-                  key: const ValueKey('delete-selected-annotation'),
-                  tooltip: '删除选中的标注',
-                  onPressed: () {
-                    widget.onAnnotationDeleted(selectedIndex);
-                    setState(() => _selectedAnnotationIndex = null);
-                  },
-                  icon: const Icon(Icons.delete_outline),
+              if (selectedIndex != null && selectedBounds != null)
+                Positioned(
+                  left: (selectedBounds.right + 6)
+                      .clamp(0, math.max(0, bounds.width - 40))
+                      .toDouble(),
+                  top: (selectedBounds.top - 6)
+                      .clamp(0, math.max(0, bounds.height - 40))
+                      .toDouble(),
+                  child: IconButton.filledTonal(
+                    key: const ValueKey('delete-selected-annotation'),
+                    tooltip:
+                        l10n.generalImageEditorDeleteSelectedAnnotationTooltip,
+                    onPressed: () {
+                      widget.onAnnotationDeleted(selectedIndex);
+                      setState(() => _selectedAnnotationIndex = null);
+                    },
+                    icon: const Icon(Icons.delete_outline),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -2579,6 +2807,7 @@ class _TransformedPreviewImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final turns = _normalizedQuarterTurns(quarterTurns);
+    final l10n = appL10nOf(context);
 
     return ClipRect(
       child: Transform(
@@ -2596,7 +2825,8 @@ class _TransformedPreviewImage extends StatelessWidget {
             File(imagePath),
             fit: BoxFit.fill,
             gaplessPlayback: true,
-            errorBuilder: (_, _, _) => const Center(child: Text('图片加载失败')),
+            errorBuilder: (_, _, _) =>
+                Center(child: Text(l10n.generalImageEditorImageLoadFailed)),
           ),
         ),
       ),
@@ -2992,15 +3222,52 @@ class _EditorPanelChoiceChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final backgroundColor = selected
+        ? colorScheme.primaryContainer
+        : colorScheme.surfaceContainerHighest;
+    final foregroundColor = selected
+        ? colorScheme.onPrimaryContainer
+        : colorScheme.onSurfaceVariant;
+    final borderColor = selected
+        ? colorScheme.primary
+        : colorScheme.outlineVariant;
+
     return SizedBox(
       height: 36,
-      child: ChoiceChip(
-        avatar: Icon(icon, size: 18),
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onSelected(),
-        visualDensity: VisualDensity.compact,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      child: Material(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: selected ? null : onSelected,
+          borderRadius: BorderRadius.circular(8),
+          hoverColor: colorScheme.primary.withValues(alpha: 0.08),
+          focusColor: colorScheme.primary.withValues(alpha: 0.10),
+          highlightColor: colorScheme.primary.withValues(alpha: 0.08),
+          splashColor: colorScheme.primary.withValues(alpha: 0.10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: foregroundColor),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -3146,38 +3413,44 @@ class _ImagePreviewSurface extends StatelessWidget {
   }
 }
 
-String _annotationKindLabel(ImageAnnotationKind kind) {
+String _annotationKindLabel(AppLocalizations l10n, ImageAnnotationKind kind) {
   return switch (kind) {
-    ImageAnnotationKind.text => '文字',
-    ImageAnnotationKind.rectangle => '矩形',
-    ImageAnnotationKind.ellipse => '椭圆',
-    ImageAnnotationKind.line => '直线',
-    ImageAnnotationKind.arrow => '箭头',
+    ImageAnnotationKind.text => l10n.generalImageEditorAnnotationKindText,
+    ImageAnnotationKind.rectangle =>
+      l10n.generalImageEditorAnnotationKindRectangle,
+    ImageAnnotationKind.ellipse => l10n.generalImageEditorAnnotationKindEllipse,
+    ImageAnnotationKind.line => l10n.generalImageEditorAnnotationKindLine,
+    ImageAnnotationKind.arrow => l10n.generalImageEditorAnnotationKindArrow,
   };
 }
 
-String _annotationColorLabel(int argb) {
+String _annotationColorLabel(AppLocalizations l10n, int argb) {
   return switch (argb) {
-    0xFFFF3B30 => '红色',
-    0xFFFFD400 => '黄色',
-    0xFF34C759 => '绿色',
-    0xFF007AFF => '蓝色',
-    0xFF111111 => '黑色',
-    0xFFFFFFFF => '白色',
-    _ => '自定义',
+    0xFFFF3B30 => l10n.generalImageEditorColorRed,
+    0xFFFFD400 => l10n.generalImageEditorColorYellow,
+    0xFF34C759 => l10n.generalImageEditorColorGreen,
+    0xFF007AFF => l10n.generalImageEditorColorBlue,
+    0xFF111111 => l10n.generalImageEditorColorBlack,
+    0xFFFFFFFF => l10n.generalImageEditorColorWhite,
+    _ => l10n.generalImageEditorColorCustom,
   };
 }
 
-String _annotationDescription(ImageAnnotation annotation) {
+String _annotationDescription(
+  AppLocalizations l10n,
+  ImageAnnotation annotation,
+) {
   final startX = (annotation.startXRatio * 100).round();
   final startY = (annotation.startYRatio * 100).round();
   final endX = (annotation.endXRatio * 100).round();
   final endY = (annotation.endYRatio * 100).round();
-  final label = _annotationKindLabel(annotation.kind);
+  final label = _annotationKindLabel(l10n, annotation.kind);
   if (annotation.kind == ImageAnnotationKind.text) {
     return '$label · ${annotation.text.trim()} · $startX%, $startY%';
   }
-  final filled = annotation.filled ? ' · 填充' : '';
+  final filled = annotation.filled
+      ? ' · ${l10n.generalImageEditorAnnotationFilledSuffix}'
+      : '';
   return '$label · $startX%, $startY% → $endX%, $endY%$filled';
 }
 
@@ -3308,12 +3581,12 @@ Rect _annotationDisplayBounds(ImageAnnotation annotation, Rect imageRect) {
   return Rect.fromPoints(start, end);
 }
 
-String _effectLabel(ImageEditColorEffect effect) {
+String _effectLabel(AppLocalizations l10n, ImageEditColorEffect effect) {
   return switch (effect) {
-    ImageEditColorEffect.none => '原色',
-    ImageEditColorEffect.grayscale => '灰度',
-    ImageEditColorEffect.sepia => '复古',
-    ImageEditColorEffect.invert => '反相',
+    ImageEditColorEffect.none => l10n.generalImageEditorEffectOriginal,
+    ImageEditColorEffect.grayscale => l10n.generalImageEditorEffectGrayscale,
+    ImageEditColorEffect.sepia => l10n.generalImageEditorEffectSepia,
+    ImageEditColorEffect.invert => l10n.generalImageEditorEffectInvert,
   };
 }
 

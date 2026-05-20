@@ -30,11 +30,14 @@ class SpriteSheetSlicePickerDialogState
   }
 
   Future<void> _load() async {
+    final l10n = lookupAppLocalizations(const Locale('zh'));
     try {
       final bytes = await File(widget.sheet.path).readAsBytes();
       final gridSpec = widget.sheet.effectiveGridSpec;
       if (gridSpec.rows <= 0 || gridSpec.columns <= 0) {
-        throw const ImageGenerationException('该 Sprite Sheet 缺少行列元数据。');
+        throw ImageGenerationException(
+          l10n.imageLibrarySliceMissingGridMetadata,
+        );
       }
       final data = SpriteSheetPreviewComposer.buildFromSheetBytes(
         bytes,
@@ -46,7 +49,7 @@ class SpriteSheetSlicePickerDialogState
       setState(() => _previewData = data);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _errorMessage = '加载切片失败：$error');
+      setState(() => _errorMessage = l10n.imageLibrarySliceLoadFailed(error));
     }
   }
 
@@ -77,22 +80,39 @@ class SpriteSheetSlicePickerDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final data = _previewData;
     final error = _errorMessage;
-    final title = widget.title ?? (widget.allowMultiple ? '挑选切片帧' : '挑选一帧作为来源');
+    final title =
+        widget.title ??
+        (widget.allowMultiple
+            ? l10n.imageLibrarySlicePickerMultiTitle
+            : l10n.imageLibrarySlicePickerSingleTitle);
 
     return AlertDialog(
       title: Row(
         children: [
-          Expanded(child: Text('$title · ${widget.sheet.displayTitle}')),
+          Expanded(
+            child: Text(
+              l10n.imageLibrarySlicePickerTitle(
+                title,
+                widget.sheet.displayTitle,
+              ),
+            ),
+          ),
           if (data != null)
             Text(
               widget.allowMultiple
-                  ? '已选 ${_selected.length} / ${data.frames.length}'
+                  ? l10n.imageLibrarySlicePickerSelectedStatus(
+                      _selected.length,
+                      data.frames.length,
+                    )
                   : _selected.isEmpty
-                  ? '尚未选择'
-                  : '已选 #${_selected.first + 1}',
+                  ? l10n.imageLibrarySlicePickerNotSelected
+                  : l10n.imageLibrarySlicePickerSelectedOne(
+                      _selected.first + 1,
+                    ),
               style: theme.textTheme.bodySmall,
             ),
         ],
@@ -122,7 +142,7 @@ class SpriteSheetSlicePickerDialogState
                         _load();
                       },
                       icon: const Icon(Icons.refresh),
-                      label: const Text('重试'),
+                      label: Text(l10n.retryAction),
                     ),
                   ],
                 ),
@@ -142,73 +162,84 @@ class SpriteSheetSlicePickerDialogState
                 itemBuilder: (context, index) {
                   final bytes = data.frames[index];
                   final selected = _selected.contains(index);
-                  return Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => _toggle(index),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: selected
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.outlineVariant,
-                            width: selected ? 2 : 1,
+                  final frameLabel = l10n.imageLibrarySliceFrameSemanticLabel(
+                    index + 1,
+                    data.frames.length,
+                  );
+                  return Semantics(
+                    container: true,
+                    label: frameLabel,
+                    button: true,
+                    selected: selected,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _toggle(index),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: selected
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.outlineVariant,
+                              width: selected ? 2 : 1,
+                            ),
                           ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: Container(
-                                  color:
-                                      theme.colorScheme.surfaceContainerHighest,
-                                  child: Image.memory(
-                                    bytes,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 4,
-                                left: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.surface.withValues(
-                                      alpha: 0.85,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: Container(
+                                    color: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                    child: Image.memory(
+                                      bytes,
+                                      fit: BoxFit.contain,
+                                      semanticLabel: frameLabel,
                                     ),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    '#${index + 1}',
-                                    style: theme.textTheme.labelSmall,
                                   ),
                                 ),
-                              ),
-                              if (selected)
                                 Positioned(
                                   top: 4,
-                                  right: 4,
+                                  left: 6,
                                   child: Container(
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.primary,
-                                      shape: BoxShape.circle,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
                                     ),
-                                    padding: const EdgeInsets.all(4),
-                                    child: Icon(
-                                      Icons.check,
-                                      size: 14,
-                                      color: theme.colorScheme.onPrimary,
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.surface
+                                          .withValues(alpha: 0.85),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '#${index + 1}',
+                                      style: theme.textTheme.labelSmall,
                                     ),
                                   ),
                                 ),
-                            ],
+                                if (selected)
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(4),
+                                      child: Icon(
+                                        Icons.check,
+                                        size: 14,
+                                        color: theme.colorScheme.onPrimary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -220,13 +251,15 @@ class SpriteSheetSlicePickerDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancelAction),
         ),
         FilledButton.icon(
           onPressed: data == null || _selected.isEmpty ? null : _confirm,
           icon: const Icon(Icons.check),
           label: Text(
-            widget.allowMultiple ? '确认选择 (${_selected.length})' : '确认选择',
+            widget.allowMultiple
+                ? l10n.imageLibrarySlicePickerConfirmCount(_selected.length)
+                : l10n.confirmSelectionAction,
           ),
         ),
       ],

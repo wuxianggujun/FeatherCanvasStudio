@@ -21,6 +21,7 @@ void main() {
         quarterTurns: 1,
         flipHorizontal: true,
       ),
+      labels: _labels,
     );
     final output = image_lib.decodeImage(result.bytes)!;
 
@@ -43,6 +44,7 @@ void main() {
         resize: ImageResizeOptions(width: 4, height: 4),
         effect: ImageEditColorEffect.grayscale,
       ),
+      labels: _labels,
     );
     final output = image_lib.decodeImage(result.bytes)!;
     final pixel = output.getPixel(0, 0);
@@ -77,6 +79,7 @@ void main() {
           bottomRatio: 1,
         ),
       ),
+      labels: _labels,
     );
     final output = image_lib.decodeImage(result.bytes)!;
 
@@ -95,6 +98,7 @@ void main() {
     final blurResult = GeneralImageEditingService.edit(
       Uint8List.fromList(image_lib.encodePng(source)),
       options: const GeneralImageEditOptions(blurRadius: 1),
+      labels: _labels,
     );
     final blurred = image_lib.decodeImage(blurResult.bytes)!;
 
@@ -105,6 +109,7 @@ void main() {
     final sharpenResult = GeneralImageEditingService.edit(
       Uint8List.fromList(image_lib.encodePng(source)),
       options: const GeneralImageEditOptions(sharpenAmount: 100),
+      labels: _labels,
     );
     final sharpened = image_lib.decodeImage(sharpenResult.bytes)!;
 
@@ -130,6 +135,7 @@ void main() {
         backgroundTransparencyTolerance: 4,
         pixelationBlockSize: 2,
       ),
+      labels: _labels,
     );
     final output = image_lib.decodeImage(result.bytes)!;
 
@@ -168,6 +174,7 @@ void main() {
           ),
         ],
       ),
+      labels: _labels,
     );
     final output = image_lib.decodeImage(result.bytes)!;
     final annotatedPixel = output.getPixel(6, 6);
@@ -188,6 +195,7 @@ void main() {
         outputFormat: GeneralImageOutputFormat.jpeg,
         jpegQuality: 80,
       ),
+      labels: _labels,
     );
     final output = image_lib.decodeImage(result.bytes)!;
 
@@ -200,6 +208,28 @@ void main() {
     expect(result.summary, contains('JPEG 80质量'));
   });
 }
+
+const _labels = GeneralImageEditSummaryLabels(
+  crop: '裁剪',
+  rotatePattern: '旋转 %degrees%°',
+  flipHorizontal: '水平翻转',
+  flipVertical: '垂直翻转',
+  resizePattern: '缩放 %width% x %height%',
+  annotationPattern: '标注 %count% 个',
+  jpegQualityPattern: 'JPEG %quality%质量',
+  saveCopy: '保存副本',
+  partSeparator: ' · ',
+  localRegion: '局部选区',
+  transparentBackground: '边缘背景转透明',
+  colorAdjustment: '色彩调整',
+  blurPattern: '模糊 %radius%px',
+  sharpenPattern: '锐化 %amount%%',
+  pixelationPattern: '像素化 %blockSize%px',
+  effectOriginal: '原色',
+  effectGrayscale: '灰度',
+  effectSepia: '复古',
+  effectInvert: '反相',
+);
 
 void _setPixel(
   image_lib.Image image,

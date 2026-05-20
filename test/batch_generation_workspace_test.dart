@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'dart:ui' show Tristate;
+
 import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:feather_canvas_studio/src/state/batch_generation_notifier.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +24,295 @@ BatchGenerationNotifier _seededNotifier({
 }
 
 void main() {
+  test('summarizes batch queue jobs in one pass', () {
+    const config = ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+    final debugRecord = ImageRequestDebugRecord.fromRequest(
+      const OpenAIImageRequest(
+        baseUrl: 'https://example.com/v1',
+        apiKey: 'key',
+        prompt: 'running prompt',
+        negativePrompt: '',
+        model: 'gpt-image-2',
+        size: '1536x1024',
+        imageCount: 2,
+      ),
+    );
+    final jobs = [
+      BatchGenerationJob.create(
+        apiConfig: config,
+        prompt: 'queued prompt',
+        negativePrompt: '',
+        size: '1024x1024',
+        imageCount: 1,
+        advancedSettings: const ImageAdvancedSettings(),
+        user: '',
+      ),
+      BatchGenerationJob.create(
+        apiConfig: config,
+        prompt: 'running prompt',
+        negativePrompt: '',
+        size: '1536x1024',
+        imageCount: 2,
+        advancedSettings: const ImageAdvancedSettings(),
+        user: '',
+      ).copyWith(
+        status: BatchGenerationJobStatus.running,
+        debugRecord: debugRecord,
+      ),
+      BatchGenerationJob.create(
+        apiConfig: config,
+        prompt: 'done prompt',
+        negativePrompt: '',
+        size: '1024x1024',
+        imageCount: 1,
+        advancedSettings: const ImageAdvancedSettings(),
+        user: '',
+      ).copyWith(
+        status: BatchGenerationJobStatus.succeeded,
+        resultImages: [GeneratedImage.bytes(Uint8List(4))],
+      ),
+      BatchGenerationJob.create(
+        apiConfig: config,
+        prompt: 'failed prompt',
+        negativePrompt: '',
+        size: '1024x1024',
+        imageCount: 1,
+        advancedSettings: const ImageAdvancedSettings(),
+        user: '',
+      ).copyWith(status: BatchGenerationJobStatus.failed),
+    ];
+
+    final summary = summarizeBatchGenerationJobs(
+      jobs,
+      fallbackSize: '1024x1024',
+    );
+
+    expect(summary.queuedCount, 1);
+    expect(summary.runningCount, 1);
+    expect(summary.finishedCount, 2);
+    expect(summary.failedCount, 1);
+    expect(summary.previewImages, hasLength(1));
+    expect(summary.targetImageCount, 3);
+    expect(summary.previewAspectRatio, imageAspectRatioFromSize('1536x1024'));
+    expect(summary.latestDebugRecord, same(debugRecord));
+  });
+
+  test('caps batch preview images while preserving target count', () {
+    const config = ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+    final jobs = [
+      for (var index = 0; index < 180; index++)
+        BatchGenerationJob.create(
+          apiConfig: config,
+          prompt: 'done prompt $index',
+          negativePrompt: '',
+          size: '1024x1024',
+          imageCount: 1,
+          advancedSettings: const ImageAdvancedSettings(),
+          user: '',
+        ).copyWith(
+          status: BatchGenerationJobStatus.succeeded,
+          resultImages: [GeneratedImage.bytes(Uint8List(4))],
+        ),
+    ];
+
+    final summary = summarizeBatchGenerationJobs(
+      jobs,
+      fallbackSize: '1024x1024',
+    );
+
+    expect(summary.finishedCount, 180);
+    expect(summary.previewImages, hasLength(120));
+    expect(summary.targetImageCount, 120);
+  });
+
+  testWidgets('batch queue action buttons expose disabled reasons', (
+    tester,
+  ) async {
+    const config = ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+    final promptController = TextEditingController();
+    final negativePromptController = TextEditingController();
+    final userController = TextEditingController();
+    final notifier = _seededNotifier(isRunning: true);
+    addTearDown(() {
+      promptController.dispose();
+      negativePromptController.dispose();
+      userController.dispose();
+      notifier.dispose();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 1200,
+            height: 900,
+            child: ChangeNotifierProvider<BatchGenerationNotifier>.value(
+              value: notifier,
+              child: BatchGenerationWorkspace(
+                promptController: promptController,
+                negativePromptController: negativePromptController,
+                userController: userController,
+                apiConfigs: const [config],
+                selectedApiConfig: config,
+                selectedApiConfigId: config.id,
+                providerKind: config.providerKind,
+                imageSizeCapabilityOverride: config.imageSizeCapabilityOverride,
+                size: '1024x1024',
+                advancedSettings: const ImageAdvancedSettings(),
+                onApiConfigChanged: (_) {},
+                onOpenApiSettings: () {},
+                onSizeChanged: (_) {},
+                onAdvancedSettingsChanged: (_) {},
+                onTargetCountChanged: (_) {},
+                onRequestCountChanged: (_) {},
+                onAddPrompts: () {},
+                onStart: () {},
+                onPause: () {},
+                onResume: () {},
+                onCancelQueued: () {},
+                onRetryFailed: () {},
+                onRemoveJob: (_) {},
+                onRetryJob: (_) {},
+                onClearFinished: () {},
+                onCopyImage: (_, _) {},
+                onExportImage: (_, _) {},
+                onMakeBackgroundTransparent: (_, _) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final addPromptsSemantics = tester.getSemantics(
+      _semanticsWithLabel('按行拆分入队').first,
+    );
+    expect(addPromptsSemantics.value, '队列运行中，当前不能执行此操作');
+    expect(addPromptsSemantics.flagsCollection.isButton, isTrue);
+    expect(addPromptsSemantics.flagsCollection.isEnabled, Tristate.isFalse);
+
+    final retrySemantics = tester.getSemantics(
+      _semanticsWithLabel('重试失败任务').first,
+    );
+    expect(retrySemantics.value, '队列运行中，当前不能执行此操作');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('batch queue exposes empty and error state semantics', (
+    tester,
+  ) async {
+    const config = ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+    final promptController = TextEditingController();
+    final negativePromptController = TextEditingController();
+    final userController = TextEditingController();
+    final emptyNotifier = _seededNotifier();
+    addTearDown(() {
+      promptController.dispose();
+      negativePromptController.dispose();
+      userController.dispose();
+      emptyNotifier.dispose();
+    });
+
+    Widget workspace(BatchGenerationNotifier notifier) {
+      return MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 1200,
+            height: 800,
+            child: ChangeNotifierProvider<BatchGenerationNotifier>.value(
+              value: notifier,
+              child: BatchGenerationWorkspace(
+                promptController: promptController,
+                negativePromptController: negativePromptController,
+                userController: userController,
+                apiConfigs: const [config],
+                selectedApiConfig: config,
+                selectedApiConfigId: config.id,
+                providerKind: config.providerKind,
+                imageSizeCapabilityOverride: config.imageSizeCapabilityOverride,
+                size: '1024x1024',
+                advancedSettings: const ImageAdvancedSettings(),
+                onApiConfigChanged: (_) {},
+                onOpenApiSettings: () {},
+                onSizeChanged: (_) {},
+                onAdvancedSettingsChanged: (_) {},
+                onTargetCountChanged: (_) {},
+                onRequestCountChanged: (_) {},
+                onAddPrompts: () {},
+                onStart: () {},
+                onPause: () {},
+                onResume: () {},
+                onCancelQueued: () {},
+                onRetryFailed: () {},
+                onRemoveJob: (_) {},
+                onRetryJob: (_) {},
+                onClearFinished: () {},
+                onCopyImage: (_, _) {},
+                onExportImage: (_, _) {},
+                onMakeBackgroundTransparent: (_, _) {},
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(workspace(emptyNotifier));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(_semanticsWithLabel('还没有任务。把提示词加入队列后，会按目标数量拆分并串行生成。'), findsWidgets);
+
+    final failedNotifier = _seededNotifier(
+      jobs: [
+        BatchGenerationJob.create(
+          apiConfig: config,
+          prompt: 'failed prompt',
+          negativePrompt: '',
+          size: '1024x1024',
+          imageCount: 1,
+          advancedSettings: const ImageAdvancedSettings(),
+          user: '',
+        ).copyWith(
+          status: BatchGenerationJobStatus.failed,
+          errorMessage: 'network error',
+        ),
+      ],
+    );
+    addTearDown(failedNotifier.dispose);
+
+    await tester.pumpWidget(workspace(failedNotifier));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(_semanticsWithLabel('network error'), findsWidgets);
+  });
+
   testWidgets(
     'batch queue uses a bounded scroll list without queued previews',
     (tester) async {
@@ -32,7 +324,7 @@ void main() {
         model: 'gpt-image-2',
       );
       final jobs = [
-        for (var index = 0; index < 24; index++)
+        for (var index = 0; index < 120; index++)
           BatchGenerationJob.create(
             apiConfig: config,
             prompt: 'batch prompt $index',
@@ -105,10 +397,12 @@ void main() {
 
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('24 个任务'), findsOneWidget);
+      expect(find.text('120 个任务'), findsOneWidget);
       expect(find.text('当前表单拆分入队'), findsNothing);
       expect(find.text('等待 1'), findsNothing);
       expect(find.byType(ListView), findsOneWidget);
+      expect(find.text('batch prompt 0'), findsOneWidget);
+      expect(find.text('batch prompt 119'), findsNothing);
 
       final listSize = tester.getSize(find.byType(ListView));
       expect(listSize.height, lessThanOrEqualTo(320));
@@ -336,4 +630,10 @@ void main() {
     expect(sizeChanges, 0);
     expect(advancedChanges, 0);
   });
+}
+
+Finder _semanticsWithLabel(String label) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Semantics && widget.properties.label == label,
+  );
 }

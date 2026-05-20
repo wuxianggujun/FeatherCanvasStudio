@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_l10n.dart';
 import '../services/image_api_client.dart';
 import '../widgets/common_form_widgets.dart';
 
@@ -39,14 +40,14 @@ class PreviewStateSurface extends StatelessWidget {
     : _kind = _PreviewStateKind.empty,
       title = null,
       onRetry = null,
-      retryLabel = '重试生成',
+      retryLabel = null,
       minHeight = 420;
 
   const PreviewStateSurface.loading({super.key, required this.message})
     : _kind = _PreviewStateKind.loading,
       title = null,
       onRetry = null,
-      retryLabel = '重试生成',
+      retryLabel = null,
       minHeight = 420;
 
   const PreviewStateSurface.error({
@@ -54,7 +55,7 @@ class PreviewStateSurface extends StatelessWidget {
     required this.title,
     required this.message,
     this.onRetry,
-    this.retryLabel = '重试生成',
+    this.retryLabel,
   }) : _kind = _PreviewStateKind.error,
        minHeight = 420;
 
@@ -62,7 +63,7 @@ class PreviewStateSurface extends StatelessWidget {
   final String? title;
   final String message;
   final VoidCallback? onRetry;
-  final String retryLabel;
+  final String? retryLabel;
   final double minHeight;
 
   @override
@@ -75,61 +76,70 @@ class PreviewStateSurface extends StatelessWidget {
       _PreviewStateKind.loading => Icons.hourglass_top_outlined,
       _PreviewStateKind.error => Icons.error_outline,
     };
+    final semanticLabel = title == null ? message : '${title!} · $message';
 
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(minHeight: minHeight),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isError ? colorScheme.error : colorScheme.outlineVariant,
+    return Semantics(
+      container: true,
+      liveRegion: _kind != _PreviewStateKind.empty,
+      label: semanticLabel,
+      readOnly: true,
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(minHeight: minHeight),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isError ? colorScheme.error : colorScheme.outlineVariant,
+          ),
         ),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_kind == _PreviewStateKind.loading) ...[
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-            ] else ...[
-              Icon(
-                icon,
-                size: 38,
-                color: isError ? colorScheme.error : colorScheme.primary,
-              ),
-              const SizedBox(height: 12),
-            ],
-            if (title != null) ...[
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_kind == _PreviewStateKind.loading) ...[
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+              ] else ...[
+                Icon(
+                  icon,
+                  size: 38,
+                  color: isError ? colorScheme.error : colorScheme.primary,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (title != null) ...[
+                Text(
+                  title!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               Text(
-                title!,
+                message,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurface,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 8),
+              if (onRetry != null) ...[
+                const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh_outlined),
+                  label: Text(
+                    retryLabel ?? appL10nOf(context).retryGenerationAction,
+                  ),
+                ),
+              ],
             ],
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (onRetry != null) ...[
-              const SizedBox(height: 16),
-              FilledButton.tonalIcon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh_outlined),
-                label: Text(retryLabel),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );

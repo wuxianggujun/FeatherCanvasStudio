@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_l10n.dart';
 import '../models/image_advanced_settings.dart';
 import '../theme/layout_constants.dart';
-import '../utils/display_labels.dart';
+import '../utils/localized_display_labels.dart';
 import 'common_form_widgets.dart';
 
 class ImageAdvancedSettingsSection extends StatelessWidget {
@@ -23,33 +24,34 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final compressionEnabled = settings.supportsOutputCompression;
 
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       childrenPadding: const EdgeInsets.only(top: 4),
-      title: const Text('高级输出参数'),
+      title: Text(l10n.imageAdvancedSettingsTitle),
       subtitle: Text(
-        '${imageQualityLabel(settings.quality)}质量 · '
-        '${imageOutputFormatLabel(settings.outputFormat)} · '
-        '${imageBackgroundLabel(settings.background)}背景',
+        '${localizedImageQualityLabel(l10n, settings.quality)}${l10n.imageAdvancedSettingsQualitySuffix} · '
+        '${localizedImageOutputFormatLabel(settings.outputFormat)} · '
+        '${localizedImageBackgroundLabel(l10n, settings.background)}${l10n.imageAdvancedSettingsBackgroundSuffix}',
       ),
       children: [
         ResponsivePair(
           first: _ImageOptionDropdown(
-            label: '质量',
+            label: l10n.imageAdvancedSettingsQuality,
             value: settings.quality,
             options: gptImageQualityOptions,
-            labelBuilder: imageQualityLabel,
+            labelBuilder: (value) => localizedImageQualityLabel(l10n, value),
             onChanged: enabled
                 ? (value) => onChanged(settings.copyWith(quality: value))
                 : null,
           ),
           second: _ImageOptionDropdown(
-            label: '背景',
+            label: l10n.imageAdvancedSettingsBackground,
             value: settings.background,
             options: gptImageBackgroundOptions,
-            labelBuilder: imageBackgroundLabel,
+            labelBuilder: (value) => localizedImageBackgroundLabel(l10n, value),
             onChanged: enabled
                 ? (value) => onChanged(settings.copyWith(background: value))
                 : null,
@@ -58,10 +60,10 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
         const SizedBox(height: fieldGap),
         ResponsivePair(
           first: _ImageOptionDropdown(
-            label: '输出格式',
+            label: l10n.imageAdvancedSettingsOutputFormat,
             value: settings.outputFormat,
             options: gptImageOutputFormatOptions,
-            labelBuilder: imageOutputFormatLabel,
+            labelBuilder: localizedImageOutputFormatLabel,
             onChanged: enabled
                 ? (value) {
                     final nextBackground =
@@ -78,10 +80,10 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
                 : null,
           ),
           second: _ImageOptionDropdown(
-            label: '审核强度',
+            label: l10n.imageAdvancedSettingsModeration,
             value: settings.moderation,
             options: gptImageModerationOptions,
-            labelBuilder: imageModerationLabel,
+            labelBuilder: (value) => localizedImageModerationLabel(l10n, value),
             onChanged: !enabled || hasTemplateImage
                 ? null
                 : (value) => onChanged(settings.copyWith(moderation: value)),
@@ -99,18 +101,20 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
         TextField(
           controller: userController,
           enabled: enabled,
-          decoration: const InputDecoration(
-            labelText: '最终用户 ID',
-            hintText: '可选，用于 OpenAI 滥用监控',
+          decoration: InputDecoration(
+            labelText: l10n.imageAdvancedSettingsFinalUserId,
+            hintText: l10n.imageAdvancedSettingsFinalUserHint,
           ),
         ),
         if (hasTemplateImage) ...[
           const SizedBox(height: fieldGap),
           _ImageOptionDropdown(
-            label: '参考图保真度',
+            label: l10n.imageAdvancedSettingsInputFidelity,
             value: settings.inputFidelity,
             options: const ['low', 'high'],
-            labelBuilder: (value) => value == 'high' ? '高' : '低',
+            labelBuilder: (value) => value == 'high'
+                ? l10n.imageAdvancedSettingsHigh
+                : l10n.imageAdvancedSettingsLow,
             onChanged: enabled
                 ? (value) => onChanged(settings.copyWith(inputFidelity: value))
                 : null,
@@ -165,13 +169,16 @@ class _ImageCompressionSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = appL10nOf(context);
     final normalized = value.clamp(0, 100);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          available ? '输出压缩率 $normalized%' : '输出压缩率仅用于 JPEG / WebP',
+          available
+              ? l10n.imageAdvancedSettingsCompressionValue(normalized)
+              : l10n.imageAdvancedSettingsCompressionUnavailable,
           style: theme.textTheme.bodySmall,
         ),
         Slider(
@@ -180,6 +187,8 @@ class _ImageCompressionSlider extends StatelessWidget {
           max: 100,
           divisions: 20,
           label: '$normalized%',
+          semanticFormatterCallback: (value) =>
+              l10n.imageAdvancedSettingsCompressionValue(value.round()),
           onChanged: enabled ? (value) => onChanged(value.round()) : null,
         ),
       ],

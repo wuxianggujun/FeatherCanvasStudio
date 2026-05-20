@@ -1,3 +1,4 @@
+import '../l10n/generated/app_localizations.dart';
 import '../models/image_asset_kind.dart';
 import '../models/image_library_item.dart';
 import '../models/ui_state.dart';
@@ -29,6 +30,70 @@ class ImageLibraryViewData {
   }
 }
 
+class ImageLibraryViewDataMemoizer {
+  List<ImageLibraryItem>? _library;
+  ImageLibraryKindFilter? _filter;
+  ImageLibrarySortOrder? _sortOrder;
+  String? _searchQuery;
+  bool? _showStandaloneFrames;
+  String? _projectFilter;
+  String? _tagFilter;
+  bool Function(ImageLibraryItem item)? _itemExists;
+  AppLocalizations? _l10n;
+  ImageLibraryViewData? _viewData;
+
+  ImageLibraryViewData build({
+    required List<ImageLibraryItem> library,
+    required ImageLibraryKindFilter filter,
+    required ImageLibrarySortOrder sortOrder,
+    required String searchQuery,
+    required bool showStandaloneFrames,
+    String projectFilter = '',
+    String tagFilter = '',
+    bool Function(ImageLibraryItem item)? itemExists,
+    AppLocalizations? l10n,
+  }) {
+    final cached = _viewData;
+    if (cached != null &&
+        identical(_library, library) &&
+        _filter == filter &&
+        _sortOrder == sortOrder &&
+        _searchQuery == searchQuery &&
+        _showStandaloneFrames == showStandaloneFrames &&
+        _projectFilter == projectFilter &&
+        _tagFilter == tagFilter &&
+        _itemExists == itemExists &&
+        identical(_l10n, l10n)) {
+      return cached;
+    }
+
+    final viewData = buildImageLibraryViewData(
+      library: library,
+      filter: filter,
+      sortOrder: sortOrder,
+      searchQuery: searchQuery,
+      showStandaloneFrames: showStandaloneFrames,
+      projectFilter: projectFilter,
+      tagFilter: tagFilter,
+      itemExists: itemExists,
+      l10n: l10n,
+    );
+
+    _library = library;
+    _filter = filter;
+    _sortOrder = sortOrder;
+    _searchQuery = searchQuery;
+    _showStandaloneFrames = showStandaloneFrames;
+    _projectFilter = projectFilter;
+    _tagFilter = tagFilter;
+    _itemExists = itemExists;
+    _l10n = l10n;
+    _viewData = viewData;
+
+    return viewData;
+  }
+}
+
 ImageLibraryViewData buildImageLibraryViewData({
   required List<ImageLibraryItem> library,
   required ImageLibraryKindFilter filter,
@@ -38,6 +103,7 @@ ImageLibraryViewData buildImageLibraryViewData({
   String projectFilter = '',
   String tagFilter = '',
   bool Function(ImageLibraryItem item)? itemExists,
+  AppLocalizations? l10n,
 }) {
   final itemExistsPredicate = itemExists ?? (item) => item.existsSync;
   final availableItems = [
@@ -77,7 +143,7 @@ ImageLibraryViewData buildImageLibraryViewData({
       if (imageLibraryKindFilterMatches(filter, item.kind) &&
           imageLibraryItemMatchesProject(item, projectFilter) &&
           imageLibraryItemMatchesTag(item, tagFilter) &&
-          imageLibraryItemMatchesSearch(item, searchQuery))
+          imageLibraryItemMatchesSearch(item, searchQuery, l10n: l10n))
         item,
   ]..sort((a, b) => compareImageLibraryItems(a, b, sortOrder));
   final groupedFrameCount = availableItems

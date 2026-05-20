@@ -19,15 +19,17 @@ class AppShortcuts {
       };
 }
 
-class AppShortcutEntry {
-  const AppShortcutEntry({required this.label, required this.keys});
+enum AppShortcutId { undo, redo, redoAlt }
 
-  final String label;
+class AppShortcutEntry {
+  const AppShortcutEntry({required this.id, required this.keys});
+
+  final AppShortcutId id;
   final List<String> keys;
 }
 
 const List<AppShortcutEntry> appShortcutCheatSheet = <AppShortcutEntry>[
-  AppShortcutEntry(label: '撤销', keys: ['Ctrl', 'Z']),
-  AppShortcutEntry(label: '重做', keys: ['Ctrl', 'Y']),
-  AppShortcutEntry(label: '重做（备选）', keys: ['Ctrl', 'Shift', 'Z']),
+  AppShortcutEntry(id: AppShortcutId.undo, keys: ['Ctrl', 'Z']),
+  AppShortcutEntry(id: AppShortcutId.redo, keys: ['Ctrl', 'Y']),
+  AppShortcutEntry(id: AppShortcutId.redoAlt, keys: ['Ctrl', 'Shift', 'Z']),
 ];

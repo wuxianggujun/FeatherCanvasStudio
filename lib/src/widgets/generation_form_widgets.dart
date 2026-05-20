@@ -4,9 +4,11 @@ import '../models/api_provider.dart';
 import '../models/app_config.dart';
 import '../models/image_advanced_settings.dart';
 import '../models/sprite_sheet_grid_spec.dart';
+import '../l10n/app_l10n.dart';
 import '../theme/layout_constants.dart';
 import '../utils/generation_limits.dart';
 import '../utils/image_dimensions.dart';
+import '../utils/localized_display_labels.dart';
 import '../widgets/api_settings_widgets.dart';
 import '../widgets/common_form_widgets.dart';
 import '../widgets/image_advanced_settings_widgets.dart';
@@ -57,15 +59,17 @@ class ControlPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final sizeValidation = validateImageSizeForModel(
       size: size,
       providerKind: providerKind,
       model: model,
       capabilityOverride: imageSizeCapabilityOverride,
+      labels: localizedImageSizeDisplayLabels(l10n),
     );
 
     return AppPanel(
-      title: '生成配置',
+      title: l10n.generationConfigSectionTitle,
       child: Column(
         children: [
           ApiConfigSelector(
@@ -79,9 +83,9 @@ class ControlPanel extends StatelessWidget {
             controller: promptController,
             minLines: 5,
             maxLines: 9,
-            decoration: const InputDecoration(
-              labelText: '正向提示词',
-              hintText: '描述你想生成的图片',
+            decoration: InputDecoration(
+              labelText: l10n.positivePromptLabel,
+              hintText: l10n.positivePromptHint,
               alignLabelWithHint: true,
             ),
           ),
@@ -90,9 +94,9 @@ class ControlPanel extends StatelessWidget {
             controller: negativePromptController,
             minLines: 3,
             maxLines: 5,
-            decoration: const InputDecoration(
-              labelText: '负向提示词',
-              hintText: '会合并到 prompt 中，不额外发送非 OpenAI 字段',
+            decoration: InputDecoration(
+              labelText: l10n.negativePromptLabel,
+              hintText: l10n.negativePromptHint,
               alignLabelWithHint: true,
             ),
           ),
@@ -113,12 +117,14 @@ class ControlPanel extends StatelessWidget {
           ),
           const SizedBox(height: fieldGap),
           IntegerStepperField(
-            label: '目标数量',
+            label: l10n.targetImageCountLabel,
             value: imageCount,
             minValue: minImageGenerationCount,
             maxValue: maxImageGenerationTargetCount,
-            suffixText: '张',
-            helperText: '超过 $maxImageGenerationRequestCount 张会自动拆成多次请求',
+            suffixText: l10n.imageCountSuffix,
+            helperText: l10n.localSettingsDefaultImageCountHelper(
+              maxImageGenerationRequestCount,
+            ),
             enabled: !isGenerating,
             onChanged: onImageCountChanged,
           ),
@@ -128,8 +134,8 @@ class ControlPanel extends StatelessWidget {
                 ? null
                 : onGenerate,
             icon: Icons.auto_awesome,
-            label: '生成图片',
-            busyLabel: '生成中',
+            label: l10n.generateImageButton,
+            busyLabel: l10n.generatingImageButton,
             isBusy: isGenerating,
           ),
         ],
@@ -198,17 +204,19 @@ class SpriteSheetGenerationPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final frameTotal = rows * columns;
     final sizeValidation = validateImageSizeForModel(
       size: size,
       providerKind: providerKind,
       model: model,
       capabilityOverride: imageSizeCapabilityOverride,
+      labels: localizedImageSizeDisplayLabels(l10n),
     );
 
     return AppPanel(
-      title: '序列帧生成配置',
-      trailing: FrameCountBadge(count: frameTotal, label: '格'),
+      title: l10n.spriteSheetGenerationConfigTitle,
+      trailing: FrameCountBadge(count: frameTotal, label: l10n.spriteSheetCell),
       child: Column(
         children: [
           ApiConfigSelector(
@@ -230,9 +238,9 @@ class SpriteSheetGenerationPanel extends StatelessWidget {
             controller: promptController,
             minLines: 7,
             maxLines: 12,
-            decoration: const InputDecoration(
-              labelText: '提示词内容',
-              hintText: '把主体、场景、风格、动作变化写在这里即可',
+            decoration: InputDecoration(
+              labelText: l10n.spriteSheetPromptLabel,
+              hintText: l10n.spriteSheetPromptHint,
               alignLabelWithHint: true,
             ),
           ),
@@ -241,9 +249,9 @@ class SpriteSheetGenerationPanel extends StatelessWidget {
             controller: negativePromptController,
             minLines: 2,
             maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: '负向提示词',
-              hintText: '会应用到每一帧',
+            decoration: InputDecoration(
+              labelText: l10n.negativePromptLabel,
+              hintText: l10n.spriteSheetNegativePromptHint,
               alignLabelWithHint: true,
             ),
           ),
@@ -266,17 +274,17 @@ class SpriteSheetGenerationPanel extends StatelessWidget {
           const SizedBox(height: fieldGap),
           ResponsivePair(
             first: OptionDropdown<int>(
-              label: '行数',
+              label: l10n.spriteSheetRowsLabel,
               value: rows,
               options: _gridSizes,
-              labelBuilder: (value) => '$value 行',
+              labelBuilder: l10n.spriteSheetRowsValue,
               onChanged: onRowsChanged,
             ),
             second: OptionDropdown<int>(
-              label: '列数',
+              label: l10n.spriteSheetColumnsLabel,
               value: columns,
               options: _gridSizes,
-              labelBuilder: (value) => '$value 列',
+              labelBuilder: l10n.spriteSheetColumnsValue,
               onChanged: onColumnsChanged,
             ),
           ),
@@ -291,8 +299,8 @@ class SpriteSheetGenerationPanel extends StatelessWidget {
                 ? null
                 : onGenerate,
             icon: Icons.movie_filter_outlined,
-            label: '生成 Sprite Sheet',
-            busyLabel: '生成 Sprite Sheet 中',
+            label: l10n.spriteSheetGenerateButton,
+            busyLabel: l10n.spriteSheetGeneratingButton,
             isBusy: isGenerating,
           ),
         ],

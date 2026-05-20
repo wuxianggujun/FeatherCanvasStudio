@@ -88,13 +88,14 @@ mixin _BatchGenerationStateMixin
       return null;
     }
 
+    final l10n = appL10nOf(context);
     final apiConfig = await _prepareSelectedApiConfigForRequest();
     if (apiConfig.apiKey.trim().isEmpty) {
-      _showMessage('请先在接口配置页填写 API Key');
+      _showMessage(l10n.batchGenerationMissingApiKey);
       return null;
     }
     if (apiConfig.model.trim().isEmpty) {
-      _showMessage('请先在接口配置页获取模型列表并选择模型');
+      _showMessage(l10n.batchGenerationMissingModel);
       return null;
     }
 
@@ -124,8 +125,9 @@ mixin _BatchGenerationStateMixin
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty)
         .toList();
+    final l10n = appL10nOf(context);
     if (prompts.isEmpty) {
-      _showMessage('请先填写至少一行批量提示词');
+      _showMessage(l10n.batchGenerationMissingPrompts);
       return;
     }
 
@@ -144,7 +146,7 @@ mixin _BatchGenerationStateMixin
       _batchJobs = [..._batchJobs, ...jobs];
       _batchPromptController.clear();
     });
-    _showMessage('已拆分并加入 ${jobs.length} 个批量任务');
+    _showMessage(l10n.batchGenerationJobsAdded(jobs.length));
   }
 
   void _setBatchTargetCount(int value) {
@@ -182,13 +184,13 @@ mixin _BatchGenerationStateMixin
 
   void _retryFailedBatchJobs() {
     if (_isBatchGenerationRunning) {
-      _showMessage('队列运行中，请等待当前队列停止后再重试失败任务');
+      _showMessage(appL10nOf(context).batchGenerationRetryBlockedRunning);
       return;
     }
 
     final failedCount = _batchJobs.where((job) => job.canRetry).length;
     if (failedCount == 0) {
-      _showMessage('没有失败任务可重试');
+      _showMessage(appL10nOf(context).batchGenerationNoFailedJobsToRetry);
       return;
     }
 
@@ -198,12 +200,14 @@ mixin _BatchGenerationStateMixin
           if (job.canRetry) _requeueFailedBatchJob(job) else job,
       ];
     });
-    _showMessage('已将 $failedCount 个失败任务重新加入等待队列');
+    _showMessage(
+      appL10nOf(context).batchGenerationFailedJobsRequeued(failedCount),
+    );
   }
 
   void _retryFailedBatchJob(BatchGenerationJob job) {
     if (_isBatchGenerationRunning) {
-      _showMessage('队列运行中，请等待当前队列停止后再重试失败任务');
+      _showMessage(appL10nOf(context).batchGenerationRetryBlockedRunning);
       return;
     }
     if (!job.canRetry) {
@@ -222,7 +226,7 @@ mixin _BatchGenerationStateMixin
         _requeueFailedBatchJob(_batchJobs[jobIndex]),
       );
     });
-    _showMessage('已将失败任务重新加入等待队列');
+    _showMessage(appL10nOf(context).batchGenerationFailedJobRequeued);
   }
 
   BatchGenerationJob _requeueFailedBatchJob(BatchGenerationJob job) {
@@ -240,6 +244,7 @@ mixin _BatchGenerationStateMixin
     if (_isBatchGenerationRunning) {
       return;
     }
+    final l10n = appL10nOf(context);
 
     setState(() {
       _isBatchGenerationRunning = true;
@@ -273,6 +278,8 @@ mixin _BatchGenerationStateMixin
           store: _store,
           imageLibraryService: _imageLibraryService,
           imageGenerationService: _imageGenerationService,
+          titlePrefix: l10n.batchGenerationLibraryTitlePrefix,
+          source: l10n.batchGenerationLibrarySource,
           onDebugRecord: (record) {
             debugRecord = record;
             if (!mounted) {
@@ -321,6 +328,16 @@ mixin _BatchGenerationStateMixin
               jobs: _batchJobs,
               jobIndex: currentIndex,
               error: error,
+              autoRetryMessageBuilder:
+                  ({
+                    required errorMessage,
+                    required maxRetryAttempts,
+                    required retryAttempt,
+                  }) => l10n.batchGenerationAutoRetryMessage(
+                    retryAttempt,
+                    maxRetryAttempts,
+                    errorMessage,
+                  ),
             );
             _batchJobs = update.jobs;
           });
@@ -336,9 +353,11 @@ mixin _BatchGenerationStateMixin
         _pauseBatchGenerationAfterCurrent = false;
       });
       if (pausedByUser && queuedCount > 0) {
-        _showMessage('队列已暂停，可继续执行剩余 $queuedCount 个任务');
+        _showMessage(
+          appL10nOf(context).batchGenerationQueuePaused(queuedCount),
+        );
       } else {
-        _showMessage('批量队列已停止');
+        _showMessage(appL10nOf(context).batchGenerationQueueStopped);
       }
     }
   }
@@ -348,7 +367,7 @@ mixin _BatchGenerationStateMixin
       return;
     }
     setState(() => _pauseBatchGenerationAfterCurrent = true);
-    _showMessage('已暂停后续任务；正在请求的一批会等待接口返回');
+    _showMessage(appL10nOf(context).batchGenerationPauseRequested);
   }
 
   void _resumeBatchGenerationQueue() {
@@ -359,13 +378,14 @@ mixin _BatchGenerationStateMixin
       return;
     }
     setState(() => _pauseBatchGenerationAfterCurrent = false);
-    _showMessage('已恢复后续任务');
+    _showMessage(appL10nOf(context).batchGenerationResumed);
   }
 
   void _cancelQueuedBatchJobs() {
     final queuedCount = _batchJobs.where((job) => job.isPending).length;
+    final l10n = appL10nOf(context);
     if (queuedCount == 0) {
-      _showMessage('没有等待中的任务可取消');
+      _showMessage(l10n.batchGenerationNoQueuedJobsToCancel);
       return;
     }
     setState(() {
@@ -375,14 +395,18 @@ mixin _BatchGenerationStateMixin
           if (job.isPending)
             job.copyWith(
               status: BatchGenerationJobStatus.skipped,
-              errorMessage: '用户取消等待任务',
+              errorMessage: l10n.batchGenerationUserCanceledQueuedJob,
             )
           else
             job,
       ];
     });
-    final runningHint = _isBatchGenerationRunning ? '；当前正在请求的一批会等待接口返回' : '';
-    _showMessage('已取消 $queuedCount 个等待任务$runningHint');
+    final runningHint = _isBatchGenerationRunning
+        ? l10n.batchGenerationCancelQueuedRunningHint
+        : '';
+    _showMessage(
+      l10n.batchGenerationQueuedJobsCanceled(queuedCount, runningHint),
+    );
   }
 
   Future<void> _makeBatchImageBackgroundTransparent(
@@ -390,7 +414,8 @@ mixin _BatchGenerationStateMixin
     GeneratedImage image,
   ) async {
     final sourceItem = _findImageLibraryItemByPath(image.filePath);
-    final fallbackTitle = '批量结果 ${previewIndex + 1}';
+    final l10n = appL10nOf(context);
+    final fallbackTitle = l10n.batchGenerationResultTitle(previewIndex + 1);
     final tolerance = await showBackgroundTransparencyDialog(
       context,
       sourceTitle: sourceItem?.displayTitle ?? fallbackTitle,
@@ -406,13 +431,13 @@ mixin _BatchGenerationStateMixin
         tolerance: tolerance,
         sourceItem: sourceItem,
         fallbackTitle: fallbackTitle,
-        source: '批量生成',
+        source: l10n.batchGenerationSourceName,
       );
       if (!mounted) {
         return;
       }
       if (saved == null) {
-        _showMessage('没有检测到可透明化的边缘背景，可尝试调高容差');
+        _showMessage(l10n.backgroundTransparencyNoEdgeDetected);
         return;
       }
 
@@ -428,14 +453,16 @@ mixin _BatchGenerationStateMixin
         );
       });
       _showMessage(
-        '已生成透明背景图片：${saved.item.displayTitle} · '
-        '透明化 ${saved.transparentPixelCount} 个像素',
+        l10n.batchGenerationTransparentImageSaved(
+          saved.item.displayTitle,
+          saved.transparentPixelCount,
+        ),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      _showMessage('背景转透明失败：$error');
+      _showMessage(appL10nOf(context).backgroundTransparencyFailed(error));
     }
   }
 
@@ -450,7 +477,7 @@ mixin _BatchGenerationStateMixin
       if (!mounted) {
         return;
       }
-      _showMessage('复制图片失败：$error');
+      _showMessage(appL10nOf(context).copyImageFailed(error));
     }
   }
 

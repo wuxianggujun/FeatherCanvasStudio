@@ -8,15 +8,20 @@ import '../../models/generated_image.dart';
 import '../../models/image_advanced_settings.dart';
 import '../../services/image_request_debug_record.dart';
 import '../../state/batch_generation_notifier.dart';
+import '../../l10n/app_l10n.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../theme/layout_constants.dart';
 import '../../utils/generation_limits.dart';
 import '../../utils/image_dimensions.dart';
+import '../../utils/localized_display_labels.dart';
 import '../api_settings_widgets.dart';
 import '../common_form_widgets.dart';
 import '../image_advanced_settings_widgets.dart';
 import '../image_size_widgets.dart';
 import '../layout_navigation_widgets.dart';
 import '../preview_widgets.dart';
+
+const int _maxBatchPreviewImages = 120;
 
 class BatchGenerationWorkspace extends StatelessWidget {
   const BatchGenerationWorkspace({
@@ -83,9 +88,10 @@ class BatchGenerationWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     return WorkspacePage(
-      title: '批量生成',
-      description: '把多条文本生图任务排队串行执行，成功结果会自动进入作品库。',
+      title: l10n.batchGenerationWorkspaceTitle,
+      description: l10n.batchGenerationWorkspaceDescription,
       children: [
         ResponsiveWorkspaceSplit(
           storageKey: 'batch_generation',
@@ -118,24 +124,10 @@ class BatchGenerationWorkspace extends StatelessWidget {
             builder: (context, notifier, _) {
               final jobs = notifier.jobs;
               final isRunning = notifier.isRunning;
-              final previewImages = [
-                for (final job in jobs)
-                  if (job.resultImages.isNotEmpty) ...job.resultImages,
-              ];
-              final targetImageCount = jobs.fold<int>(
-                previewImages.length,
-                (total, job) => job.isRunning ? total + job.imageCount : total,
-              );
-              final previewAspectRatio = _batchPreviewAspectRatio(
-                jobs: jobs,
+              final summary = summarizeBatchGenerationJobs(
+                jobs,
                 fallbackSize: size,
               );
-              ImageRequestDebugRecord? latestDebugRecord;
-              for (final job in jobs) {
-                if (job.debugRecord != null) {
-                  latestDebugRecord = job.debugRecord;
-                }
-              }
               return Column(
                 children: [
                   _BatchGenerationJobList(
@@ -146,11 +138,11 @@ class BatchGenerationWorkspace extends StatelessWidget {
                   const SizedBox(height: 16),
                   PreviewPanel(
                     errorMessage: null,
-                    generatedImages: previewImages,
+                    generatedImages: summary.previewImages,
                     isGenerating: isRunning,
-                    targetImageCount: targetImageCount,
-                    targetAspectRatio: previewAspectRatio,
-                    debugRecord: latestDebugRecord,
+                    targetImageCount: summary.targetImageCount,
+                    targetAspectRatio: summary.previewAspectRatio,
+                    debugRecord: summary.latestDebugRecord,
                     onRetry: onStart,
                     onCopyImage: onCopyImage,
                     onExportImage: onExportImage,
@@ -166,16 +158,84 @@ class BatchGenerationWorkspace extends StatelessWidget {
   }
 }
 
-double _batchPreviewAspectRatio({
-  required List<BatchGenerationJob> jobs,
+@visibleForTesting
+BatchGenerationJobSummary summarizeBatchGenerationJobs(
+  List<BatchGenerationJob> jobs, {
   required String fallbackSize,
 }) {
+  var queuedCount = 0;
+  var runningCount = 0;
+  var finishedCount = 0;
+  var failedCount = 0;
+  var targetImageCount = 0;
+  var previewAspectRatio = imageAspectRatioFromSize(fallbackSize);
+  var hasPreviewAspectRatio = false;
+  ImageRequestDebugRecord? latestDebugRecord;
+  final previewImages = <GeneratedImage>[];
+
   for (final job in jobs) {
-    if (job.resultImages.isNotEmpty || job.isRunning) {
-      return imageAspectRatioFromSize(job.size);
+    if (job.isPending) {
+      queuedCount++;
+    }
+    if (job.isRunning) {
+      runningCount++;
+      targetImageCount += job.imageCount;
+    }
+    if (job.isTerminal) {
+      finishedCount++;
+    }
+    if (job.canRetry) {
+      failedCount++;
+    }
+    if (job.resultImages.isNotEmpty &&
+        previewImages.length < _maxBatchPreviewImages) {
+      final remainingPreviewSlots =
+          _maxBatchPreviewImages - previewImages.length;
+      previewImages.addAll(job.resultImages.take(remainingPreviewSlots));
+    }
+    if (!hasPreviewAspectRatio &&
+        (job.resultImages.isNotEmpty || job.isRunning)) {
+      previewAspectRatio = imageAspectRatioFromSize(job.size);
+      hasPreviewAspectRatio = true;
+    }
+    if (job.debugRecord != null) {
+      latestDebugRecord = job.debugRecord;
     }
   }
-  return imageAspectRatioFromSize(fallbackSize);
+
+  return BatchGenerationJobSummary(
+    queuedCount: queuedCount,
+    runningCount: runningCount,
+    finishedCount: finishedCount,
+    failedCount: failedCount,
+    previewImages: List.unmodifiable(previewImages),
+    targetImageCount: targetImageCount + previewImages.length,
+    previewAspectRatio: previewAspectRatio,
+    latestDebugRecord: latestDebugRecord,
+  );
+}
+
+@visibleForTesting
+class BatchGenerationJobSummary {
+  const BatchGenerationJobSummary({
+    required this.queuedCount,
+    required this.runningCount,
+    required this.finishedCount,
+    required this.failedCount,
+    required this.previewImages,
+    required this.targetImageCount,
+    required this.previewAspectRatio,
+    required this.latestDebugRecord,
+  });
+
+  final int queuedCount;
+  final int runningCount;
+  final int finishedCount;
+  final int failedCount;
+  final List<GeneratedImage> previewImages;
+  final int targetImageCount;
+  final double previewAspectRatio;
+  final ImageRequestDebugRecord? latestDebugRecord;
 }
 
 class _BatchGenerationControls extends StatelessWidget {
@@ -231,16 +291,18 @@ class _BatchGenerationControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final notifier = context.watch<BatchGenerationNotifier>();
     final jobs = notifier.jobs;
     final targetCount = notifier.targetCount;
     final requestCount = notifier.requestCount;
     final isRunning = notifier.isRunning;
     final isPausing = notifier.pauseAfterCurrent;
-    final queuedCount = jobs.where((job) => job.isPending).length;
-    final runningCount = jobs.where((job) => job.isRunning).length;
-    final finishedCount = jobs.where((job) => job.isTerminal).length;
-    final failedCount = jobs.where((job) => job.canRetry).length;
+    final summary = summarizeBatchGenerationJobs(jobs, fallbackSize: size);
+    final queuedCount = summary.queuedCount;
+    final runningCount = summary.runningCount;
+    final finishedCount = summary.finishedCount;
+    final failedCount = summary.failedCount;
     final batchCount = splitImageGenerationBatches(
       targetCount: targetCount,
       requestCount: requestCount,
@@ -250,10 +312,39 @@ class _BatchGenerationControls extends StatelessWidget {
       providerKind: providerKind,
       model: selectedApiConfig.model,
       capabilityOverride: imageSizeCapabilityOverride,
+      labels: localizedImageSizeDisplayLabels(l10n),
     );
+    final startQueueLabel = finishedCount > 0
+        ? l10n.batchContinueQueue
+        : l10n.batchStartQueue;
+    final startDisabledReason = isRunning
+        ? l10n.batchActionQueueBusyUnavailable
+        : queuedCount == 0
+        ? l10n.batchActionNeedsQueuedJobs
+        : !sizeValidation.isValid
+        ? sizeValidation.message
+        : null;
+    final pauseDisabledReason = !isRunning
+        ? l10n.batchActionQueueNotRunning
+        : isPausing
+        ? l10n.batchActionQueueAlreadyPausing
+        : null;
+    final retryFailedLabel = failedCount == 0
+        ? l10n.batchRetryFailed
+        : l10n.batchRetryFailedCount(failedCount);
+    final retryDisabledReason = isRunning
+        ? l10n.batchActionQueueBusyUnavailable
+        : failedCount == 0
+        ? l10n.batchGenerationNoFailedJobsToRetry
+        : null;
+    final clearFinishedDisabledReason = isRunning
+        ? l10n.batchActionQueueBusyUnavailable
+        : finishedCount == 0
+        ? l10n.batchActionNoFinishedJobs
+        : null;
 
     return AppPanel(
-      title: '队列控制',
+      title: l10n.batchQueueControlTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -269,9 +360,9 @@ class _BatchGenerationControls extends StatelessWidget {
             controller: promptController,
             minLines: 7,
             maxLines: 12,
-            decoration: const InputDecoration(
-              labelText: '批量提示词',
-              hintText: '每行一条提示词；每条会按目标数量自动拆分',
+            decoration: InputDecoration(
+              labelText: l10n.batchPromptLabel,
+              hintText: l10n.batchPromptHint,
               alignLabelWithHint: true,
             ),
           ),
@@ -280,9 +371,9 @@ class _BatchGenerationControls extends StatelessWidget {
             controller: negativePromptController,
             minLines: 2,
             maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: '负向提示词',
-              hintText: '会应用到每一个批量任务',
+            decoration: InputDecoration(
+              labelText: l10n.negativePromptLabel,
+              hintText: l10n.batchNegativePromptHint,
               alignLabelWithHint: true,
             ),
           ),
@@ -307,22 +398,24 @@ class _BatchGenerationControls extends StatelessWidget {
           const SizedBox(height: fieldGap),
           ResponsivePair(
             first: IntegerStepperField(
-              label: '目标数量',
+              label: l10n.targetImageCountLabel,
               value: targetCount,
               minValue: minImageGenerationCount,
               maxValue: maxBatchGenerationTargetCount,
-              suffixText: '张',
-              helperText: '每条提示词最终想生成的总数',
+              suffixText: l10n.imageCountSuffix,
+              helperText: l10n.batchTargetCountHelper,
               enabled: !isRunning,
               onChanged: onTargetCountChanged,
             ),
             second: IntegerStepperField(
-              label: '每批张数',
+              label: l10n.batchRequestCountLabel,
               value: requestCount,
               minValue: minImageGenerationCount,
               maxValue: maxImageGenerationRequestCount,
-              suffixText: '张',
-              helperText: '单次请求最多 $maxImageGenerationRequestCount 张',
+              suffixText: l10n.imageCountSuffix,
+              helperText: l10n.batchRequestCountHelper(
+                maxImageGenerationRequestCount,
+              ),
               enabled: !isRunning,
               onChanged: onRequestCountChanged,
             ),
@@ -338,62 +431,126 @@ class _BatchGenerationControls extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              '当前会把每条提示词拆成 $batchCount 个串行任务',
+              l10n.batchSplitStatus(batchCount),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: isRunning ? null : onAddPrompts,
-              icon: const Icon(Icons.playlist_add_outlined),
-              label: const Text('按行拆分入队'),
+            child: _DisabledActionSemantics(
+              label: l10n.batchAddPrompts,
+              disabledReason: isRunning
+                  ? l10n.batchActionQueueBusyUnavailable
+                  : null,
+              child: OutlinedButton.icon(
+                onPressed: isRunning ? null : onAddPrompts,
+                icon: const Icon(Icons.playlist_add_outlined),
+                label: Text(l10n.batchAddPrompts),
+              ),
             ),
           ),
           const SizedBox(height: 12),
-          PrimaryActionButton(
-            onPressed: isRunning || queuedCount == 0 || !sizeValidation.isValid
-                ? null
-                : onStart,
-            icon: Icons.auto_awesome_motion_outlined,
-            label: finishedCount > 0 ? '继续队列' : '开始队列',
-            busyLabel: '队列运行中',
-            isBusy: isRunning,
+          _DisabledActionSemantics(
+            label: isRunning ? l10n.batchQueueRunning : startQueueLabel,
+            disabledReason: startDisabledReason,
+            child: PrimaryActionButton(
+              onPressed:
+                  isRunning || queuedCount == 0 || !sizeValidation.isValid
+                  ? null
+                  : onStart,
+              icon: Icons.auto_awesome_motion_outlined,
+              label: startQueueLabel,
+              busyLabel: l10n.batchQueueRunning,
+              isBusy: isRunning,
+            ),
           ),
           const SizedBox(height: 8),
           ResponsivePair(
-            first: OutlinedButton.icon(
-              onPressed: isRunning && !isPausing ? onPause : null,
-              icon: const Icon(Icons.pause_circle_outline),
-              label: const Text('暂停后续'),
+            first: _DisabledActionSemantics(
+              label: l10n.batchPauseAfterCurrent,
+              disabledReason: pauseDisabledReason,
+              child: OutlinedButton.icon(
+                onPressed: isRunning && !isPausing ? onPause : null,
+                icon: const Icon(Icons.pause_circle_outline),
+                label: Text(l10n.batchPauseAfterCurrent),
+              ),
             ),
-            second: OutlinedButton.icon(
-              onPressed: isPausing ? onResume : null,
-              icon: const Icon(Icons.play_circle_outline),
-              label: const Text('继续后续'),
+            second: _DisabledActionSemantics(
+              label: l10n.batchResumeQueue,
+              disabledReason: isPausing ? null : l10n.batchActionQueueNotPaused,
+              child: OutlinedButton.icon(
+                onPressed: isPausing ? onResume : null,
+                icon: const Icon(Icons.play_circle_outline),
+                label: Text(l10n.batchResumeQueue),
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: queuedCount == 0 ? null : onCancelQueued,
-            icon: const Icon(Icons.cancel_schedule_send_outlined),
-            label: const Text('取消等待任务'),
+          _DisabledActionSemantics(
+            label: l10n.batchCancelQueued,
+            disabledReason: queuedCount == 0
+                ? l10n.batchGenerationNoQueuedJobsToCancel
+                : null,
+            child: OutlinedButton.icon(
+              onPressed: queuedCount == 0 ? null : onCancelQueued,
+              icon: const Icon(Icons.cancel_schedule_send_outlined),
+              label: Text(l10n.batchCancelQueued),
+            ),
           ),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: isRunning || failedCount == 0 ? null : onRetryFailed,
-            icon: const Icon(Icons.replay_outlined),
-            label: Text(failedCount == 0 ? '重试失败任务' : '重试失败任务 ($failedCount)'),
+          _DisabledActionSemantics(
+            label: retryFailedLabel,
+            disabledReason: retryDisabledReason,
+            child: OutlinedButton.icon(
+              onPressed: isRunning || failedCount == 0 ? null : onRetryFailed,
+              icon: const Icon(Icons.replay_outlined),
+              label: Text(retryFailedLabel),
+            ),
           ),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: isRunning || finishedCount == 0 ? null : onClearFinished,
-            icon: const Icon(Icons.clear_all_outlined),
-            label: const Text('清理完成 / 失败 / 取消'),
+          _DisabledActionSemantics(
+            label: l10n.batchClearFinished,
+            disabledReason: clearFinishedDisabledReason,
+            child: OutlinedButton.icon(
+              onPressed: isRunning || finishedCount == 0
+                  ? null
+                  : onClearFinished,
+              icon: const Icon(Icons.clear_all_outlined),
+              label: Text(l10n.batchClearFinished),
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DisabledActionSemantics extends StatelessWidget {
+  const _DisabledActionSemantics({
+    required this.label,
+    required this.disabledReason,
+    required this.child,
+  });
+
+  final String label;
+  final String? disabledReason;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (disabledReason == null) {
+      return child;
+    }
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: label,
+      value: disabledReason,
+      button: true,
+      enabled: false,
+      child: child,
     );
   }
 }
@@ -413,9 +570,10 @@ class _BatchQueueStatusNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final message = _message();
+    final message = _message(l10n);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -448,23 +606,21 @@ class _BatchQueueStatusNote extends StatelessWidget {
     );
   }
 
-  String _message() {
+  String _message(AppLocalizations l10n) {
     if (isRunning && isPausing) {
-      return '已暂停后续任务。正在请求的 $runningCount 个任务会等接口返回或超时后停下，'
-          '不会继续启动新的等待任务。';
+      return l10n.batchQueuePausingStatus(runningCount);
     }
     if (isRunning) {
-      return '正在请求 $runningCount 个任务，后面还有 $queuedCount 个等待任务。'
-          '暂停只会阻止下一批开始，不会中断已发出的 HTTP 请求。';
+      return l10n.batchQueueRunningStatus(runningCount, queuedCount);
     }
     if (queuedCount > 0) {
-      return '队列里有 $queuedCount 个等待任务，可继续执行或取消等待任务。';
+      return l10n.batchQueueWaitingStatus(queuedCount);
     }
-    return '没有等待中的任务。';
+    return l10n.batchQueueEmptyStatus;
   }
 }
 
-class _BatchGenerationJobList extends StatelessWidget {
+class _BatchGenerationJobList extends StatefulWidget {
   const _BatchGenerationJobList({
     required this.jobs,
     required this.onRemoveJob,
@@ -476,39 +632,64 @@ class _BatchGenerationJobList extends StatelessWidget {
   final ValueChanged<BatchGenerationJob> onRetryJob;
 
   @override
+  State<_BatchGenerationJobList> createState() =>
+      _BatchGenerationJobListState();
+}
+
+class _BatchGenerationJobListState extends State<_BatchGenerationJobList> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
+    final jobs = widget.jobs;
     if (jobs.isEmpty) {
       return AppPanel(
-        title: '任务队列',
-        child: Text(
-          '还没有任务。把提示词加入队列后，会按目标数量拆分并串行生成。',
-          style: theme.textTheme.bodyMedium,
+        title: l10n.batchJobListTitle,
+        child: Semantics(
+          container: true,
+          readOnly: true,
+          label: l10n.batchJobListEmpty,
+          child: Text(
+            l10n.batchJobListEmpty,
+            style: theme.textTheme.bodyMedium,
+          ),
         ),
       );
     }
 
     return AppPanel(
-      title: '任务队列',
+      title: l10n.batchJobListTitle,
       trailing: Text(
-        '${jobs.length} 个任务',
+        l10n.batchJobCount(jobs.length),
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
       child: SizedBox(
         height: _batchJobListHeight(jobs.length),
-        child: ListView.separated(
-          primary: false,
-          itemCount: jobs.length,
-          separatorBuilder: (context, index) => const Divider(height: 18),
-          itemBuilder: (context, index) {
-            return _BatchGenerationJobTile(
-              job: jobs[index],
-              onRemove: onRemoveJob,
-              onRetry: onRetryJob,
-            );
-          },
+        child: Scrollbar(
+          controller: _controller,
+          child: ListView.separated(
+            controller: _controller,
+            primary: false,
+            itemCount: jobs.length,
+            separatorBuilder: (context, index) => const Divider(height: 18),
+            itemBuilder: (context, index) {
+              return _BatchGenerationJobTile(
+                job: jobs[index],
+                onRemove: widget.onRemoveJob,
+                onRetry: widget.onRetryJob,
+              );
+            },
+          ),
         ),
       ),
     );
@@ -537,6 +718,7 @@ class _BatchGenerationJobTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
     final theme = Theme.of(context);
     final statusColor = switch (job.status) {
       BatchGenerationJobStatus.succeeded => Colors.green,
@@ -546,10 +728,13 @@ class _BatchGenerationJobTile extends StatelessWidget {
       BatchGenerationJobStatus.queued => theme.colorScheme.onSurfaceVariant,
     };
     final batchLabel = job.hasMultipleBatches
-        ? '第 ${job.batchIndex}/${job.batchTotal} 批 · '
+        ? l10n.batchJobBatchPrefix(job.batchIndex, job.batchTotal)
         : '';
     final retryLabel = job.retryAttempt > 0
-        ? ' · 重试 ${job.retryAttempt}/$maxBatchGenerationAutoRetryAttempts'
+        ? l10n.batchJobRetrySuffix(
+            job.retryAttempt,
+            maxBatchGenerationAutoRetryAttempts,
+          )
         : '';
 
     return Row(
@@ -572,19 +757,30 @@ class _BatchGenerationJobTile extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '${batchGenerationJobStatusLabel(job.status)} · '
-                '$batchLabel${job.size} · '
-                '${job.imageCount} 张 · ${job.apiConfig.name}$retryLabel',
+                l10n.batchJobSummary(
+                  _jobStatusLabel(l10n, job.status),
+                  batchLabel,
+                  job.size,
+                  job.imageCount,
+                  job.apiConfig.name,
+                  retryLabel,
+                ),
                 style: theme.textTheme.bodySmall,
               ),
               if (job.errorMessage != null) ...[
                 const SizedBox(height: 4),
-                Text(
-                  job.errorMessage!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.error,
+                Semantics(
+                  container: true,
+                  liveRegion: true,
+                  label: job.errorMessage!,
+                  readOnly: true,
+                  child: Text(
+                    job.errorMessage!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
                   ),
                 ),
               ],
@@ -593,16 +789,26 @@ class _BatchGenerationJobTile extends StatelessWidget {
         ),
         if (job.canRetry)
           IconButton(
-            tooltip: '重试任务',
+            tooltip: l10n.batchRetryJobTooltip,
             onPressed: () => onRetry(job),
             icon: const Icon(Icons.replay_outlined),
           ),
         IconButton(
-          tooltip: '移除任务',
+          tooltip: l10n.batchRemoveJobTooltip,
           onPressed: job.canDelete ? () => onRemove(job) : null,
           icon: const Icon(Icons.close),
         ),
       ],
     );
   }
+}
+
+String _jobStatusLabel(AppLocalizations l10n, BatchGenerationJobStatus status) {
+  return switch (status) {
+    BatchGenerationJobStatus.queued => l10n.batchJobStatusQueued,
+    BatchGenerationJobStatus.running => l10n.batchJobStatusRunning,
+    BatchGenerationJobStatus.succeeded => l10n.batchJobStatusSucceeded,
+    BatchGenerationJobStatus.failed => l10n.batchJobStatusFailed,
+    BatchGenerationJobStatus.skipped => l10n.batchJobStatusSkipped,
+  };
 }
