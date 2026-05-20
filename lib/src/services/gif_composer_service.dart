@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as image_lib;
 
 import 'app_local_store.dart';
@@ -115,49 +115,20 @@ class GifComposer {
       throw const GifComposerException('至少需要 2 张图片。');
     }
 
-    final orderedFrames = expandGifFrameSequence(frames, playbackMode);
-    final decodedFrames = <({image_lib.Image image, int delayMs})>[];
-    for (final sourceFrame in orderedFrames) {
-      final inline = sourceFrame.inlineBytes;
-      final bytes = inline ?? await File(sourceFrame.path).readAsBytes();
-      final frame = image_lib.decodeImage(bytes);
-      if (frame == null) {
-        final label = sourceFrame.label ?? _fileNameFromPath(sourceFrame.path);
-        throw GifComposerException('无法解析图片：$label');
-      }
-      decodedFrames.add((image: frame, delayMs: sourceFrame.delayMs));
-    }
-
-    final baseWidth = decodedFrames.first.image.width;
-    final baseHeight = decodedFrames.first.image.height;
-    final encoder = image_lib.GifEncoder(
-      delay: (decodedFrames.first.delayMs / 10).round().clamp(1, 65535),
-      repeat: loopCount,
-    );
-
-    for (final frame in decodedFrames) {
-      final normalizedFrame =
-          frame.image.width == baseWidth && frame.image.height == baseHeight
-          ? frame.image
-          : image_lib.copyResize(
-              frame.image,
-              width: baseWidth,
-              height: baseHeight,
-              maintainAspect: true,
-            );
-      encoder.addFrame(
-        normalizedFrame,
-        duration: (frame.delayMs / 10).round().clamp(1, 65535),
-      );
-    }
-
-    final bytes = encoder.finish();
-    if (bytes == null || bytes.isEmpty) {
-      throw const GifComposerException('GIF 编码没有输出内容。');
-    }
-
-    await File(outputPath).writeAsBytes(bytes, flush: true);
-    return outputPath;
+    final request = <String, Object?>{
+      'frames': [
+        for (final frame in expandGifFrameSequence(frames, playbackMode))
+          <String, Object?>{
+            'path': frame.path,
+            'delayMs': frame.delayMs,
+            'inlineBytes': frame.inlineBytes,
+            'label': frame.label,
+          },
+      ],
+      'outputPath': outputPath,
+      'loopCount': loopCount,
+    };
+    return compute(_composeGifInIsolate, request);
   }
 
   static Future<GifComposeOutput> composeToStore({
@@ -184,4 +155,55 @@ class GifComposer {
 String _fileNameFromPath(String path) {
   final parts = path.split(RegExp(r'[\\/]')).where((part) => part.isNotEmpty);
   return parts.isEmpty ? path : parts.last;
+}
+
+Future<String> _composeGifInIsolate(Map<String, Object?> request) async {
+  final rawFrames = request['frames'] as List<dynamic>;
+  final outputPath = request['outputPath'] as String;
+  final loopCount = request['loopCount'] as int;
+  final decodedFrames = <({image_lib.Image image, int delayMs})>[];
+
+  for (final rawFrame in rawFrames) {
+    final frameMap = Map<String, Object?>.from(rawFrame as Map);
+    final inlineBytes = frameMap['inlineBytes'] as Uint8List?;
+    final path = frameMap['path'] as String;
+    final bytes = inlineBytes ?? await File(path).readAsBytes();
+    final frame = image_lib.decodeImage(bytes);
+    if (frame == null) {
+      final label = frameMap['label'] as String? ?? _fileNameFromPath(path);
+      throw GifComposerException('无法解析图片：$label');
+    }
+    decodedFrames.add((image: frame, delayMs: frameMap['delayMs'] as int));
+  }
+
+  final baseWidth = decodedFrames.first.image.width;
+  final baseHeight = decodedFrames.first.image.height;
+  final encoder = image_lib.GifEncoder(
+    delay: (decodedFrames.first.delayMs / 10).round().clamp(1, 65535),
+    repeat: loopCount,
+  );
+
+  for (final frame in decodedFrames) {
+    final normalizedFrame =
+        frame.image.width == baseWidth && frame.image.height == baseHeight
+        ? frame.image
+        : image_lib.copyResize(
+            frame.image,
+            width: baseWidth,
+            height: baseHeight,
+            maintainAspect: true,
+          );
+    encoder.addFrame(
+      normalizedFrame,
+      duration: (frame.delayMs / 10).round().clamp(1, 65535),
+    );
+  }
+
+  final bytes = encoder.finish();
+  if (bytes == null || bytes.isEmpty) {
+    throw const GifComposerException('GIF 编码没有输出内容。');
+  }
+
+  await File(outputPath).writeAsBytes(bytes, flush: true);
+  return outputPath;
 }

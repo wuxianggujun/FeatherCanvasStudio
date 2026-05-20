@@ -58,6 +58,7 @@ class ImageGenerationService {
     required int imageCount,
     required ImageAdvancedSettings advancedSettings,
     required String user,
+    String? templateImagePath,
     ImageAssetKind libraryKind = ImageAssetKind.generatedImage,
     required String titlePrefix,
     required String source,
@@ -81,6 +82,7 @@ class ImageGenerationService {
       imageCount: normalizedImageCount,
       advancedSettings: advancedSettings,
       user: user,
+      templateImagePath: templateImagePath,
     );
     final response = await client.generate(
       request,

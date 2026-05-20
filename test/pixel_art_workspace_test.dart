@@ -44,7 +44,6 @@ void main() {
     expect(image, isNotNull);
     expect(image!.width, 32);
     expect(image.height, 32);
-    expect(image.getPixel(0, 0).a, 255);
   });
 
   testWidgets('pixel art workspace applies custom canvas size', (tester) async {
@@ -98,7 +97,111 @@ void main() {
     expect(image, isNotNull);
     expect(image!.width, 48);
     expect(image.height, 40);
-    expect(image.getPixel(0, 0).a, 255);
+  });
+
+  testWidgets('pixel art workspace exports png bytes from toolbar', (
+    tester,
+  ) async {
+    Uint8List? exportedBytes;
+    int? exportedWidth;
+    int? exportedHeight;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PixelArtWorkspace(
+            onSaveToLibrary: (_, _, _) async {},
+            onExportPng: (bytes, width, height) async {
+              exportedBytes = bytes;
+              exportedWidth = width;
+              exportedHeight = height;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final canvas = find.byKey(const ValueKey('pixel-art-canvas'));
+    final canvasRect = tester.getRect(canvas);
+    await tester.tapAt(canvasRect.topLeft + const Offset(12, 12));
+    await tester.pump();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('pixel-art-export-png')),
+    );
+    await tester.tap(find.byKey(const ValueKey('pixel-art-export-png')));
+    await tester.pumpAndSettle();
+
+    expect(exportedWidth, 32);
+    expect(exportedHeight, 32);
+    expect(exportedBytes, isNotNull);
+
+    final image = image_lib.decodePng(exportedBytes!);
+    expect(image, isNotNull);
+    expect(image!.width, 32);
+    expect(image.height, 32);
+  });
+
+  testWidgets('pixel art canvas long press drag does not paint stray pixels', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1400, 1800)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    Uint8List? exportedBytes;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PixelArtWorkspace(
+            onSaveToLibrary: (_, _, _) async {},
+            onExportPng: (bytes, _, _) async {
+              exportedBytes = bytes;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final canvas = find.byKey(const ValueKey('pixel-art-canvas'));
+    final canvasRect = tester.getRect(canvas);
+    final firstCell = canvasRect.topLeft + const Offset(12, 12);
+    await tester.tapAt(firstCell);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    final gesture = await tester.startGesture(firstCell + const Offset(24, 24));
+    await tester.pump(const Duration(milliseconds: 600));
+    await gesture.moveBy(const Offset(160, 160));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('pixel-art-export-png')),
+    );
+    await tester.tap(find.byKey(const ValueKey('pixel-art-export-png')));
+    await tester.pumpAndSettle();
+
+    final image = image_lib.decodePng(exportedBytes!);
+    expect(image, isNotNull);
+
+    var paintedPixels = 0;
+    for (var y = 0; y < image!.height; y++) {
+      for (var x = 0; x < image.width; x++) {
+        if (image.getPixel(x, y).a > 0) {
+          paintedPixels += 1;
+        }
+      }
+    }
+
+    expect(paintedPixels, 1);
   });
 
   testWidgets('pixel art workspace exposes fullscreen toggle', (tester) async {

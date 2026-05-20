@@ -26,6 +26,7 @@ class ControlPanel extends StatelessWidget {
     required this.negativePromptController,
     required this.size,
     required this.imageCount,
+    required this.templateImagePath,
     required this.advancedSettings,
     required this.userController,
     required this.isGenerating,
@@ -34,6 +35,8 @@ class ControlPanel extends StatelessWidget {
     required this.onSizeChanged,
     required this.onImageCountChanged,
     required this.onAdvancedSettingsChanged,
+    required this.onPickTemplateImage,
+    required this.onClearTemplateImage,
     required this.onGenerate,
     super.key,
   });
@@ -47,6 +50,7 @@ class ControlPanel extends StatelessWidget {
   final TextEditingController negativePromptController;
   final String size;
   final int imageCount;
+  final String? templateImagePath;
   final ImageAdvancedSettings advancedSettings;
   final TextEditingController userController;
   final bool isGenerating;
@@ -55,6 +59,8 @@ class ControlPanel extends StatelessWidget {
   final ValueChanged<String> onSizeChanged;
   final ValueChanged<int> onImageCountChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
+  final VoidCallback onPickTemplateImage;
+  final VoidCallback onClearTemplateImage;
   final VoidCallback onGenerate;
 
   @override
@@ -77,6 +83,19 @@ class ControlPanel extends StatelessWidget {
             selectedApiConfigId: selectedApiConfigId,
             onChanged: onApiConfigChanged,
             onOpenSettings: onOpenApiSettings,
+          ),
+          const SizedBox(height: fieldGap),
+          TemplateImagePicker(
+            imagePath: templateImagePath,
+            title: l10n.imageGenerationReferenceImageTitle,
+            pickLabel: templateImagePath == null
+                ? l10n.imageGenerationReferenceImagePickLabel
+                : l10n.replaceAction,
+            onPick: isGenerating ? null : onPickTemplateImage,
+            onClear: templateImagePath == null || isGenerating
+                ? null
+                : onClearTemplateImage,
+            previewHeight: 132,
           ),
           const SizedBox(height: fieldGap),
           TextField(
@@ -112,7 +131,7 @@ class ControlPanel extends StatelessWidget {
           ImageAdvancedSettingsSection(
             settings: advancedSettings,
             userController: userController,
-            hasTemplateImage: false,
+            hasTemplateImage: templateImagePath != null,
             onChanged: onAdvancedSettingsChanged,
           ),
           const SizedBox(height: fieldGap),
@@ -133,9 +152,15 @@ class ControlPanel extends StatelessWidget {
             onPressed: isGenerating || !sizeValidation.isValid
                 ? null
                 : onGenerate,
-            icon: Icons.auto_awesome,
-            label: l10n.generateImageButton,
-            busyLabel: l10n.generatingImageButton,
+            icon: templateImagePath == null
+                ? Icons.auto_awesome
+                : Icons.compare_outlined,
+            label: templateImagePath == null
+                ? l10n.generateImageButton
+                : l10n.imageGenerationGenerateWithReferenceButton,
+            busyLabel: templateImagePath == null
+                ? l10n.generatingImageButton
+                : l10n.imageGenerationGeneratingWithReferenceButton,
             isBusy: isGenerating,
           ),
         ],

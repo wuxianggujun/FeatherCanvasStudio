@@ -26,6 +26,19 @@ Future<void> _selectEditorPanel(WidgetTester tester, String label) async {
   await _pumpBoundedSettle(tester);
 }
 
+Future<void> _selectEditorPanelByIcon(
+  WidgetTester tester,
+  IconData icon,
+) async {
+  final iconFinder = find.byIcon(icon).first;
+  await tester.ensureVisible(iconFinder);
+  await tester.pump();
+  await tester.tap(
+    find.ancestor(of: iconFinder, matching: find.byType(InkWell)).last,
+  );
+  await _pumpBoundedSettle(tester);
+}
+
 void main() {
   testWidgets('general image editor undo and redo expose disabled reasons', (
     tester,
@@ -330,6 +343,88 @@ void main() {
     previewActionsRect = tester.getRect(previewActions);
     expect(previewActionsRect.top, closeTo(tabsRect.top, 1));
     expect(previewActionsRect.left, greaterThan(tabsRect.right + 120));
+  });
+
+  testWidgets('appearance and annotation actions stay in preview toolbar', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1600, 1800)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final tempDir = Directory.systemTemp.createTempSync(
+      'feather-general-editor-panel-actions-',
+    );
+    addTearDown(() => tempDir.deleteSync(recursive: true));
+
+    final source = image_lib.Image(width: 120, height: 80, numChannels: 4)
+      ..clear(image_lib.ColorRgba8(240, 240, 240, 255));
+    final file = File('${tempDir.path}/source.png')
+      ..writeAsBytesSync(image_lib.encodePng(source));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 1600,
+            height: 1800,
+            child: GeneralImageEditorContent(
+              imagePath: file.path,
+              imageInfo: const ImageInspectionResult(
+                width: 120,
+                height: 80,
+                hasAlpha: false,
+              ),
+              isProcessing: false,
+              errorMessage: null,
+              onPickImage: () {},
+              onClearImage: () {},
+              onApplyEdit: (_) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await _pumpBoundedSettle(tester);
+
+    await _selectEditorPanelByIcon(tester, Icons.palette_outlined);
+    final appearanceActions = find.byKey(
+      const ValueKey('general-image-editor-appearance-actions'),
+    );
+    expect(appearanceActions, findsOneWidget);
+    expect(
+      find.descendant(
+        of: appearanceActions,
+        matching: find.widgetWithIcon(
+          OutlinedButton,
+          Icons.center_focus_strong_outlined,
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.widgetWithIcon(OutlinedButton, Icons.center_focus_strong_outlined),
+      findsOneWidget,
+    );
+
+    await _selectEditorPanelByIcon(tester, Icons.edit_note_outlined);
+    final annotationActions = find.byKey(
+      const ValueKey('general-image-editor-annotation-actions'),
+    );
+    expect(annotationActions, findsOneWidget);
+    expect(
+      find.descendant(
+        of: annotationActions,
+        matching: find.widgetWithIcon(OutlinedButton, Icons.add_outlined),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.widgetWithIcon(OutlinedButton, Icons.layers_clear_outlined),
+      findsOneWidget,
+    );
   });
 
   testWidgets('can select and delete an annotation from the visual preview', (

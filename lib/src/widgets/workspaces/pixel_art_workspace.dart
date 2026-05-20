@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ typedef PixelArtSaveCallback =
 class PixelArtWorkspace extends StatefulWidget {
   const PixelArtWorkspace({
     required this.onSaveToLibrary,
+    this.onExportPng,
     this.isFocusMode = false,
     this.onFocusModeChanged,
     this.historyControls,
@@ -24,6 +26,7 @@ class PixelArtWorkspace extends StatefulWidget {
   });
 
   final PixelArtSaveCallback onSaveToLibrary;
+  final PixelArtSaveCallback? onExportPng;
   final bool isFocusMode;
   final ValueChanged<bool>? onFocusModeChanged;
   final Widget? historyControls;
@@ -35,7 +38,6 @@ class PixelArtWorkspace extends StatefulWidget {
 class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   static const int _minCanvasDimension = 1;
   static const int _maxCanvasDimension = 512;
-  static const List<int> _canvasPresets = <int>[16, 32, 64, 128, 256];
   static const List<Color> _palette = <Color>[
     Color(0xFF111827),
     Color(0xFFFFFFFF),
@@ -52,6 +54,8 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   ];
   static const int _transparentPixel = 0x00000000;
   static const int _maxHistoryLength = 40;
+  static const Duration _canvasPanLongPressDelay = Duration(milliseconds: 500);
+  static const double _canvasPanMoveTolerance = 8;
 
   int _canvasWidth = 32;
   int _canvasHeight = 32;
@@ -68,12 +72,22 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
   final ScrollController _verticalScrollController = ScrollController();
   final FocusNode _canvasFocusNode = FocusNode(debugLabel: 'pixel_art_canvas');
   bool _isSaving = false;
+  bool _isExporting = false;
   bool _isDrawingStroke = false;
+  bool _isCanvasPanning = false;
+  bool _suppressCanvasTapAfterPan = false;
+  Offset? _canvasPointerDownGlobalPosition;
+  Offset? _canvasPointerDownLocalPosition;
+  Offset? _lastCanvasPanGlobalPosition;
+  Timer? _canvasLongPressTimer;
+  bool _canvasPointerMovedBeyondTapThreshold = false;
+  bool _canvasTapHandled = false;
   int _keyboardCursorX = 0;
   int _keyboardCursorY = 0;
 
   @override
   void dispose() {
+    _canvasLongPressTimer?.cancel();
     _horizontalScrollController.dispose();
     _verticalScrollController.dispose();
     _canvasFocusNode.dispose();
@@ -174,22 +188,10 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final size in _canvasPresets)
-                ActionChip(
-                  avatar: const Icon(Icons.crop_square_outlined, size: 18),
-                  label: Text('$size x $size'),
-                  onPressed: () => _resizeCanvas(width: size, height: size),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
+              key: const ValueKey('pixel-art-apply-canvas-size'),
               onPressed: hasPendingSize ? _applyDraftCanvasSize : null,
               icon: const Icon(Icons.check_outlined),
               label: Text(l10n.pixelArtApplyCanvasSize),
@@ -305,6 +307,27 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
             busyLabel: l10n.pixelArtSaving,
             isBusy: _isSaving,
           ),
+          if (widget.onExportPng != null) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: const ValueKey('pixel-art-export-png'),
+                onPressed: _isExporting ? null : () => _exportPng(),
+                icon: _isExporting
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download_outlined),
+                label: Text(
+                  _isExporting
+                      ? l10n.pixelArtExporting
+                      : l10n.pixelArtExportPng,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -317,7 +340,7 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
     final viewportHeight = MediaQuery.sizeOf(context).height;
     final panelHeight = widget.isFocusMode
         ? math.max(640.0, viewportHeight - 128)
-        : math.max(640.0, viewportHeight - 360);
+        : math.max(640.0, viewportHeight - 220);
 
     return AppPanel(
       title: appL10nOf(context).pixelArtCanvasTitle,
@@ -327,78 +350,218 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
       ),
       child: SizedBox(
         height: panelHeight,
-        child: Container(
-          width: double.infinity,
-          color: theme.colorScheme.surfaceContainerLowest,
-          child: Scrollbar(
-            controller: _verticalScrollController,
-            thumbVisibility: true,
-            notificationPredicate: (notification) =>
-                notification.metrics.axis == Axis.vertical,
-            child: SingleChildScrollView(
-              controller: _verticalScrollController,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Container(
+              key: const ValueKey('pixel-art-canvas-panel'),
+              width: double.infinity,
+              color: theme.colorScheme.surfaceContainerLowest,
               child: Scrollbar(
-                controller: _horizontalScrollController,
+                controller: _verticalScrollController,
                 thumbVisibility: true,
                 notificationPredicate: (notification) =>
-                    notification.metrics.axis == Axis.horizontal,
+                    notification.metrics.axis == Axis.vertical,
                 child: SingleChildScrollView(
-                  controller: _horizontalScrollController,
-                  scrollDirection: Axis.horizontal,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Semantics(
-                      label: appL10nOf(context).pixelArtCanvasSemanticLabel(
-                        _canvasWidth,
-                        _canvasHeight,
-                        _keyboardCursorX + 1,
-                        _keyboardCursorY + 1,
-                      ),
-                      image: true,
-                      button: true,
-                      onTap: _paintAtKeyboardCursor,
-                      child: Focus(
-                        focusNode: _canvasFocusNode,
-                        onKeyEvent: _handleCanvasKeyEvent,
-                        child: SizedBox(
-                          width: canvasWidth,
-                          height: canvasHeight,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onPanStart: (details) {
-                              _canvasFocusNode.requestFocus();
-                              _isDrawingStroke = false;
-                              _paintAt(details.localPosition);
-                            },
-                            onPanUpdate: (details) =>
-                                _paintAt(details.localPosition),
-                            onPanEnd: (_) => _isDrawingStroke = false,
-                            onTapDown: (details) {
-                              _canvasFocusNode.requestFocus();
-                              _isDrawingStroke = false;
-                              _moveKeyboardCursorTo(details.localPosition);
-                              _paintAt(details.localPosition);
-                              _isDrawingStroke = false;
-                            },
-                            child: CustomPaint(
-                              key: const ValueKey('pixel-art-canvas'),
-                              painter: _PixelArtPainter(
-                                pixels: _pixels,
-                                canvasWidth: _canvasWidth,
-                                canvasHeight: _canvasHeight,
-                                cellSize: _cellSize,
-                                gridColor: theme.colorScheme.outlineVariant,
-                                checkerLightColor:
-                                    theme.brightness == Brightness.dark
-                                    ? const Color(0xFF2A2D35)
-                                    : const Color(0xFFFFFFFF),
-                                checkerDarkColor:
-                                    theme.brightness == Brightness.dark
-                                    ? const Color(0xFF1F222A)
-                                    : const Color(0xFFE5E7EB),
-                                cursorX: _keyboardCursorX,
-                                cursorY: _keyboardCursorY,
-                                cursorColor: theme.colorScheme.primary,
+                  controller: _verticalScrollController,
+                  child: Scrollbar(
+                    controller: _horizontalScrollController,
+                    thumbVisibility: true,
+                    notificationPredicate: (notification) =>
+                        notification.metrics.axis == Axis.horizontal,
+                    child: SingleChildScrollView(
+                      controller: _horizontalScrollController,
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: constraints.maxWidth,
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Semantics(
+                              label: appL10nOf(context)
+                                  .pixelArtCanvasSemanticLabel(
+                                    _canvasWidth,
+                                    _canvasHeight,
+                                    _keyboardCursorX + 1,
+                                    _keyboardCursorY + 1,
+                                  ),
+                              image: true,
+                              button: true,
+                              onTap: _paintAtKeyboardCursor,
+                              child: Focus(
+                                focusNode: _canvasFocusNode,
+                                onKeyEvent: _handleCanvasKeyEvent,
+                                child: SizedBox(
+                                  width: canvasWidth,
+                                  height: canvasHeight,
+                                  child: Listener(
+                                    behavior: HitTestBehavior.opaque,
+                                    onPointerDown: (event) {
+                                      _canvasFocusNode.requestFocus();
+                                      _isDrawingStroke = false;
+                                      _suppressCanvasTapAfterPan = false;
+                                      _canvasTapHandled = false;
+                                      _canvasPointerMovedBeyondTapThreshold =
+                                          false;
+                                      _canvasPointerDownGlobalPosition =
+                                          event.position;
+                                      _canvasPointerDownLocalPosition =
+                                          event.localPosition;
+                                      _lastCanvasPanGlobalPosition =
+                                          event.position;
+                                      _canvasLongPressTimer?.cancel();
+                                      _canvasLongPressTimer = Timer(
+                                        _canvasPanLongPressDelay,
+                                        () {
+                                          if (!mounted ||
+                                              _canvasPointerDownGlobalPosition ==
+                                                  null) {
+                                            return;
+                                          }
+                                          _isCanvasPanning = true;
+                                          _isDrawingStroke = false;
+                                        },
+                                      );
+                                    },
+                                    onPointerMove: (event) {
+                                      if (!_isCanvasPanning) {
+                                        final pointerDownPosition =
+                                            _canvasPointerDownGlobalPosition;
+                                        if (pointerDownPosition != null &&
+                                            (event.position -
+                                                        pointerDownPosition)
+                                                    .distance >
+                                                _canvasPanMoveTolerance) {
+                                          _canvasLongPressTimer?.cancel();
+                                          _canvasLongPressTimer = null;
+                                        }
+                                        if (pointerDownPosition != null &&
+                                            (event.position -
+                                                        pointerDownPosition)
+                                                    .distance >
+                                                4) {
+                                          _canvasPointerMovedBeyondTapThreshold =
+                                              true;
+                                        }
+                                        return;
+                                      }
+                                      final previous =
+                                          _lastCanvasPanGlobalPosition;
+                                      if (previous == null) {
+                                        _lastCanvasPanGlobalPosition =
+                                            event.position;
+                                        return;
+                                      }
+                                      _scrollCanvasBy(
+                                        event.position - previous,
+                                      );
+                                      _suppressCanvasTapAfterPan = true;
+                                      _lastCanvasPanGlobalPosition =
+                                          event.position;
+                                    },
+                                    onPointerUp: (_) {
+                                      final didPan =
+                                          _isCanvasPanning ||
+                                          _suppressCanvasTapAfterPan;
+                                      if (!didPan &&
+                                          !_canvasPointerMovedBeyondTapThreshold &&
+                                          !_canvasTapHandled) {
+                                        final localPosition =
+                                            _canvasPointerDownLocalPosition;
+                                        if (localPosition != null) {
+                                          _canvasTapHandled = true;
+                                          _moveKeyboardCursorTo(localPosition);
+                                          _paintAt(localPosition);
+                                        }
+                                      }
+                                      _canvasLongPressTimer?.cancel();
+                                      _canvasLongPressTimer = null;
+                                      _canvasPointerDownGlobalPosition = null;
+                                      _canvasPointerDownLocalPosition = null;
+                                      _isCanvasPanning = false;
+                                      _suppressCanvasTapAfterPan = didPan;
+                                      _lastCanvasPanGlobalPosition = null;
+                                    },
+                                    onPointerCancel: (_) {
+                                      _canvasLongPressTimer?.cancel();
+                                      _canvasLongPressTimer = null;
+                                      _canvasPointerDownGlobalPosition = null;
+                                      _canvasPointerDownLocalPosition = null;
+                                      _isCanvasPanning = false;
+                                      _lastCanvasPanGlobalPosition = null;
+                                      _isDrawingStroke = false;
+                                    },
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onPanStart: (details) {
+                                        if (_isCanvasPanning) {
+                                          return;
+                                        }
+                                        _isDrawingStroke = false;
+                                        _paintAt(details.localPosition);
+                                      },
+                                      onPanUpdate: (details) {
+                                        if (_isCanvasPanning) {
+                                          return;
+                                        }
+                                        _paintAt(details.localPosition);
+                                      },
+                                      onPanEnd: (_) {
+                                        _isDrawingStroke = false;
+                                      },
+                                      onTapDown: (details) {
+                                        _moveKeyboardCursorTo(
+                                          details.localPosition,
+                                        );
+                                      },
+                                      onTapUp: (details) {
+                                        if (_isCanvasPanning ||
+                                            _suppressCanvasTapAfterPan ||
+                                            _canvasTapHandled) {
+                                          _suppressCanvasTapAfterPan = false;
+                                          return;
+                                        }
+                                        _canvasTapHandled = true;
+                                        _isDrawingStroke = false;
+                                        _moveKeyboardCursorTo(
+                                          details.localPosition,
+                                        );
+                                        _paintAt(details.localPosition);
+                                        _isDrawingStroke = false;
+                                      },
+                                      onTapCancel: () {
+                                        _isDrawingStroke = false;
+                                      },
+                                      child: CustomPaint(
+                                        key: const ValueKey('pixel-art-canvas'),
+                                        painter: _PixelArtPainter(
+                                          pixels: _pixels,
+                                          canvasWidth: _canvasWidth,
+                                          canvasHeight: _canvasHeight,
+                                          cellSize: _cellSize,
+                                          gridColor:
+                                              theme.colorScheme.outlineVariant,
+                                          checkerLightColor:
+                                              theme.brightness ==
+                                                  Brightness.dark
+                                              ? const Color(0xFF2A2D35)
+                                              : const Color(0xFFFFFFFF),
+                                          checkerDarkColor:
+                                              theme.brightness ==
+                                                  Brightness.dark
+                                              ? const Color(0xFF1F222A)
+                                              : const Color(0xFFE5E7EB),
+                                          cursorX: _keyboardCursorX,
+                                          cursorY: _keyboardCursorY,
+                                          cursorColor:
+                                              theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -408,8 +571,8 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -511,6 +674,23 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
       ),
     );
     _isDrawingStroke = false;
+  }
+
+  void _scrollCanvasBy(Offset delta) {
+    if (_horizontalScrollController.hasClients) {
+      final position = _horizontalScrollController.position;
+      final nextOffset = (position.pixels - delta.dx)
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      _horizontalScrollController.jumpTo(nextOffset);
+    }
+    if (_verticalScrollController.hasClients) {
+      final position = _verticalScrollController.position;
+      final nextOffset = (position.pixels - delta.dy)
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      _verticalScrollController.jumpTo(nextOffset);
+    }
   }
 
   void _paintAt(Offset position) {
@@ -618,8 +798,27 @@ class _PixelArtWorkspaceState extends State<PixelArtWorkspace> {
     }
   }
 
+  Future<void> _exportPng() async {
+    final onExportPng = widget.onExportPng;
+    if (onExportPng == null) {
+      return;
+    }
+    setState(() => _isExporting = true);
+    try {
+      await onExportPng(_encodePng(), _canvasWidth, _canvasHeight);
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
   Uint8List _encodePng() {
-    final image = image_lib.Image(width: _canvasWidth, height: _canvasHeight);
+    final image = image_lib.Image(
+      width: _canvasWidth,
+      height: _canvasHeight,
+      numChannels: 4,
+    );
     for (var y = 0; y < _canvasHeight; y++) {
       for (var x = 0; x < _canvasWidth; x++) {
         final value = _pixels[y * _canvasWidth + x];

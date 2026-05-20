@@ -628,6 +628,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get generatingImageButton => '生成中';
 
   @override
+  String get imageGenerationReferenceImageTitle => '参考图（图生图）';
+
+  @override
+  String get imageGenerationReferenceImagePickLabel => '选择参考图';
+
+  @override
+  String get imageGenerationGenerateWithReferenceButton => '图生图';
+
+  @override
+  String get imageGenerationGeneratingWithReferenceButton => '图生图中';
+
+  @override
   String imageGenerationAdjustAnimationRowsHistory(int value) {
     return '调整序列帧行数为 $value 行';
   }
@@ -666,6 +678,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String imageGenerationReferenceImagesGeneratedMessage(int count) {
+    return '图生图完成，共 $count 张';
+  }
+
+  @override
   String get imageGenerationRequestTimeoutMessage => '请求超时，请检查接口地址或稍后重试';
 
   @override
@@ -699,6 +716,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get imageGenerationTextImageSource => '文本生图';
+
+  @override
+  String get imageGenerationReferenceImageSource => '图生图';
+
+  @override
+  String get imageGenerationSelectReferenceImageTitle => '选择图生图参考图';
+
+  @override
+  String get imageGenerationReferenceLibraryEmpty => '作品库没有可作为参考图的图片';
+
+  @override
+  String imageGenerationSelectedReferenceImageMessage(Object fileName) {
+    return '已选择参考图：$fileName';
+  }
+
+  @override
+  String imageGenerationSelectedReferenceSliceMessage(Object label) {
+    return '已选择参考切片：$label';
+  }
 
   @override
   String imageGenerationTransparentBackgroundHistory(Object title) {
@@ -1655,6 +1691,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pixelArtSaving => '保存中';
 
   @override
+  String get pixelArtExportPng => '导出 PNG';
+
+  @override
+  String get pixelArtExporting => '导出中';
+
+  @override
   String get pixelArtCanvasTitle => '像素画画布';
 
   @override
@@ -1690,6 +1732,16 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String homePixelArtSavedMessage(Object fileName) {
     return '像素画已保存到作品库：$fileName';
+  }
+
+  @override
+  String homePixelArtExportedMessage(Object fileName) {
+    return '像素画已导出：$fileName';
+  }
+
+  @override
+  String homePixelArtExportFailedMessage(Object error) {
+    return '导出像素画失败：$error';
   }
 
   @override

@@ -1177,6 +1177,30 @@ abstract class AppLocalizations {
   /// **'生成中'**
   String get generatingImageButton;
 
+  /// 文本生图：图生图参考图选择器标题
+  ///
+  /// In zh, this message translates to:
+  /// **'参考图（图生图）'**
+  String get imageGenerationReferenceImageTitle;
+
+  /// 文本生图：选择图生图参考图按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'选择参考图'**
+  String get imageGenerationReferenceImagePickLabel;
+
+  /// 文本生图：带参考图生成按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'图生图'**
+  String get imageGenerationGenerateWithReferenceButton;
+
+  /// 文本生图：带参考图生成中的按钮状态
+  ///
+  /// In zh, this message translates to:
+  /// **'图生图中'**
+  String get imageGenerationGeneratingWithReferenceButton;
+
   /// 文本生图状态：调整动画序列行数历史动作
   ///
   /// In zh, this message translates to:
@@ -1237,6 +1261,12 @@ abstract class AppLocalizations {
   /// **'图片生成完成，共 {count} 张'**
   String imageGenerationImagesGeneratedMessage(int count);
 
+  /// 文本生图：带参考图生成完成提示
+  ///
+  /// In zh, this message translates to:
+  /// **'图生图完成，共 {count} 张'**
+  String imageGenerationReferenceImagesGeneratedMessage(int count);
+
   /// 文本生图状态：请求超时错误
   ///
   /// In zh, this message translates to:
@@ -1290,6 +1320,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'文本生图'**
   String get imageGenerationTextImageSource;
+
+  /// 文本生图状态：带参考图生成的作品库来源字段
+  ///
+  /// In zh, this message translates to:
+  /// **'图生图'**
+  String get imageGenerationReferenceImageSource;
+
+  /// 文本生图状态：选择图生图参考图弹窗标题
+  ///
+  /// In zh, this message translates to:
+  /// **'选择图生图参考图'**
+  String get imageGenerationSelectReferenceImageTitle;
+
+  /// 文本生图状态：参考图作品库为空提示
+  ///
+  /// In zh, this message translates to:
+  /// **'作品库没有可作为参考图的图片'**
+  String get imageGenerationReferenceLibraryEmpty;
+
+  /// 文本生图状态：选择参考图成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'已选择参考图：{fileName}'**
+  String imageGenerationSelectedReferenceImageMessage(Object fileName);
+
+  /// 文本生图状态：选择 Sprite Sheet 切片作为参考图成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'已选择参考切片：{label}'**
+  String imageGenerationSelectedReferenceSliceMessage(Object label);
 
   /// 文本生图状态：背景转透明历史动作
   ///
@@ -2907,6 +2967,18 @@ abstract class AppLocalizations {
   /// **'保存中'**
   String get pixelArtSaving;
 
+  /// 像素画：导出 PNG 按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'导出 PNG'**
+  String get pixelArtExportPng;
+
+  /// 像素画：导出忙碌状态
+  ///
+  /// In zh, this message translates to:
+  /// **'导出中'**
+  String get pixelArtExporting;
+
   /// 像素画：画布面板标题
   ///
   /// In zh, this message translates to:
@@ -2965,6 +3037,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'像素画已保存到作品库：{fileName}'**
   String homePixelArtSavedMessage(Object fileName);
+
+  /// 首页：像素画导出成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'像素画已导出：{fileName}'**
+  String homePixelArtExportedMessage(Object fileName);
+
+  /// 首页：像素画导出失败提示
+  ///
+  /// In zh, this message translates to:
+  /// **'导出像素画失败：{error}'**
+  String homePixelArtExportFailedMessage(Object error);
 
   /// 首页：像素画保存失败提示
   ///

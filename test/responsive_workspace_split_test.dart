@@ -50,6 +50,9 @@ void main() {
     expect(handle, findsOneWidget);
     expect(find.bySemanticsLabel('拖动调整宽度，双击复位'), findsOneWidget);
 
+    expect(tester.getSize(handle).width, 20);
+    expect(tester.getSize(handle).height, 500);
+
     await tester.drag(handle, const Offset(80, 0));
     await tester.pumpAndSettle();
     final draggedWidth = tester.getSize(controls).width;

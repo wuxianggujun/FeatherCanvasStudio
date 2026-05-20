@@ -2628,6 +2628,27 @@ Phase 21 第二批：从 image_library_state.dart 开始做小批次状态边界
 - 当前宽度不能容纳两组工具时，自动换成两行，第二行从左侧开始。
 - 动态窗口尺寸测试已调整为从 1100 逻辑宽拖到 1800 逻辑宽，验证同一个 widget 会从两行自动回到单行。
 
+### Phase 22：图片编辑器外观 / 标注动作上移（第三批已完成）
+
+本轮继续收口右侧预览顶部工具栏，把仍停留在左侧参数面板中的执行动作上移，左侧只保留低频参数和状态列表。
+
+完成项：
+
+1. `general_image_editor_widgets.dart`
+   - 外观面板新增右侧顶部动作区 `general-image-editor-appearance-actions`。
+   - “居中半幅”和“全图处理”从左侧局部选区参数区移到右侧顶部动作区。
+   - 标注面板新增右侧顶部动作区 `general-image-editor-annotation-actions`。
+   - “添加标注”和“清空标注”从左侧标注参数区移到右侧顶部动作区。
+   - 左侧外观 / 标注面板保留参数输入、颜色、位置、现有标注列表等配置内容。
+2. `general_image_editor_widgets_test.dart`
+   - 新增 `appearance and annotation actions stay in preview toolbar`。
+   - 覆盖外观 / 标注动作按钮只在右侧顶部动作区出现，避免重新落回左侧参数面板。
+3. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
 ### Phase 22：图片编辑器小窗口工具条响应式修正（第三批补充修正已完成）
 
 本轮修复小窗口 / 中等预览宽度下的顶部工具条排版问题。此前规则只按较小断点切换，导致分类入口和执行按钮在中等宽度下被挤压到同一行，执行按钮贴近右侧滚动条，视觉上像布局溢出。
@@ -2684,3 +2705,130 @@ Phase 21 第二批：从 image_library_state.dart 开始做小批次状态边界
    - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
    - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
    - `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
+### Phase 22：像素画预览区右侧空白修正（补充修正已完成）
+
+本轮根据像素画编辑界面反馈修正右侧预览区布局：默认 32 x 32 画布在宽预览区内此前贴左显示，导致右边出现大面积空白，看起来不像画布编辑器的主工作区。
+
+完成项：
+
+1. `pixel_art_workspace.dart`
+   - 右侧画布区域新增 `LayoutBuilder`，让滚动内容至少撑满当前预览面板宽高。
+   - 小画布在横向可用空间大于内容宽度时自动居中，避免默认贴左。
+   - 非专注模式下的画布面板高度改为更贴近页面实际可用高度，减少高窗口底部白底留空。
+   - 移除 `16 x 16`、`32 x 32`、`64 x 64`、`128 x 128`、`256 x 256` 固定尺寸快捷按钮，避免绕过“应用画布尺寸”直接改变作品。
+   - 保留原有横向 / 纵向滚动逻辑，大画布或高缩放时仍可滚动查看。
+   - 新增稳定 key `pixel-art-canvas-panel`，用于布局回归测试定位预览面板。
+2. `pixel_art_workspace_test.dart`
+   - 新增 `pixel art canvas is centered in the preview panel` 回归测试。
+   - 断言默认画布不会贴左，且画布水平中心接近预览面板中心。
+   - 新增 `pixel art canvas panel fills tall windows vertically` 回归测试，防止高窗口下右侧画布面板提前结束。
+   - 新增 `pixel art size changes require applying the draft` 回归测试，确认修改宽高输入不会立即改变画布，必须点击“应用画布尺寸”才生效。
+3. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\pixel_art_workspace_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+### Phase 22：像素画画布长按拖动（补充修正已完成）
+
+本轮补齐像素画大画布的平移交互：画笔短拖继续绘制，长按约 500ms 后再拖动会切换为画布平移，便于在高缩放或大尺寸画布中查看不同区域。
+
+完成项：
+
+1. `pixel_art_workspace.dart`
+   - 画布区域新增长按拖动平移逻辑，同时控制横向和纵向滚动条。
+   - 未达到长按时间的拖动仍按原画笔逻辑绘制，不改变原有绘画手感。
+   - 指针提前移动超过容差时取消长按平移计时，避免普通绘制中途被误判成平移。
+   - 长按平移结束后抑制后续点击上色，避免拖动画布时误画一个像素。
+2. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\pixel_art_workspace_test.dart --timeout 60s` 通过。
+
+### Phase 22：像素画 PNG 导出补齐（补充修正已完成）
+
+本轮补齐像素画编辑器的直接导出能力。此前像素画只能“保存到作品库”，没有直接选择路径导出为图片文件的入口，和其他图片/动画导出工作流不一致。
+
+完成项：
+
+1. `pixel_art_workspace.dart`
+   - 新增 `导出 PNG` 按钮，和“保存到作品库”并列。
+   - 新增导出忙碌态，避免重复点击触发多个保存对话框。
+   - 继续由像素画工作区负责生成 PNG 字节，文件路径选择和写入交给外层状态层处理。
+2. `home_shell_state.dart`
+   - 新增 `_exportPixelArtPng`，使用现有 `getSaveLocation` + `ImageLibraryFileService.exportBytesToPath` 导出 PNG。
+   - 导出成功 / 失败使用本地化消息提示。
+   - 导出建议文件名包含画布尺寸和时间戳，降低覆盖已有文件的概率。
+3. `app_zh.arb` 与生成的本地化代码
+   - 新增像素画导出按钮、导出中、导出成功和导出失败文案。
+4. `pixel_art_workspace_test.dart`
+   - 新增 `pixel art workspace exports png bytes` 回归测试。
+   - 覆盖绘制像素后点击导出，校验导出的 PNG 字节、尺寸和像素透明度。
+5. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\pixel_art_workspace_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_editor_pixelation_entry_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\general_image_editor_widgets_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+### Phase 22：动画工程导入卡顿与分栏把手可发现性修正（补充修正已完成）
+
+本轮针对实际使用反馈继续收敛两个高优先级问题：导入图片序列时主界面卡死，以及部分多面板工作区看起来无法拖动调整大小。
+
+完成项：
+
+1. `animation_project_service.dart`
+   - 图片序列导入创建动画工程时，逐帧读取、解码、缩放和 PNG 编码改为后台 isolate 执行。
+   - 已有动画工程追加图片序列轨道时，也复用后台归一化路径。
+   - 单帧图片插入 / 替换时，帧归一化也复用后台 isolate，避免大图换帧时短暂卡住。
+   - 主线程只保留保存文件、组装工程模型和更新状态，降低大图或多图导入时 UI 卡死概率。
+   - 导入输出仍保持原行为：第一帧决定新工程画布尺寸，追加轨道按当前工程画布尺寸归一化。
+2. `layout_navigation_widgets.dart`
+   - 公共 `WorkspaceResizeHandle` 命中区域从原来的窄小把手扩大到 20px。
+   - 在有高度约束的工作区内，纵向分栏把手撑满整条分隔线；无高度约束时使用更高的 128px 兜底显示。
+   - 横向时间轴把手同步扩大高度和可见条宽，提升拖动可发现性。
+   - `responsive_workspace_split_test.dart` 新增把手 20px 宽、撑满 500px 高的回归断言。
+3. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\animation_project_service_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\responsive_workspace_split_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+
+### Phase 22：图生图入口补齐（补充修正已完成）
+
+本轮确认底层已经支持参考图请求，但普通图片生成工作区缺少清晰入口，导致用户会误以为没有图生图能力。
+
+完成项：
+
+1. `generation_form_widgets.dart` / `image_generation_workspace.dart`
+   - 普通图片生成面板新增“参考图（图生图）”选择器。
+   - 选择参考图后，生成按钮切换为“图生图”，高级参数显示“参考图保真度”。
+2. `image_generation_state.dart`
+   - 普通图生图参考图单独保存，不和动画工程模板图混用。
+   - 支持从本地文件和作品库选择参考图。
+   - 作品库中的 Sprite Sheet 可继续选择单帧切片作为参考图。
+3. `image_generation_service.dart`
+   - `generateTextImages` 透传 `templateImagePath`，复用现有 OpenAI image edit endpoint / Gemini inlineData 请求能力。
+4. `image_library_deletion.dart`
+   - 删除作品库图片时同步清理普通图生图参考图引用。
+5. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat gen-l10n` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat test test\image_generation_builders_test.dart test\image_generation_service_test.dart test\image_library_deletion_test.dart test\form_accessibility_test.dart --timeout 60s` 通过。
+
+补充收口：
+
+- `image_generation_service_test.dart` 新增服务层图生图回归，确认普通图片生成传入参考图后会进入 image edit multipart 路径。
+- `sprite_sheet_output_service.dart` 的导出 metadata 检查改为后台 isolate 执行，降低编辑 Sprite Sheet 后保存时的主线程解码成本。
+- `D:\Programs\flutter\bin\flutter.bat test test\sprite_sheet_preview_test.dart test\image_generation_service_test.dart --timeout 60s` 通过。
+
+### Phase 22：GIF 合成后台化（补充修正已完成）
+
+本轮继续性能收口，处理 GIF 合成路径的主线程重计算问题。此前 `GifComposer.compose` 会在调用线程逐帧读取图片、解码、缩放并编码 GIF，帧数多或图片较大时容易造成界面卡顿。
+
+完成项：
+
+1. `gif_composer_service.dart`
+   - `GifComposer.compose` 保持原调用接口不变，内部改为通过 `compute` 在后台 isolate 执行合成。
+   - 后台任务负责展开播放顺序、读取文件或 inline bytes、解码图片、按首帧尺寸归一化和 GIF 编码。
+   - 清理原同步主线程合成代码，并修正服务内乱码错误文案为正常中文。
+2. 验证：
+   - `D:\Programs\flutter\bin\flutter.bat test test\gif_composer_test.dart --timeout 60s` 通过。
+   - `D:\Programs\flutter\bin\flutter.bat analyze` 通过。

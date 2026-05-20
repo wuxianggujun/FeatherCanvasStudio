@@ -724,23 +724,6 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent>
                   _commitOptionChange(() => _effectRegionBottomPercent = value),
             ),
           ),
-          const SizedBox(height: fieldGap),
-          ResponsivePair(
-            first: OutlinedButton.icon(
-              onPressed: enabled && _effectRegionEnabled
-                  ? () => _commitOptionChange(_setCenteredEffectRegionInPlace)
-                  : null,
-              icon: const Icon(Icons.center_focus_strong_outlined),
-              label: Text(l10n.generalImageEditorCenterHalfRegion),
-            ),
-            second: OutlinedButton.icon(
-              onPressed: enabled && _effectRegionEnabled
-                  ? () => _commitOptionChange(_setFullEffectRegionInPlace)
-                  : null,
-              icon: const Icon(Icons.fullscreen_outlined),
-              label: Text(l10n.generalImageEditorFullImageRegion),
-            ),
-          ),
         ],
       ),
     );
@@ -866,21 +849,6 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent>
               title: Text(l10n.generalImageEditorFillShape),
             ),
           ],
-          const SizedBox(height: fieldGap),
-          ResponsivePair(
-            first: OutlinedButton.icon(
-              onPressed: enabled ? _addAnnotation : null,
-              icon: const Icon(Icons.add_outlined),
-              label: Text(l10n.generalImageEditorAddAnnotation),
-            ),
-            second: OutlinedButton.icon(
-              onPressed: enabled && _annotations.isNotEmpty
-                  ? _clearAnnotations
-                  : null,
-              icon: const Icon(Icons.layers_clear_outlined),
-              label: Text(l10n.generalImageEditorClearAnnotations),
-            ),
-          ),
           if (_annotations.isNotEmpty) ...[
             const SizedBox(height: fieldGap),
             for (var index = 0; index < _annotations.length; index++)
@@ -1056,6 +1024,28 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent>
               ),
             ),
           ],
+          if (hasImage &&
+              _activePanel == _GeneralImageEditorPanel.appearance) ...[
+            const SizedBox(height: fieldGap),
+            Align(
+              alignment: Alignment.centerRight,
+              child: KeyedSubtree(
+                key: const ValueKey('general-image-editor-appearance-actions'),
+                child: _buildAppearanceActionBar(),
+              ),
+            ),
+          ],
+          if (hasImage &&
+              _activePanel == _GeneralImageEditorPanel.annotation) ...[
+            const SizedBox(height: fieldGap),
+            Align(
+              alignment: Alignment.centerRight,
+              child: KeyedSubtree(
+                key: const ValueKey('general-image-editor-annotation-actions'),
+                child: _buildAnnotationActionBar(),
+              ),
+            ),
+          ],
           const SizedBox(height: fieldGap),
           preview,
         ],
@@ -1080,6 +1070,61 @@ class _GeneralImageEditorContentState extends State<GeneralImageEditorContent>
       spacing: fieldGap,
       runSpacing: fieldGap,
       children: [panelTabs, previewActions],
+    );
+  }
+
+  Widget _buildAppearanceActionBar() {
+    final l10n = appL10nOf(context);
+    final canEdit =
+        widget.imagePath != null &&
+        !widget.isProcessing &&
+        _effectRegionEnabled;
+
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        OutlinedButton.icon(
+          onPressed: canEdit
+              ? () => _commitOptionChange(_setCenteredEffectRegionInPlace)
+              : null,
+          icon: const Icon(Icons.center_focus_strong_outlined),
+          label: Text(l10n.generalImageEditorCenterHalfRegion),
+        ),
+        OutlinedButton.icon(
+          onPressed: canEdit
+              ? () => _commitOptionChange(_setFullEffectRegionInPlace)
+              : null,
+          icon: const Icon(Icons.fullscreen_outlined),
+          label: Text(l10n.generalImageEditorFullImageRegion),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnnotationActionBar() {
+    final l10n = appL10nOf(context);
+    final canEdit = widget.imagePath != null && !widget.isProcessing;
+
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        OutlinedButton.icon(
+          onPressed: canEdit ? _addAnnotation : null,
+          icon: const Icon(Icons.add_outlined),
+          label: Text(l10n.generalImageEditorAddAnnotation),
+        ),
+        OutlinedButton.icon(
+          onPressed: canEdit && _annotations.isNotEmpty
+              ? _clearAnnotations
+              : null,
+          icon: const Icon(Icons.layers_clear_outlined),
+          label: Text(l10n.generalImageEditorClearAnnotations),
+        ),
+      ],
     );
   }
 

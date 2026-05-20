@@ -88,25 +88,29 @@ class SpriteSheetFileService {
       columns: columns,
     );
     await outputFile.writeAsBytes(pngBytes, flush: true);
-    final previewData = SpriteSheetPreviewComposer.buildFromSheetBytes(
-      pngBytes,
-      rows: rows,
-      columns: columns,
-      gridSpec: gridSpec,
+    final metadata = await compute(
+      _inspectSpriteSheetExportInIsolate,
+      _SpriteSheetExportMetadataTask(
+        pngBytes: pngBytes,
+        rows: rows,
+        columns: columns,
+        gridSpec: gridSpec,
+      ),
+      debugLabel: 'sprite-sheet-export-metadata',
     );
     final metadataFile = File('${outputFile.path}.metadata.json');
     await metadataFile.writeAsString(
       const JsonEncoder.withIndent('  ').convert({
         'schemaVersion': 1,
         'imageFile': outputFile.uri.pathSegments.last,
-        'rows': previewData.rows,
-        'columns': previewData.columns,
-        'totalFrames': previewData.rows * previewData.columns,
-        'gridSpec': previewData.gridSpec.toJson(),
-        'sheetWidth': previewData.sheetWidth,
-        'sheetHeight': previewData.sheetHeight,
-        'frameWidth': previewData.frameWidth,
-        'frameHeight': previewData.frameHeight,
+        'rows': metadata.rows,
+        'columns': metadata.columns,
+        'totalFrames': metadata.rows * metadata.columns,
+        'gridSpec': metadata.gridSpec.toJson(),
+        'sheetWidth': metadata.sheetWidth,
+        'sheetHeight': metadata.sheetHeight,
+        'frameWidth': metadata.frameWidth,
+        'frameHeight': metadata.frameHeight,
         'createdAt': DateTime.now().toUtc().toIso8601String(),
       }),
       flush: true,
@@ -116,9 +120,9 @@ class SpriteSheetFileService {
       path: outputFile.path,
       metadataPath: metadataFile.path,
       directoryPath: outputFile.parent.path,
-      rows: previewData.rows,
-      columns: previewData.columns,
-      gridSpec: previewData.gridSpec,
+      rows: metadata.rows,
+      columns: metadata.columns,
+      gridSpec: metadata.gridSpec,
     );
   }
 
@@ -266,6 +270,60 @@ class SpriteSheetFileService {
       gridSpec: gridSpec,
     );
   }
+}
+
+_SpriteSheetExportMetadata _inspectSpriteSheetExportInIsolate(
+  _SpriteSheetExportMetadataTask task,
+) {
+  final previewData = SpriteSheetPreviewComposer.buildFromSheetBytes(
+    task.pngBytes,
+    rows: task.rows,
+    columns: task.columns,
+    gridSpec: task.gridSpec,
+  );
+  return _SpriteSheetExportMetadata(
+    rows: previewData.rows,
+    columns: previewData.columns,
+    gridSpec: previewData.gridSpec,
+    sheetWidth: previewData.sheetWidth,
+    sheetHeight: previewData.sheetHeight,
+    frameWidth: previewData.frameWidth,
+    frameHeight: previewData.frameHeight,
+  );
+}
+
+class _SpriteSheetExportMetadataTask {
+  const _SpriteSheetExportMetadataTask({
+    required this.pngBytes,
+    required this.rows,
+    required this.columns,
+    required this.gridSpec,
+  });
+
+  final Uint8List pngBytes;
+  final int rows;
+  final int columns;
+  final SpriteSheetGridSpec? gridSpec;
+}
+
+class _SpriteSheetExportMetadata {
+  const _SpriteSheetExportMetadata({
+    required this.rows,
+    required this.columns,
+    required this.gridSpec,
+    required this.sheetWidth,
+    required this.sheetHeight,
+    required this.frameWidth,
+    required this.frameHeight,
+  });
+
+  final int rows;
+  final int columns;
+  final SpriteSheetGridSpec gridSpec;
+  final int sheetWidth;
+  final int sheetHeight;
+  final int frameWidth;
+  final int frameHeight;
 }
 
 Uint8List _pixelateSpriteSheetFrameInIsolate(

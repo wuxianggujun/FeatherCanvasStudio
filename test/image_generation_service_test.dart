@@ -81,6 +81,79 @@ void main() {
     },
   );
 
+  test('passes template image through image generation service', () async {
+    SharedPreferences.setMockInitialValues({});
+    final tempDir = await Directory.systemTemp.createTemp(
+      'image_generation_reference_service_test_',
+    );
+    addTearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    final templateFile = File(
+      '${tempDir.path}${Platform.pathSeparator}reference.png',
+    );
+    await templateFile.writeAsBytes([9, 8, 7, 6], flush: true);
+
+    ImageRequestDebugRecord? debugRecord;
+    final client = OpenAICompatibleImageClient(
+      httpClient: MockClient.streaming((request, bodyStream) async {
+        expect(
+          request.url.toString(),
+          'https://api.openai.com/v1/images/edits',
+        );
+        expect(request, isA<http.MultipartRequest>());
+
+        final multipartRequest = request as http.MultipartRequest;
+        expect(multipartRequest.fields['prompt'], contains('a robot'));
+        expect(multipartRequest.fields['input_fidelity'], 'high');
+        expect(multipartRequest.files, hasLength(1));
+        expect(multipartRequest.files.single.field, 'image');
+        await bodyStream.drain<void>();
+
+        return http.StreamedResponse(
+          Stream.value(
+            utf8.encode(
+              jsonEncode({
+                'data': [
+                  {
+                    'b64_json': base64Encode([1, 2, 3]),
+                  },
+                ],
+              }),
+            ),
+          ),
+          200,
+        );
+      }),
+    );
+
+    final store = AppLocalStore(baseDirectoryOverride: tempDir);
+    final result = await const ImageGenerationService().generateTextImages(
+      client: client,
+      store: store,
+      imageLibraryService: const ImageLibraryService(),
+      apiConfig: _officialApiConfig,
+      prompt: 'a robot in a red coat',
+      negativePrompt: 'blurry',
+      size: '1024x1024',
+      imageCount: 1,
+      advancedSettings: const ImageAdvancedSettings(inputFidelity: 'high'),
+      user: 'user-456',
+      templateImagePath: templateFile.path,
+      titlePrefix: '图生图',
+      source: '图生图',
+      onDebugRecord: (record) => debugRecord = record,
+    );
+
+    expect(result.cachedImages, hasLength(1));
+    expect(result.libraryItems.single.title, '图生图 1');
+    expect(result.generation.advancedSettings.inputFidelity, 'high');
+    expect(debugRecord?.statusCode, 200);
+  });
+
   test('generates and caches a sprite sheet only once', () async {
     SharedPreferences.setMockInitialValues({});
     final tempDir = await Directory.systemTemp.createTemp(
@@ -148,4 +221,13 @@ const _apiConfig = ApiConfig(
   apiKey: 'token',
   model: 'gpt-image-2',
   providerKind: ApiProviderKind.compatible,
+);
+
+const _officialApiConfig = ApiConfig(
+  id: 'official',
+  name: 'Official',
+  baseUrl: 'https://api.openai.com/v1',
+  apiKey: 'token',
+  model: 'gpt-image-2',
+  providerKind: ApiProviderKind.official,
 );

@@ -42,12 +42,14 @@ class ImageLibraryReferenceCleanup {
     required this.selectedItemIds,
     required this.editorImagePath,
     required this.editorPatchImagePath,
+    required this.imageTemplateImagePath,
     required this.animationTemplateImagePath,
   });
 
   final Set<String> selectedItemIds;
   final String? editorImagePath;
   final String? editorPatchImagePath;
+  final String? imageTemplateImagePath;
   final String? animationTemplateImagePath;
 }
 
@@ -105,6 +107,7 @@ ImageLibraryReferenceCleanup cleanDeletedImageLibraryReferences({
   required Set<String> selectedItemIds,
   required String? editorImagePath,
   required String? editorPatchImagePath,
+  required String? imageTemplateImagePath,
   required String? animationTemplateImagePath,
 }) {
   return ImageLibraryReferenceCleanup(
@@ -114,6 +117,10 @@ ImageLibraryReferenceCleanup cleanDeletedImageLibraryReferences({
     },
     editorImagePath: _clearRemovedPath(editorImagePath, removedPaths),
     editorPatchImagePath: _clearRemovedPath(editorPatchImagePath, removedPaths),
+    imageTemplateImagePath: _clearRemovedPath(
+      imageTemplateImagePath,
+      removedPaths,
+    ),
     animationTemplateImagePath: _clearRemovedPath(
       animationTemplateImagePath,
       removedPaths,

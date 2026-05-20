@@ -290,6 +290,8 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   @override
   final Set<String> _ephemeralTemplatePaths = <String>{};
   @override
+  String? _imageTemplateImagePath;
+  @override
   String? _animationTemplateImagePath;
   WorkspaceFeature? _focusedFeature;
   @override

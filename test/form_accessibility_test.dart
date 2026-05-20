@@ -123,6 +123,7 @@ void main() {
                 negativePromptController: negativePromptController,
                 size: '1024x1024',
                 imageCount: 2,
+                templateImagePath: null,
                 advancedSettings: const ImageAdvancedSettings(
                   outputFormat: 'jpeg',
                   outputCompression: 80,
@@ -134,6 +135,8 @@ void main() {
                 onSizeChanged: (_) {},
                 onImageCountChanged: (_) {},
                 onAdvancedSettingsChanged: (_) {},
+                onPickTemplateImage: () {},
+                onClearTemplateImage: () {},
                 onGenerate: () {},
               ),
             ),

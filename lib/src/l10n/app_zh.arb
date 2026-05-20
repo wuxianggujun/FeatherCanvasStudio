@@ -872,6 +872,22 @@
   "@generatingImageButton": {
     "description": "文本生图：生成中按钮状态"
   },
+  "imageGenerationReferenceImageTitle": "参考图（图生图）",
+  "@imageGenerationReferenceImageTitle": {
+    "description": "文本生图：图生图参考图选择器标题"
+  },
+  "imageGenerationReferenceImagePickLabel": "选择参考图",
+  "@imageGenerationReferenceImagePickLabel": {
+    "description": "文本生图：选择图生图参考图按钮"
+  },
+  "imageGenerationGenerateWithReferenceButton": "图生图",
+  "@imageGenerationGenerateWithReferenceButton": {
+    "description": "文本生图：带参考图生成按钮"
+  },
+  "imageGenerationGeneratingWithReferenceButton": "图生图中",
+  "@imageGenerationGeneratingWithReferenceButton": {
+    "description": "文本生图：带参考图生成中的按钮状态"
+  },
   "imageGenerationAdjustAnimationRowsHistory": "调整序列帧行数为 {value} 行",
   "@imageGenerationAdjustAnimationRowsHistory": {
     "description": "文本生图状态：调整动画序列行数历史动作",
@@ -932,6 +948,15 @@
       }
     }
   },
+  "imageGenerationReferenceImagesGeneratedMessage": "图生图完成，共 {count} 张",
+  "@imageGenerationReferenceImagesGeneratedMessage": {
+    "description": "文本生图：带参考图生成完成提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "imageGenerationRequestTimeoutMessage": "请求超时，请检查接口地址或稍后重试",
   "@imageGenerationRequestTimeoutMessage": {
     "description": "文本生图状态：请求超时错误"
@@ -981,6 +1006,32 @@
   "imageGenerationTextImageSource": "文本生图",
   "@imageGenerationTextImageSource": {
     "description": "文本生图状态：作品库来源字段"
+  },
+  "imageGenerationReferenceImageSource": "图生图",
+  "@imageGenerationReferenceImageSource": {
+    "description": "文本生图状态：带参考图生成的作品库来源字段"
+  },
+  "imageGenerationSelectReferenceImageTitle": "选择图生图参考图",
+  "@imageGenerationSelectReferenceImageTitle": {
+    "description": "文本生图状态：选择图生图参考图弹窗标题"
+  },
+  "imageGenerationReferenceLibraryEmpty": "作品库没有可作为参考图的图片",
+  "@imageGenerationReferenceLibraryEmpty": {
+    "description": "文本生图状态：参考图作品库为空提示"
+  },
+  "imageGenerationSelectedReferenceImageMessage": "已选择参考图：{fileName}",
+  "@imageGenerationSelectedReferenceImageMessage": {
+    "description": "文本生图状态：选择参考图成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageGenerationSelectedReferenceSliceMessage": "已选择参考切片：{label}",
+  "@imageGenerationSelectedReferenceSliceMessage": {
+    "description": "文本生图状态：选择 Sprite Sheet 切片作为参考图成功提示",
+    "placeholders": {
+      "label": {}
+    }
   },
   "imageGenerationTransparentBackgroundHistory": "背景转透明：{title}",
   "@imageGenerationTransparentBackgroundHistory": {
@@ -2355,6 +2406,14 @@
   "@pixelArtSaving": {
     "description": "像素画：保存忙碌状态"
   },
+  "pixelArtExportPng": "导出 PNG",
+  "@pixelArtExportPng": {
+    "description": "像素画：导出 PNG 按钮"
+  },
+  "pixelArtExporting": "导出中",
+  "@pixelArtExporting": {
+    "description": "像素画：导出忙碌状态"
+  },
   "pixelArtCanvasTitle": "像素画画布",
   "@pixelArtCanvasTitle": {
     "description": "像素画：画布面板标题"
@@ -2414,6 +2473,20 @@
     "description": "首页：像素画保存成功提示",
     "placeholders": {
       "fileName": {}
+    }
+  },
+  "homePixelArtExportedMessage": "像素画已导出：{fileName}",
+  "@homePixelArtExportedMessage": {
+    "description": "首页：像素画导出成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "homePixelArtExportFailedMessage": "导出像素画失败：{error}",
+  "@homePixelArtExportFailedMessage": {
+    "description": "首页：像素画导出失败提示",
+    "placeholders": {
+      "error": {}
     }
   },
   "homePixelArtSaveFailedMessage": "保存像素画失败：{error}",

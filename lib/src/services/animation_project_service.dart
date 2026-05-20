@@ -884,6 +884,15 @@ class AnimationProjectImporter {
     required String title,
     required int defaultDelayMs,
   }) async {
+    final normalizedImport = await _tryImportImagesAsTrackInBackground(
+      store: store,
+      imagePaths: imagePaths,
+      title: title,
+      defaultDelayMs: defaultDelayMs,
+    );
+    if (normalizedImport != null) {
+      return normalizedImport;
+    }
     if (imagePaths.isEmpty) {
       throw const ImageGenerationException('至少需要一张图片才能创建动画工程。');
     }
@@ -981,6 +990,16 @@ class AnimationProjectImporter {
     required String trackName,
     required int defaultDelayMs,
   }) async {
+    final normalizedProject = await _tryAppendImagesAsTrackInBackground(
+      store: store,
+      project: project,
+      imagePaths: imagePaths,
+      trackName: trackName,
+      defaultDelayMs: defaultDelayMs,
+    );
+    if (normalizedProject != null) {
+      return normalizedProject;
+    }
     if (imagePaths.isEmpty) {
       throw const ImageGenerationException('至少需要一张图片才能导入序列帧。');
     }
@@ -1136,6 +1155,262 @@ class AnimationProjectImporter {
         )
         .touch();
   }
+}
+
+class _ImportedFrameNormalizeRequest {
+  const _ImportedFrameNormalizeRequest({
+    required this.path,
+    this.targetWidth,
+    this.targetHeight,
+  });
+
+  final String path;
+  final int? targetWidth;
+  final int? targetHeight;
+}
+
+class _ImportedFrameNormalizeResult {
+  const _ImportedFrameNormalizeResult({
+    required this.bytes,
+    required this.width,
+    required this.height,
+  });
+
+  final Uint8List bytes;
+  final int width;
+  final int height;
+}
+
+class _FrameBytesNormalizeRequest {
+  const _FrameBytesNormalizeRequest({
+    required this.bytes,
+    required this.targetWidth,
+    required this.targetHeight,
+  });
+
+  final Uint8List bytes;
+  final int targetWidth;
+  final int targetHeight;
+}
+
+Future<AnimationProjectImportResult?> _tryImportImagesAsTrackInBackground({
+  required AppLocalStore store,
+  required List<String> imagePaths,
+  required String title,
+  required int defaultDelayMs,
+}) async {
+  if (imagePaths.isEmpty) {
+    return null;
+  }
+
+  final now = DateTime.now();
+  final projectId = AnimationProject.newId();
+  final assets = <FrameAsset>[];
+  var canvasWidth = 0;
+  var canvasHeight = 0;
+
+  for (var index = 0; index < imagePaths.length; index++) {
+    final normalized = await _normalizeImportedFrameInBackground(
+      _ImportedFrameNormalizeRequest(
+        path: imagePaths[index],
+        targetWidth: canvasWidth == 0 ? null : canvasWidth,
+        targetHeight: canvasHeight == 0 ? null : canvasHeight,
+      ),
+    );
+    canvasWidth = canvasWidth == 0 ? normalized.width : canvasWidth;
+    canvasHeight = canvasHeight == 0 ? normalized.height : canvasHeight;
+    final file = await store.saveGeneratedImageBytes(
+      groupId: projectId,
+      index: index,
+      bytes: normalized.bytes,
+    );
+    assets.add(
+      FrameAsset(
+        id: '${projectId}_asset_$index',
+        path: file.path,
+        width: canvasWidth,
+        height: canvasHeight,
+        source: FrameAssetSource.importedFile,
+        sourceFrameIndex: index,
+      ),
+    );
+  }
+
+  final project = AnimationProject(
+    id: projectId,
+    title: title.trim().isEmpty ? '动画工程' : title.trim(),
+    createdAt: now,
+    updatedAt: now,
+    canvasWidth: canvasWidth,
+    canvasHeight: canvasHeight,
+    tracks: [
+      AnimationTrack(
+        id: '${projectId}_track_0',
+        name: '轨道 1',
+        kind: AnimationTrackKind.action,
+        visible: true,
+        locked: false,
+        defaultDelayMs: defaultDelayMs,
+        playbackMode: AnimationPlaybackMode.normal,
+        clips: [
+          TimelineClip(
+            id: '${projectId}_clip_0',
+            name: '序列 1',
+            startFrame: 0,
+            frames: [
+              for (final asset in assets)
+                FrameRef(assetId: asset.id, delayMs: defaultDelayMs),
+            ],
+            loop: true,
+          ),
+        ],
+      ),
+    ],
+    assets: List<FrameAsset>.unmodifiable(assets),
+    timeline: TimelineSettings(defaultFrameDelayMs: defaultDelayMs),
+    exportSettings: const ExportSettings(),
+  );
+  final projectFile = await const AnimationProjectStore().saveProject(
+    store,
+    project,
+  );
+  return AnimationProjectImportResult(
+    project: project,
+    projectFile: projectFile,
+    previewSheetBytes: null,
+  );
+}
+
+Future<AnimationProject?> _tryAppendImagesAsTrackInBackground({
+  required AppLocalStore store,
+  required AnimationProject project,
+  required List<String> imagePaths,
+  required String trackName,
+  required int defaultDelayMs,
+}) async {
+  if (imagePaths.isEmpty) {
+    return null;
+  }
+
+  final timestamp = DateTime.now().microsecondsSinceEpoch;
+  final startIndex = project.assets.length;
+  final assets = <FrameAsset>[];
+  for (var index = 0; index < imagePaths.length; index++) {
+    final normalized = await _normalizeImportedFrameInBackground(
+      _ImportedFrameNormalizeRequest(
+        path: imagePaths[index],
+        targetWidth: project.canvasWidth,
+        targetHeight: project.canvasHeight,
+      ),
+    );
+    final file = await store.saveGeneratedImageBytes(
+      groupId: project.id,
+      index: startIndex + index,
+      bytes: normalized.bytes,
+    );
+    assets.add(
+      FrameAsset(
+        id: '${project.id}_asset_${timestamp}_$index',
+        path: file.path,
+        width: project.canvasWidth,
+        height: project.canvasHeight,
+        source: FrameAssetSource.importedFile,
+        sourceFrameIndex: index,
+      ),
+    );
+  }
+
+  final normalizedTrackName = trackName.trim().isEmpty
+      ? '轨道 ${project.tracks.length + 1}'
+      : trackName.trim();
+  final track = AnimationTrack(
+    id: '${project.id}_track_$timestamp',
+    name: normalizedTrackName,
+    kind: AnimationTrackKind.action,
+    visible: true,
+    locked: false,
+    defaultDelayMs: defaultDelayMs,
+    playbackMode: AnimationPlaybackMode.normal,
+    clips: [
+      TimelineClip(
+        id: '${project.id}_clip_$timestamp',
+        name: normalizedTrackName,
+        startFrame: 0,
+        frames: [
+          for (final asset in assets)
+            FrameRef(assetId: asset.id, delayMs: defaultDelayMs),
+        ],
+        loop: true,
+      ),
+    ],
+  );
+
+  return project
+      .copyWith(
+        assets: List<FrameAsset>.unmodifiable([...project.assets, ...assets]),
+        tracks: List<AnimationTrack>.unmodifiable([...project.tracks, track]),
+      )
+      .touch();
+}
+
+Future<_ImportedFrameNormalizeResult> _normalizeImportedFrameInBackground(
+  _ImportedFrameNormalizeRequest request,
+) {
+  return compute(_normalizeImportedFrameInIsolate, request);
+}
+
+Future<_ImportedFrameNormalizeResult> _normalizeFrameBytesInBackground(
+  _FrameBytesNormalizeRequest request,
+) {
+  return compute(_normalizeFrameBytesInIsolate, request);
+}
+
+Future<_ImportedFrameNormalizeResult> _normalizeImportedFrameInIsolate(
+  _ImportedFrameNormalizeRequest request,
+) async {
+  final bytes = await File(request.path).readAsBytes();
+  final decoded = image_lib.decodeImage(bytes);
+  if (decoded == null) {
+    throw ImageGenerationException('无法解析图片：${request.path}');
+  }
+  final targetWidth = request.targetWidth ?? decoded.width;
+  final targetHeight = request.targetHeight ?? decoded.height;
+  final normalized =
+      decoded.width == targetWidth && decoded.height == targetHeight
+      ? decoded.convert(numChannels: 4)
+      : image_lib
+            .copyResize(decoded, width: targetWidth, height: targetHeight)
+            .convert(numChannels: 4);
+  return _ImportedFrameNormalizeResult(
+    bytes: Uint8List.fromList(image_lib.encodePng(normalized)),
+    width: targetWidth,
+    height: targetHeight,
+  );
+}
+
+_ImportedFrameNormalizeResult _normalizeFrameBytesInIsolate(
+  _FrameBytesNormalizeRequest request,
+) {
+  final decoded = image_lib.decodeImage(request.bytes);
+  if (decoded == null) {
+    throw const ImageGenerationException('动画帧图片无法解码。');
+  }
+  final normalized =
+      decoded.width == request.targetWidth &&
+          decoded.height == request.targetHeight
+      ? decoded.convert(numChannels: 4)
+      : image_lib
+            .copyResize(
+              decoded,
+              width: request.targetWidth,
+              height: request.targetHeight,
+            )
+            .convert(numChannels: 4);
+  return _ImportedFrameNormalizeResult(
+    bytes: Uint8List.fromList(image_lib.encodePng(normalized)),
+    width: request.targetWidth,
+    height: request.targetHeight,
+  );
 }
 
 class AnimationProjectFrameEditor {
@@ -1302,12 +1577,18 @@ class AnimationProjectFrameEditor {
     if (decoded == null) {
       throw const ImageGenerationException('动画帧图片无法解码。');
     }
-    final normalized = _normalizeFrameImage(project, decoded);
+    final normalized = await _normalizeFrameBytesInBackground(
+      _FrameBytesNormalizeRequest(
+        bytes: imageBytes,
+        targetWidth: _targetWidth(project, fallback: decoded.width),
+        targetHeight: _targetHeight(project, fallback: decoded.height),
+      ),
+    );
     final timestamp = DateTime.now().microsecondsSinceEpoch;
     final output = await store.saveGeneratedImageBytes(
       groupId: '${project.id}_frame_edit_$timestamp',
       index: frameIndex,
-      bytes: Uint8List.fromList(image_lib.encodePng(normalized)),
+      bytes: normalized.bytes,
     );
     final asset = FrameAsset(
       id: '${project.id}_asset_edit_${timestamp}_$frameIndex',
@@ -1347,12 +1628,18 @@ class AnimationProjectFrameEditor {
     if (decoded == null) {
       throw const ImageGenerationException('动画帧图片无法解码。');
     }
-    final normalized = _normalizeFrameImage(project, decoded);
+    final normalized = await _normalizeFrameBytesInBackground(
+      _FrameBytesNormalizeRequest(
+        bytes: imageBytes,
+        targetWidth: _targetWidth(project, fallback: decoded.width),
+        targetHeight: _targetHeight(project, fallback: decoded.height),
+      ),
+    );
     final timestamp = DateTime.now().microsecondsSinceEpoch;
     final output = await store.saveGeneratedImageBytes(
       groupId: '${project.id}_frame_insert_$timestamp',
       index: insertIndex,
-      bytes: Uint8List.fromList(image_lib.encodePng(normalized)),
+      bytes: normalized.bytes,
     );
     final asset = FrameAsset(
       id: '${project.id}_asset_insert_${timestamp}_$insertIndex',

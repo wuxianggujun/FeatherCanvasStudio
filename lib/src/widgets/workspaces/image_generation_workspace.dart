@@ -20,6 +20,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
     required this.negativePromptController,
     required this.size,
     required this.imageCount,
+    required this.templateImagePath,
     required this.advancedSettings,
     required this.userController,
     required this.onApiConfigChanged,
@@ -27,6 +28,8 @@ class ImageGenerationWorkspace extends StatelessWidget {
     required this.onSizeChanged,
     required this.onImageCountChanged,
     required this.onAdvancedSettingsChanged,
+    required this.onPickTemplateImage,
+    required this.onClearTemplateImage,
     required this.onGenerate,
     required this.onCopyImage,
     required this.onExportImage,
@@ -42,6 +45,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
   final TextEditingController negativePromptController;
   final String size;
   final int imageCount;
+  final String? templateImagePath;
   final ImageAdvancedSettings advancedSettings;
   final TextEditingController userController;
   final ValueChanged<String> onApiConfigChanged;
@@ -49,6 +53,8 @@ class ImageGenerationWorkspace extends StatelessWidget {
   final ValueChanged<String> onSizeChanged;
   final ValueChanged<int> onImageCountChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
+  final VoidCallback onPickTemplateImage;
+  final VoidCallback onClearTemplateImage;
   final VoidCallback onGenerate;
   final void Function(int index, GeneratedImage image) onCopyImage;
   final void Function(int index, GeneratedImage image) onExportImage;
@@ -80,6 +86,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
               negativePromptController: negativePromptController,
               size: size,
               imageCount: imageCount,
+              templateImagePath: templateImagePath,
               advancedSettings: advancedSettings,
               userController: userController,
               isGenerating: isGenerating,
@@ -88,6 +95,8 @@ class ImageGenerationWorkspace extends StatelessWidget {
               onSizeChanged: onSizeChanged,
               onImageCountChanged: onImageCountChanged,
               onAdvancedSettingsChanged: onAdvancedSettingsChanged,
+              onPickTemplateImage: onPickTemplateImage,
+              onClearTemplateImage: onClearTemplateImage,
               onGenerate: onGenerate,
             ),
           ),

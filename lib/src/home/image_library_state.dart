@@ -145,6 +145,8 @@ mixin _ImageLibraryStateMixin
   });
   String? get _animationTemplateImagePath;
   set _animationTemplateImagePath(String? value);
+  String? get _imageTemplateImagePath;
+  set _imageTemplateImagePath(String? value);
   set _editorErrorMessage(String? value);
   String? get _errorMessage;
   set _errorMessage(String? value);
@@ -1105,6 +1107,7 @@ mixin _ImageLibraryStateMixin
     final beforeSelectedIds = _selectedImageLibraryItemIds;
     final beforeEditorImagePath = _editorImagePath;
     final beforeEditorPatchImagePath = _editorPatchImagePath;
+    final beforeImageTemplateImagePath = _imageTemplateImagePath;
     final beforeAnimationTemplateImagePath = _animationTemplateImagePath;
     final beforeAnimationProject = _animationProject;
     final beforeSelectedAnimationTrackId = _selectedAnimationTrackId;
@@ -1125,6 +1128,7 @@ mixin _ImageLibraryStateMixin
       selectedItemIds: _selectedImageLibraryItemIds,
       editorImagePath: _editorImagePath,
       editorPatchImagePath: _editorPatchImagePath,
+      imageTemplateImagePath: _imageTemplateImagePath,
       animationTemplateImagePath: _animationTemplateImagePath,
     );
     final removesOpenAnimationProject =
@@ -1139,6 +1143,7 @@ mixin _ImageLibraryStateMixin
       _selectedImageLibraryItemIds = cleanup.selectedItemIds;
       _editorImagePath = cleanup.editorImagePath;
       _editorPatchImagePath = cleanup.editorPatchImagePath;
+      _imageTemplateImagePath = cleanup.imageTemplateImagePath;
       _animationTemplateImagePath = cleanup.animationTemplateImagePath;
       if (removesOpenAnimationProject) {
         _animationProject = null;
@@ -1179,6 +1184,7 @@ mixin _ImageLibraryStateMixin
               selectedItemIds: _selectedImageLibraryItemIds,
               editorImagePath: _editorImagePath,
               editorPatchImagePath: _editorPatchImagePath,
+              imageTemplateImagePath: _imageTemplateImagePath,
               animationTemplateImagePath: _animationTemplateImagePath,
             );
             trashPaths = redoImpact.trashPaths;
@@ -1187,6 +1193,7 @@ mixin _ImageLibraryStateMixin
               _selectedImageLibraryItemIds = redoCleanup.selectedItemIds;
               _editorImagePath = redoCleanup.editorImagePath;
               _editorPatchImagePath = redoCleanup.editorPatchImagePath;
+              _imageTemplateImagePath = redoCleanup.imageTemplateImagePath;
               _animationTemplateImagePath =
                   redoCleanup.animationTemplateImagePath;
               if (removesOpenAnimationProject) {
@@ -1211,6 +1218,7 @@ mixin _ImageLibraryStateMixin
               _selectedImageLibraryItemIds = beforeSelectedIds;
               _editorImagePath = beforeEditorImagePath;
               _editorPatchImagePath = beforeEditorPatchImagePath;
+              _imageTemplateImagePath = beforeImageTemplateImagePath;
               _animationTemplateImagePath = beforeAnimationTemplateImagePath;
               _animationProject = beforeAnimationProject;
               _selectedAnimationTrackId = beforeSelectedAnimationTrackId;

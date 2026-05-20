@@ -58,12 +58,14 @@ void main() {
       selectedItemIds: {'deleted-id', 'kept-id'},
       editorImagePath: '/tmp/deleted.png',
       editorPatchImagePath: '/tmp/patch.png',
+      imageTemplateImagePath: '/tmp/template.png',
       animationTemplateImagePath: '/tmp/template.png',
     );
 
     expect(cleanup.selectedItemIds, {'kept-id'});
     expect(cleanup.editorImagePath, isNull);
     expect(cleanup.editorPatchImagePath, '/tmp/patch.png');
+    expect(cleanup.imageTemplateImagePath, isNull);
     expect(cleanup.animationTemplateImagePath, isNull);
   });
 

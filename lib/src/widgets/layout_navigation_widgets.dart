@@ -265,6 +265,8 @@ class WorkspaceResizeHandle extends StatelessWidget {
   final GestureDragUpdateCallback onDragUpdate;
   final VoidCallback? onDragEnd;
   final VoidCallback? onDoubleTap;
+  static const double _hitExtent = 20;
+  static const double _fallbackExtent = 128;
 
   @override
   Widget build(BuildContext context) {
@@ -276,45 +278,54 @@ class WorkspaceResizeHandle extends StatelessWidget {
         ? SystemMouseCursors.resizeColumn
         : SystemMouseCursors.resizeRow;
 
-    return MouseRegion(
-      cursor: cursor,
-      child: Semantics(
-        label: tooltip,
-        button: true,
-        enabled: true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: isVertical ? onDragUpdate : null,
-          onHorizontalDragEnd: isVertical && onDragEnd != null
-              ? (_) => onDragEnd!()
-              : null,
-          onVerticalDragUpdate: isVertical ? null : onDragUpdate,
-          onVerticalDragEnd: !isVertical && onDragEnd != null
-              ? (_) => onDragEnd!()
-              : null,
-          onDoubleTap: onDoubleTap,
-          child: Tooltip(
-            message: tooltip,
-            waitDuration: const Duration(milliseconds: 600),
-            child: SizedBox(
-              width: isVertical ? layoutGap : double.infinity,
-              height: isVertical ? 96 : layoutGap,
-              child: Center(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: hoverColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: SizedBox(
-                    width: isVertical ? 6 : 64,
-                    height: isVertical ? 64 : 6,
-                    child: Center(
-                      child: Container(
-                        width: isVertical ? 2 : 44,
-                        height: isVertical ? 44 : 2,
-                        decoration: BoxDecoration(
-                          color: handleColor,
-                          borderRadius: BorderRadius.circular(999),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final handleWidth = isVertical ? _hitExtent : double.infinity;
+        final handleHeight = isVertical
+            ? (constraints.hasBoundedHeight ? double.infinity : _fallbackExtent)
+            : _hitExtent;
+
+        return MouseRegion(
+          cursor: cursor,
+          child: Semantics(
+            label: tooltip,
+            button: true,
+            enabled: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onHorizontalDragUpdate: isVertical ? onDragUpdate : null,
+              onHorizontalDragEnd: isVertical && onDragEnd != null
+                  ? (_) => onDragEnd!()
+                  : null,
+              onVerticalDragUpdate: isVertical ? null : onDragUpdate,
+              onVerticalDragEnd: !isVertical && onDragEnd != null
+                  ? (_) => onDragEnd!()
+                  : null,
+              onDoubleTap: onDoubleTap,
+              child: Tooltip(
+                message: tooltip,
+                waitDuration: const Duration(milliseconds: 600),
+                child: SizedBox(
+                  width: handleWidth,
+                  height: handleHeight,
+                  child: Center(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: hoverColor,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: SizedBox(
+                        width: isVertical ? 6 : 72,
+                        height: isVertical ? 72 : 6,
+                        child: Center(
+                          child: Container(
+                            width: isVertical ? 2 : 52,
+                            height: isVertical ? 52 : 2,
+                            decoration: BoxDecoration(
+                              color: handleColor,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -323,8 +334,8 @@ class WorkspaceResizeHandle extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

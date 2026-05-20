@@ -77,6 +77,9 @@ mixin _ImageGenerationStateMixin
   @override
   List<GeneratedImage> get _animationFrames;
   set _animationFrames(List<GeneratedImage> value);
+  String? get _imageTemplateImagePath;
+  set _imageTemplateImagePath(String? value);
+  Set<String> get _ephemeralTemplatePaths;
   @override
   String? get _animationTemplateImagePath;
   @override
@@ -255,6 +258,7 @@ mixin _ImageGenerationStateMixin
     }
 
     final prompt = _promptController.text.trim();
+    final templatePath = _imageTemplateImagePath;
     final beforeImages = List<GeneratedImage>.unmodifiable(_generatedImages);
     final beforeDebugRecord = _imageRequestDebugRecord;
 
@@ -270,6 +274,11 @@ mixin _ImageGenerationStateMixin
 
     if (prompt.isEmpty) {
       _showMessage(l10n.imageGenerationMissingPositivePromptMessage);
+      return;
+    }
+
+    if (templatePath != null && !await _fileService.fileExists(templatePath)) {
+      _showMessage(l10n.imageGenerationTemplateImageMissingMessage);
       return;
     }
 
@@ -303,8 +312,13 @@ mixin _ImageGenerationStateMixin
           imageCount: batchCount,
           advancedSettings: _advancedSettings,
           user: user,
-          titlePrefix: l10n.imageGenerationTextImageSource,
-          source: l10n.imageGenerationTextImageSource,
+          templateImagePath: templatePath,
+          titlePrefix: templatePath == null
+              ? l10n.imageGenerationTextImageSource
+              : l10n.imageGenerationReferenceImageSource,
+          source: templatePath == null
+              ? l10n.imageGenerationTextImageSource
+              : l10n.imageGenerationReferenceImageSource,
           onDebugRecord: (record) => _imageRequestDebugRecord = record,
         );
 
@@ -328,7 +342,11 @@ mixin _ImageGenerationStateMixin
         appendedItems: List<ImageLibraryItem>.unmodifiable(allLibraryItems),
       );
       _showMessage(
-        l10n.imageGenerationImagesGeneratedMessage(allImages.length),
+        templatePath == null
+            ? l10n.imageGenerationImagesGeneratedMessage(allImages.length)
+            : l10n.imageGenerationReferenceImagesGeneratedMessage(
+                allImages.length,
+              ),
       );
     } on ImageGenerationException catch (error) {
       if (!mounted) {
@@ -362,6 +380,85 @@ mixin _ImageGenerationStateMixin
       if (mounted) {
         _isGenerating = false;
       }
+    }
+  }
+
+  Future<void> _pickImageTemplateImage() async {
+    final l10n = appL10nOf(context);
+    final candidates = _availableImageLibraryItems(
+      allowedKinds: templateLibraryKinds,
+    );
+    final source = await _selectImagePickSource(
+      title: l10n.imageGenerationSelectReferenceImageTitle,
+      allowLibrary: candidates.isNotEmpty,
+      libraryEmptyMessage: l10n.imageGenerationReferenceLibraryEmpty,
+    );
+    if (source == null || !mounted) {
+      return;
+    }
+
+    String? imagePath;
+    String? sliceLabel;
+    if (source == ImagePickSource.localFile) {
+      final image = await openFile(acceptedTypeGroups: templateImageTypeGroups);
+      imagePath = image?.path;
+    } else {
+      final item = await _showImageLibraryPicker<ImageLibraryItem>(
+        title: l10n.imageGenerationSelectReferenceImageTitle,
+        allowedKinds: templateLibraryKinds,
+      );
+      if (item == null || !mounted) {
+        return;
+      }
+      if (item.isSpriteSheetWithMetadata) {
+        final picked = await _showSlicePicker(item, allowMultiple: false);
+        if (picked == null || picked.isEmpty || !mounted) {
+          return;
+        }
+        final entry = picked.first;
+        final file = await _store.saveEphemeralBytes(
+          prefix: 'reference',
+          bytes: entry.value,
+        );
+        _ephemeralTemplatePaths.add(file.path);
+        imagePath = file.path;
+        sliceLabel = l10n.editorGifTemplateSliceLabel(
+          item.displayTitle,
+          entry.key + 1,
+        );
+      } else {
+        imagePath = item.path;
+      }
+    }
+
+    if (imagePath == null || !mounted) {
+      return;
+    }
+
+    final previous = _imageTemplateImagePath;
+    setState(() {
+      _imageTemplateImagePath = imagePath;
+      _errorMessage = null;
+    });
+    if (previous != null &&
+        previous != imagePath &&
+        _ephemeralTemplatePaths.remove(previous)) {
+      unawaited(_fileService.safeDeleteFile(previous));
+    }
+    _showMessage(
+      sliceLabel != null
+          ? l10n.imageGenerationSelectedReferenceSliceMessage(sliceLabel)
+          : l10n.imageGenerationSelectedReferenceImageMessage(
+              fileNameFromPath(imagePath),
+            ),
+    );
+  }
+
+  void _clearImageTemplateImage() {
+    final previous = _imageTemplateImagePath;
+    setState(() => _imageTemplateImagePath = null);
+    if (previous != null && _ephemeralTemplatePaths.remove(previous)) {
+      unawaited(_fileService.safeDeleteFile(previous));
     }
   }
 
@@ -1973,6 +2070,7 @@ mixin _ImageGenerationStateMixin
       negativePromptController: _negativePromptController,
       size: _size,
       imageCount: _imageCount,
+      templateImagePath: _imageTemplateImagePath,
       advancedSettings: _advancedSettings,
       userController: _userController,
       onApiConfigChanged: _selectApiConfig,
@@ -1981,6 +2079,8 @@ mixin _ImageGenerationStateMixin
       onSizeChanged: _setSize,
       onImageCountChanged: _setImageCount,
       onAdvancedSettingsChanged: _setAdvancedSettings,
+      onPickTemplateImage: _pickImageTemplateImage,
+      onClearTemplateImage: _clearImageTemplateImage,
       onGenerate: _generateImage,
       onCopyImage: (index, image) =>
           unawaited(_copyGeneratedPreviewImage(image)),

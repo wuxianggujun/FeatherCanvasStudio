@@ -36,6 +36,7 @@ class _ResetDefaultsSnapshot {
     required this.animationRequestDebugRecord,
     required this.generatedImages,
     required this.animationFrames,
+    required this.imageTemplateImagePath,
     required this.animationTemplateImagePath,
     required this.editorImagePath,
     required this.editorPatchImagePath,
@@ -78,6 +79,7 @@ class _ResetDefaultsSnapshot {
   final ImageRequestDebugRecord? animationRequestDebugRecord;
   final List<GeneratedImage> generatedImages;
   final List<GeneratedImage> animationFrames;
+  final String? imageTemplateImagePath;
   final String? animationTemplateImagePath;
   final String? editorImagePath;
   final String? editorPatchImagePath;
@@ -121,6 +123,7 @@ mixin _HomeShellStateMixin
   set _selectedFeature(WorkspaceFeature value);
   @override
   set _errorMessage(String? value);
+  set _imageTemplateImagePath(String? value);
   @override
   set _animationTemplateImagePath(String? value);
   @override
@@ -393,6 +396,7 @@ mixin _HomeShellStateMixin
       animationRequestDebugRecord: _animationRequestDebugRecord,
       generatedImages: List<GeneratedImage>.unmodifiable(_generatedImages),
       animationFrames: List<GeneratedImage>.unmodifiable(_animationFrames),
+      imageTemplateImagePath: _imageTemplateImagePath,
       animationTemplateImagePath: _animationTemplateImagePath,
       editorImagePath: _editorImagePath,
       editorPatchImagePath: _editorPatchImagePath,
@@ -442,6 +446,7 @@ mixin _HomeShellStateMixin
       animationRequestDebugRecord: null,
       generatedImages: const [],
       animationFrames: const [],
+      imageTemplateImagePath: null,
       animationTemplateImagePath: null,
       editorImagePath: null,
       editorPatchImagePath: null,
@@ -502,6 +507,7 @@ mixin _HomeShellStateMixin
       _animationRequestDebugRecord = snapshot.animationRequestDebugRecord;
       _generatedImages = snapshot.generatedImages;
       _animationFrames = snapshot.animationFrames;
+      _imageTemplateImagePath = snapshot.imageTemplateImagePath;
       _animationTemplateImagePath = snapshot.animationTemplateImagePath;
       _editorImagePath = snapshot.editorImagePath;
       _editorPatchImagePath = snapshot.editorPatchImagePath;
@@ -949,6 +955,49 @@ mixin _HomeShellStateMixin
     }
   }
 
+  Future<void> _exportPixelArtPng(
+    Uint8List pngBytes,
+    int width,
+    int height,
+  ) async {
+    final l10n = appL10nOf(context);
+    final location = await getSaveLocation(
+      acceptedTypeGroups: imageTypeGroups,
+      suggestedName: _suggestedPixelArtExportFileName(width, height),
+    );
+    if (location == null || !mounted) {
+      return;
+    }
+
+    try {
+      final result = await _fileService.exportBytesToPath(
+        bytes: pngBytes,
+        destinationPath: location.path,
+      );
+      if (!mounted) {
+        return;
+      }
+      _showMessage(
+        l10n.homePixelArtExportedMessage(
+          fileNameFromPath(result.destinationPath),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        _showMessage(l10n.homePixelArtExportFailedMessage('$error'));
+      }
+    }
+  }
+
+  String _suggestedPixelArtExportFileName(int width, int height) {
+    final timestamp = DateTime.now().toLocal().toIso8601String();
+    final safeTimestamp = timestamp
+        .replaceAll(':', '-')
+        .replaceAll('.', '-')
+        .replaceAll('T', '_');
+    return 'pixel-art-${width}x$height-$safeTimestamp.png';
+  }
+
   Widget _buildSelectedWorkspace() {
     return switch (_selectedFeature) {
       WorkspaceFeature.imageGeneration => _buildImageGenerationWorkspace(),
@@ -957,6 +1006,7 @@ mixin _HomeShellStateMixin
       WorkspaceFeature.imageEditor => _buildImageEditorWorkspace(),
       WorkspaceFeature.pixelArtEditor => PixelArtWorkspace(
         onSaveToLibrary: _savePixelArtToLibrary,
+        onExportPng: _exportPixelArtPng,
         isFocusMode: _isPixelArtFocusMode,
         onFocusModeChanged: (value) =>
             setState(() => _isPixelArtFocusMode = value),
