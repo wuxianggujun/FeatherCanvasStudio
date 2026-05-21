@@ -164,10 +164,7 @@ class SpriteSheetPreviewComposer {
 
     return compute(
       _buildSpriteSheetPreviewFromFramesInIsolate,
-      _SpriteSheetPreviewFramesTask(
-        frameBytes: frameBytes,
-        gridSpec: gridSpec,
-      ),
+      _SpriteSheetPreviewFramesTask(frameBytes: frameBytes, gridSpec: gridSpec),
       debugLabel: 'sprite-sheet-preview-from-frames',
     );
   }
