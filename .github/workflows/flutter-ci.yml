@@ -36,6 +36,7 @@ concurrency:
 
 env:
   FLUTTER_CHANNEL: stable
+  FLUTTER_VERSION: "3.44.0"
   ARTIFACT_RETENTION_DAYS: 7
 
 jobs:
@@ -68,6 +69,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
           pub-cache: true
           cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
@@ -109,6 +111,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
           pub-cache: true
           cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
@@ -142,6 +145,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
           pub-cache: true
           cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
