@@ -2121,6 +2121,7 @@ class _AnimationTimelinePanelState extends State<_AnimationTimelinePanel> {
             scrollDirection: Axis.horizontal,
             buildDefaultDragHandles: false,
             itemCount: frames.length,
+            // ignore: deprecated_member_use
             onReorder: (oldIndex, newIndex) {
               if (track.locked) {
                 return;
