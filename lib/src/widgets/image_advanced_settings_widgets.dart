@@ -27,101 +27,108 @@ class ImageAdvancedSettingsSection extends StatelessWidget {
     final l10n = appL10nOf(context);
     final compressionEnabled = settings.supportsOutputCompression;
 
-    return ExpansionTile(
-      tilePadding: EdgeInsets.zero,
-      childrenPadding: const EdgeInsets.only(top: 4),
-      title: Text(l10n.imageAdvancedSettingsTitle),
-      subtitle: Text(
-        '${localizedImageQualityLabel(l10n, settings.quality)}${l10n.imageAdvancedSettingsQualitySuffix} · '
-        '${localizedImageOutputFormatLabel(settings.outputFormat)} · '
-        '${localizedImageBackgroundLabel(l10n, settings.background)}${l10n.imageAdvancedSettingsBackgroundSuffix}',
-      ),
-      children: [
-        ResponsivePair(
-          first: _ImageOptionDropdown(
-            label: l10n.imageAdvancedSettingsQuality,
-            value: settings.quality,
-            options: gptImageQualityOptions,
-            labelBuilder: (value) => localizedImageQualityLabel(l10n, value),
-            onChanged: enabled
-                ? (value) => onChanged(settings.copyWith(quality: value))
-                : null,
-          ),
-          second: _ImageOptionDropdown(
-            label: l10n.imageAdvancedSettingsBackground,
-            value: settings.background,
-            options: gptImageBackgroundOptions,
-            labelBuilder: (value) => localizedImageBackgroundLabel(l10n, value),
-            onChanged: enabled
-                ? (value) => onChanged(settings.copyWith(background: value))
-                : null,
-          ),
+    return Material(
+      color: Colors.transparent,
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(top: 4),
+        title: Text(l10n.imageAdvancedSettingsTitle),
+        subtitle: Text(
+          '${localizedImageQualityLabel(l10n, settings.quality)}${l10n.imageAdvancedSettingsQualitySuffix} · '
+          '${localizedImageOutputFormatLabel(settings.outputFormat)} · '
+          '${localizedImageBackgroundLabel(l10n, settings.background)}${l10n.imageAdvancedSettingsBackgroundSuffix}',
         ),
-        const SizedBox(height: fieldGap),
-        ResponsivePair(
-          first: _ImageOptionDropdown(
-            label: l10n.imageAdvancedSettingsOutputFormat,
-            value: settings.outputFormat,
-            options: gptImageOutputFormatOptions,
-            labelBuilder: localizedImageOutputFormatLabel,
-            onChanged: enabled
-                ? (value) {
-                    final nextBackground =
-                        value == 'jpeg' && settings.background == 'transparent'
-                        ? 'auto'
-                        : settings.background;
-                    onChanged(
-                      settings.copyWith(
-                        outputFormat: value,
-                        background: nextBackground,
-                      ),
-                    );
-                  }
-                : null,
+        children: [
+          ResponsivePair(
+            first: _ImageOptionDropdown(
+              label: l10n.imageAdvancedSettingsQuality,
+              value: settings.quality,
+              options: gptImageQualityOptions,
+              labelBuilder: (value) => localizedImageQualityLabel(l10n, value),
+              onChanged: enabled
+                  ? (value) => onChanged(settings.copyWith(quality: value))
+                  : null,
+            ),
+            second: _ImageOptionDropdown(
+              label: l10n.imageAdvancedSettingsBackground,
+              value: settings.background,
+              options: gptImageBackgroundOptions,
+              labelBuilder: (value) =>
+                  localizedImageBackgroundLabel(l10n, value),
+              onChanged: enabled
+                  ? (value) => onChanged(settings.copyWith(background: value))
+                  : null,
+            ),
           ),
-          second: _ImageOptionDropdown(
-            label: l10n.imageAdvancedSettingsModeration,
-            value: settings.moderation,
-            options: gptImageModerationOptions,
-            labelBuilder: (value) => localizedImageModerationLabel(l10n, value),
-            onChanged: !enabled || hasTemplateImage
-                ? null
-                : (value) => onChanged(settings.copyWith(moderation: value)),
-          ),
-        ),
-        const SizedBox(height: fieldGap),
-        _ImageCompressionSlider(
-          value: settings.outputCompression,
-          available: compressionEnabled,
-          enabled: enabled && compressionEnabled,
-          onChanged: (value) =>
-              onChanged(settings.copyWith(outputCompression: value)),
-        ),
-        const SizedBox(height: fieldGap),
-        TextField(
-          controller: userController,
-          enabled: enabled,
-          decoration: InputDecoration(
-            labelText: l10n.imageAdvancedSettingsFinalUserId,
-            hintText: l10n.imageAdvancedSettingsFinalUserHint,
-          ),
-        ),
-        if (hasTemplateImage) ...[
           const SizedBox(height: fieldGap),
-          _ImageOptionDropdown(
-            label: l10n.imageAdvancedSettingsInputFidelity,
-            value: settings.inputFidelity,
-            options: const ['low', 'high'],
-            labelBuilder: (value) => value == 'high'
-                ? l10n.imageAdvancedSettingsHigh
-                : l10n.imageAdvancedSettingsLow,
-            onChanged: enabled
-                ? (value) => onChanged(settings.copyWith(inputFidelity: value))
-                : null,
+          ResponsivePair(
+            first: _ImageOptionDropdown(
+              label: l10n.imageAdvancedSettingsOutputFormat,
+              value: settings.outputFormat,
+              options: gptImageOutputFormatOptions,
+              labelBuilder: localizedImageOutputFormatLabel,
+              onChanged: enabled
+                  ? (value) {
+                      final nextBackground =
+                          value == 'jpeg' &&
+                              settings.background == 'transparent'
+                          ? 'auto'
+                          : settings.background;
+                      onChanged(
+                        settings.copyWith(
+                          outputFormat: value,
+                          background: nextBackground,
+                        ),
+                      );
+                    }
+                  : null,
+            ),
+            second: _ImageOptionDropdown(
+              label: l10n.imageAdvancedSettingsModeration,
+              value: settings.moderation,
+              options: gptImageModerationOptions,
+              labelBuilder: (value) =>
+                  localizedImageModerationLabel(l10n, value),
+              onChanged: !enabled || hasTemplateImage
+                  ? null
+                  : (value) => onChanged(settings.copyWith(moderation: value)),
+            ),
           ),
+          const SizedBox(height: fieldGap),
+          _ImageCompressionSlider(
+            value: settings.outputCompression,
+            available: compressionEnabled,
+            enabled: enabled && compressionEnabled,
+            onChanged: (value) =>
+                onChanged(settings.copyWith(outputCompression: value)),
+          ),
+          const SizedBox(height: fieldGap),
+          TextField(
+            controller: userController,
+            enabled: enabled,
+            decoration: InputDecoration(
+              labelText: l10n.imageAdvancedSettingsFinalUserId,
+              hintText: l10n.imageAdvancedSettingsFinalUserHint,
+            ),
+          ),
+          if (hasTemplateImage) ...[
+            const SizedBox(height: fieldGap),
+            _ImageOptionDropdown(
+              label: l10n.imageAdvancedSettingsInputFidelity,
+              value: settings.inputFidelity,
+              options: const ['low', 'high'],
+              labelBuilder: (value) => value == 'high'
+                  ? l10n.imageAdvancedSettingsHigh
+                  : l10n.imageAdvancedSettingsLow,
+              onChanged: enabled
+                  ? (value) =>
+                        onChanged(settings.copyWith(inputFidelity: value))
+                  : null,
+            ),
+          ],
+          const SizedBox(height: 4),
         ],
-        const SizedBox(height: 4),
-      ],
+      ),
     );
   }
 }

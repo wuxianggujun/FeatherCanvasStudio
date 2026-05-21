@@ -218,129 +218,134 @@ class SpriteSheetGridSpecControls extends StatelessWidget {
     final l10n = appL10nOf(context);
     final theme = Theme.of(context);
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
+      child: Material(
         color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Theme(
-        data: theme.copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          initiallyExpanded: false,
-          maintainState: true,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          leading: Icon(
-            Icons.tune_outlined,
-            size: 18,
-            color: theme.colorScheme.primary,
-          ),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.spriteSheetGridSpecTitle,
-                  style: theme.textTheme.titleSmall,
-                ),
-              ),
-              if (!gridSpec.isDefault)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Theme(
+          data: theme.copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            initiallyExpanded: false,
+            maintainState: true,
+            tilePadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 2,
+            ),
+            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            leading: Icon(
+              Icons.tune_outlined,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            title: Row(
+              children: [
+                Expanded(
                   child: Text(
-                    l10n.spriteSheetGridSpecAdjusted,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSecondaryContainer,
-                    ),
+                    l10n.spriteSheetGridSpecTitle,
+                    style: theme.textTheme.titleSmall,
                   ),
                 ),
-            ],
-          ),
-          subtitle: Text(
-            _gridSpecSummary(l10n, gridSpec),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall,
-          ),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.spriteSheetGridSpecDescription,
-                style: theme.textTheme.bodySmall,
-              ),
+                if (!gridSpec.isDefault)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      l10n.spriteSheetGridSpecAdjusted,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSecondaryContainer,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: fieldGap),
-            ResponsivePair(
-              first: _GridSpecNumberField(
-                label: l10n.spriteSheetGridMarginLeft,
-                value: gridSpec.marginLeft,
-                onChanged: (value) =>
-                    onChanged(gridSpec.copyWith(marginLeft: value)),
-              ),
-              second: _GridSpecNumberField(
-                label: l10n.spriteSheetGridMarginTop,
-                value: gridSpec.marginTop,
-                onChanged: (value) =>
-                    onChanged(gridSpec.copyWith(marginTop: value)),
-              ),
+            subtitle: Text(
+              _gridSpecSummary(l10n, gridSpec),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
             ),
-            const SizedBox(height: fieldGap),
-            ResponsivePair(
-              first: _GridSpecNumberField(
-                label: l10n.spriteSheetGridMarginRight,
-                value: gridSpec.marginRight,
-                onChanged: (value) =>
-                    onChanged(gridSpec.copyWith(marginRight: value)),
-              ),
-              second: _GridSpecNumberField(
-                label: l10n.spriteSheetGridMarginBottom,
-                value: gridSpec.marginBottom,
-                onChanged: (value) =>
-                    onChanged(gridSpec.copyWith(marginBottom: value)),
-              ),
-            ),
-            const SizedBox(height: fieldGap),
-            ResponsivePair(
-              first: _GridSpecNumberField(
-                label: l10n.spriteSheetGridColumnGap,
-                value: gridSpec.columnGap,
-                onChanged: (value) =>
-                    onChanged(gridSpec.copyWith(columnGap: value)),
-              ),
-              second: _GridSpecNumberField(
-                label: l10n.spriteSheetGridRowGap,
-                value: gridSpec.rowGap,
-                onChanged: (value) =>
-                    onChanged(gridSpec.copyWith(rowGap: value)),
-              ),
-            ),
-            if (!gridSpec.isDefault) ...[
-              const SizedBox(height: fieldGap),
+            children: [
               Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () => onChanged(
-                    SpriteSheetGridSpec(
-                      rows: gridSpec.rows,
-                      columns: gridSpec.columns,
-                    ),
-                  ),
-                  icon: const Icon(Icons.restart_alt),
-                  label: Text(l10n.spriteSheetGridReset),
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.spriteSheetGridSpecDescription,
+                  style: theme.textTheme.bodySmall,
                 ),
               ),
+              const SizedBox(height: fieldGap),
+              ResponsivePair(
+                first: _GridSpecNumberField(
+                  label: l10n.spriteSheetGridMarginLeft,
+                  value: gridSpec.marginLeft,
+                  onChanged: (value) =>
+                      onChanged(gridSpec.copyWith(marginLeft: value)),
+                ),
+                second: _GridSpecNumberField(
+                  label: l10n.spriteSheetGridMarginTop,
+                  value: gridSpec.marginTop,
+                  onChanged: (value) =>
+                      onChanged(gridSpec.copyWith(marginTop: value)),
+                ),
+              ),
+              const SizedBox(height: fieldGap),
+              ResponsivePair(
+                first: _GridSpecNumberField(
+                  label: l10n.spriteSheetGridMarginRight,
+                  value: gridSpec.marginRight,
+                  onChanged: (value) =>
+                      onChanged(gridSpec.copyWith(marginRight: value)),
+                ),
+                second: _GridSpecNumberField(
+                  label: l10n.spriteSheetGridMarginBottom,
+                  value: gridSpec.marginBottom,
+                  onChanged: (value) =>
+                      onChanged(gridSpec.copyWith(marginBottom: value)),
+                ),
+              ),
+              const SizedBox(height: fieldGap),
+              ResponsivePair(
+                first: _GridSpecNumberField(
+                  label: l10n.spriteSheetGridColumnGap,
+                  value: gridSpec.columnGap,
+                  onChanged: (value) =>
+                      onChanged(gridSpec.copyWith(columnGap: value)),
+                ),
+                second: _GridSpecNumberField(
+                  label: l10n.spriteSheetGridRowGap,
+                  value: gridSpec.rowGap,
+                  onChanged: (value) =>
+                      onChanged(gridSpec.copyWith(rowGap: value)),
+                ),
+              ),
+              if (!gridSpec.isDefault) ...[
+                const SizedBox(height: fieldGap),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => onChanged(
+                      SpriteSheetGridSpec(
+                        rows: gridSpec.rows,
+                        columns: gridSpec.columns,
+                      ),
+                    ),
+                    icon: const Icon(Icons.restart_alt),
+                    label: Text(l10n.spriteSheetGridReset),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

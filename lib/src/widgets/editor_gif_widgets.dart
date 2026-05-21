@@ -404,129 +404,138 @@ class _PatchImageToolsSectionState extends State<_PatchImageToolsSection> {
     ];
     final toleranceLabel = l10n.backgroundTransparencyTolerance(_tolerance);
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
+      child: Material(
         color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Theme(
-        data: theme.copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          key: ValueKey<bool>(enabled),
-          initiallyExpanded: enabled,
-          maintainState: true,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          leading: Icon(
-            Icons.handyman_outlined,
-            size: 18,
-            color: enabled ? colorScheme.primary : colorScheme.onSurfaceVariant,
-          ),
-          title: Text(
-            l10n.spriteSheetEditorToolsTitle,
-            style: theme.textTheme.titleSmall,
-          ),
-          subtitle: Text(
-            subtitleParts.isEmpty
-                ? l10n.spriteSheetEditorToolsDisabledHint
-                : subtitleParts.join(' · '),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall,
-          ),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: widget.canAdjustFraming && !widget.isBusy
-                    ? widget.onAdjustFraming
-                    : null,
-                icon: const Icon(Icons.crop_outlined),
-                label: Text(l10n.patchImageFramingTitle),
-              ),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        child: Theme(
+          data: theme.copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            key: ValueKey<bool>(enabled),
+            initiallyExpanded: enabled,
+            maintainState: true,
+            tilePadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 2,
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: _tolerance.toDouble(),
-                    min: _minTolerance.toDouble(),
-                    max: _maxTolerance.toDouble(),
-                    divisions: _maxTolerance - _minTolerance,
-                    label: toleranceLabel,
-                    onChanged: widget.canMakeTransparent
-                        ? (value) => setState(() => _tolerance = value.round())
-                        : null,
+            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            leading: Icon(
+              Icons.handyman_outlined,
+              size: 18,
+              color: enabled
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
+            ),
+            title: Text(
+              l10n.spriteSheetEditorToolsTitle,
+              style: theme.textTheme.titleSmall,
+            ),
+            subtitle: Text(
+              subtitleParts.isEmpty
+                  ? l10n.spriteSheetEditorToolsDisabledHint
+                  : subtitleParts.join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: widget.canAdjustFraming && !widget.isBusy
+                      ? widget.onAdjustFraming
+                      : null,
+                  icon: const Icon(Icons.crop_outlined),
+                  label: Text(l10n.patchImageFramingTitle),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Slider(
+                      value: _tolerance.toDouble(),
+                      min: _minTolerance.toDouble(),
+                      max: _maxTolerance.toDouble(),
+                      divisions: _maxTolerance - _minTolerance,
+                      label: toleranceLabel,
+                      onChanged: widget.canMakeTransparent
+                          ? (value) =>
+                                setState(() => _tolerance = value.round())
+                          : null,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 74,
+                    child: Text(
+                      toleranceLabel,
+                      textAlign: TextAlign.end,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: widget.canMakeTransparent && !widget.isBusy
+                      ? () => widget.onMakeBackgroundTransparent(_tolerance)
+                      : null,
+                  icon: widget.isBusy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_fix_high_outlined),
+                  label: Text(
+                    widget.isBusy
+                        ? l10n.spriteSheetEditorProcessing
+                        : l10n.spriteSheetEditorGenerateTransparentPatch,
                   ),
                 ),
-                SizedBox(
-                  width: 74,
-                  child: Text(
-                    toleranceLabel,
-                    textAlign: TextAlign.end,
-                    style: theme.textTheme.bodySmall,
-                  ),
+              ),
+              const Divider(height: 22),
+              IntegerStepperField(
+                label: l10n.spriteSheetEditorPixelBlockLabel,
+                value: _pixelationBlockSize,
+                minValue: _minPixelationBlockSize,
+                maxValue: _maxPixelationBlockSize,
+                suffixText: 'px',
+                helperText: l10n.spriteSheetEditorPixelBlockHelper,
+                enabled: canPixelate && !widget.isBusy,
+                onChanged: (value) => setState(() {
+                  _pixelationBlockSize = value
+                      .clamp(_minPixelationBlockSize, _maxPixelationBlockSize)
+                      .toInt();
+                }),
+              ),
+              const SizedBox(height: 8),
+              ResponsivePair(
+                first: OutlinedButton.icon(
+                  onPressed: widget.canPixelateFrame && !widget.isBusy
+                      ? () =>
+                            widget.onPixelateCurrentFrame(_pixelationBlockSize)
+                      : null,
+                  icon: const Icon(Icons.grid_on_outlined),
+                  label: Text(l10n.spriteSheetEditorPixelateCurrentFrame),
                 ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
-                onPressed: widget.canMakeTransparent && !widget.isBusy
-                    ? () => widget.onMakeBackgroundTransparent(_tolerance)
-                    : null,
-                icon: widget.isBusy
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.auto_fix_high_outlined),
-                label: Text(
-                  widget.isBusy
-                      ? l10n.spriteSheetEditorProcessing
-                      : l10n.spriteSheetEditorGenerateTransparentPatch,
+                second: OutlinedButton.icon(
+                  onPressed: widget.canPixelateSheet && !widget.isBusy
+                      ? () => widget.onPixelateWholeSheet(_pixelationBlockSize)
+                      : null,
+                  icon: const Icon(Icons.grid_4x4_outlined),
+                  label: Text(l10n.spriteSheetEditorPixelateWholeSheet),
                 ),
               ),
-            ),
-            const Divider(height: 22),
-            IntegerStepperField(
-              label: l10n.spriteSheetEditorPixelBlockLabel,
-              value: _pixelationBlockSize,
-              minValue: _minPixelationBlockSize,
-              maxValue: _maxPixelationBlockSize,
-              suffixText: 'px',
-              helperText: l10n.spriteSheetEditorPixelBlockHelper,
-              enabled: canPixelate && !widget.isBusy,
-              onChanged: (value) => setState(() {
-                _pixelationBlockSize = value
-                    .clamp(_minPixelationBlockSize, _maxPixelationBlockSize)
-                    .toInt();
-              }),
-            ),
-            const SizedBox(height: 8),
-            ResponsivePair(
-              first: OutlinedButton.icon(
-                onPressed: widget.canPixelateFrame && !widget.isBusy
-                    ? () => widget.onPixelateCurrentFrame(_pixelationBlockSize)
-                    : null,
-                icon: const Icon(Icons.grid_on_outlined),
-                label: Text(l10n.spriteSheetEditorPixelateCurrentFrame),
-              ),
-              second: OutlinedButton.icon(
-                onPressed: widget.canPixelateSheet && !widget.isBusy
-                    ? () => widget.onPixelateWholeSheet(_pixelationBlockSize)
-                    : null,
-                icon: const Icon(Icons.grid_4x4_outlined),
-                label: Text(l10n.spriteSheetEditorPixelateWholeSheet),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
