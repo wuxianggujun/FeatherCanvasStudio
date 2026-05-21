@@ -63,6 +63,25 @@ flutter pub get
 flutter run -d windows
 ```
 
+## 应用图标
+
+项目现在内置了自己的应用图标资源，并且已经接入 Android、Windows 可执行文件和
+Windows 安装包。
+
+- 图标源文件：`assets/branding/app_icon_source.png`
+- Android 圆形图标源文件：`assets/branding/app_icon_round.png`
+- Windows 打包图标：`windows/runner/resources/app_icon.ico`
+- Android 启动图标：`android/app/src/main/res/mipmap-*/ic_launcher*.png`
+
+如果后续需要重新生成所有平台图标，可以执行：
+
+```bash
+python tool/generate_app_icons.py
+```
+
+当前生成脚本依赖 Pillow。仓库里的 Windows runner 资源和 Inno Setup 安装包都复用
+同一个 `app_icon.ico`，Android 则同时使用 `ic_launcher` 和 `ic_launcher_round`。
+
 ## 持续集成
 
 项目使用 GitHub Actions 做提交校验和临时构建。
