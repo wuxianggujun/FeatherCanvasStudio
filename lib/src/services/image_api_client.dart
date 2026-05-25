@@ -170,9 +170,7 @@ class OpenAICompatibleImageClient {
     required ApiProviderKind providerKind,
   }) async {
     final trimmedKey = apiKey.trim();
-    if (trimmedKey.isEmpty) {
-      throw const ImageGenerationException('请先填写 API Key 再拉取模型列表。');
-    }
+    validateApiKeyForRequestHeader(trimmedKey);
 
     final endpoint = buildModelsEndpoint(
       baseUrl: baseUrl,

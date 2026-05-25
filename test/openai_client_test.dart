@@ -488,6 +488,82 @@ void main() {
     expect(debugRecord?.toJson()['response']['error'], contains('获取模型列表并选择模型'));
   });
 
+  test('rejects invalid API key text before sending request', () async {
+    var requestSent = false;
+    ImageRequestDebugRecord? debugRecord;
+    final client = OpenAICompatibleImageClient(
+      httpClient: MockClient((request) async {
+        requestSent = true;
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await expectLater(
+      () => client.generate(
+        const OpenAIImageRequest(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: '生成这只猫咪在一个幽暗森林里的效果？',
+          model: 'gpt-image-2',
+          prompt: 'hello',
+          negativePrompt: '',
+          size: '1024x1024',
+          imageCount: 1,
+        ),
+        onDebugRecord: (record) => debugRecord = record,
+      ),
+      throwsA(
+        isA<ImageGenerationException>().having(
+          (error) => error.message,
+          'message',
+          allOf(
+            contains('API Key'),
+            contains('提示词'),
+            isNot(contains('FormatException')),
+          ),
+        ),
+      ),
+    );
+
+    expect(requestSent, isFalse);
+    final response = debugRecord?.toJson()['response'] as Map<String, dynamic>?;
+    expect(response?['statusCode'], isNull);
+    expect(response?['error'], contains('API Key'));
+    expect(response?['error'], isNot(contains('Invalid HTTP header')));
+  });
+
+  test('rejects Bearer prefix in API key before sending request', () async {
+    var requestSent = false;
+    final client = OpenAICompatibleImageClient(
+      httpClient: MockClient((request) async {
+        requestSent = true;
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await expectLater(
+      () => client.generate(
+        const OpenAIImageRequest(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'Bearer token',
+          model: 'gpt-image-2',
+          prompt: 'hello',
+          negativePrompt: '',
+          size: '1024x1024',
+          imageCount: 1,
+        ),
+      ),
+      throwsA(
+        isA<ImageGenerationException>().having(
+          (error) => error.message,
+          'message',
+          allOf(contains('API Key'), contains('Bearer')),
+        ),
+      ),
+    );
+
+    expect(requestSent, isFalse);
+  });
+
   test('uses image edit endpoint when a template image is supplied', () async {
     final templateFile = File(
       '${Directory.systemTemp.path}${Platform.pathSeparator}template-image.png',

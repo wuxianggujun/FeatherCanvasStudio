@@ -45,6 +45,7 @@ class OpenAIImageRequest {
       normalizeImageGenerationRequestCount(imageCount);
 
   void validateForGeneration() {
+    validateApiKeyForRequestHeader(apiKey);
     if (model.trim().isEmpty) {
       throw const ImageGenerationException('请先在接口配置页获取模型列表并选择模型，或手动填写模型名称。');
     }
@@ -301,4 +302,30 @@ String normalizeGeminiBaseUrl(String value) {
       ? defaultBaseUrlForProviderKind(ApiProviderKind.gemini)
       : trimmed;
   return fallback.replaceFirst(RegExp(r'/+$'), '');
+}
+
+void validateApiKeyForRequestHeader(String apiKey) {
+  final value = apiKey.trim();
+  if (value.isEmpty) {
+    throw const ImageGenerationException('请先填写 API Key。');
+  }
+  if (value.toLowerCase().startsWith('bearer ')) {
+    throw const ImageGenerationException('API Key 输入框只需要填写密钥本身，请去掉 Bearer 前缀。');
+  }
+  if (_containsInvalidApiKeyHeaderCharacter(value)) {
+    throw const ImageGenerationException(
+      'API Key 含有无法作为 HTTP 请求头发送的字符。请检查是否把提示词、URL、JSON '
+      '或其他说明文字填到了 API Key 输入框；这里只能填写接口密钥本身。',
+    );
+  }
+}
+
+bool _containsInvalidApiKeyHeaderCharacter(String value) {
+  for (var i = 0; i < value.length; i++) {
+    final codeUnit = value.codeUnitAt(i);
+    if (codeUnit < 0x21 || codeUnit > 0x7e) {
+      return true;
+    }
+  }
+  return false;
 }
