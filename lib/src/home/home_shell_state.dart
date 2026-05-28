@@ -36,7 +36,7 @@ class _ResetDefaultsSnapshot {
     required this.animationRequestDebugRecord,
     required this.generatedImages,
     required this.animationFrames,
-    required this.imageTemplateImagePath,
+    required this.imageTemplateImagePaths,
     required this.animationTemplateImagePath,
     required this.editorImagePath,
     required this.editorPatchImagePath,
@@ -79,7 +79,7 @@ class _ResetDefaultsSnapshot {
   final ImageRequestDebugRecord? animationRequestDebugRecord;
   final List<GeneratedImage> generatedImages;
   final List<GeneratedImage> animationFrames;
-  final String? imageTemplateImagePath;
+  final List<String> imageTemplateImagePaths;
   final String? animationTemplateImagePath;
   final String? editorImagePath;
   final String? editorPatchImagePath;
@@ -123,7 +123,10 @@ mixin _HomeShellStateMixin
   set _selectedFeature(WorkspaceFeature value);
   @override
   set _errorMessage(String? value);
-  set _imageTemplateImagePath(String? value);
+  @override
+  List<String> get _imageTemplateImagePaths;
+  @override
+  set _imageTemplateImagePaths(List<String> value);
   @override
   set _animationTemplateImagePath(String? value);
   @override
@@ -396,7 +399,9 @@ mixin _HomeShellStateMixin
       animationRequestDebugRecord: _animationRequestDebugRecord,
       generatedImages: List<GeneratedImage>.unmodifiable(_generatedImages),
       animationFrames: List<GeneratedImage>.unmodifiable(_animationFrames),
-      imageTemplateImagePath: _imageTemplateImagePath,
+      imageTemplateImagePaths: List<String>.unmodifiable(
+        _imageTemplateImagePaths,
+      ),
       animationTemplateImagePath: _animationTemplateImagePath,
       editorImagePath: _editorImagePath,
       editorPatchImagePath: _editorPatchImagePath,
@@ -446,7 +451,7 @@ mixin _HomeShellStateMixin
       animationRequestDebugRecord: null,
       generatedImages: const [],
       animationFrames: const [],
-      imageTemplateImagePath: null,
+      imageTemplateImagePaths: const <String>[],
       animationTemplateImagePath: null,
       editorImagePath: null,
       editorPatchImagePath: null,
@@ -507,7 +512,7 @@ mixin _HomeShellStateMixin
       _animationRequestDebugRecord = snapshot.animationRequestDebugRecord;
       _generatedImages = snapshot.generatedImages;
       _animationFrames = snapshot.animationFrames;
-      _imageTemplateImagePath = snapshot.imageTemplateImagePath;
+      _imageTemplateImagePaths = snapshot.imageTemplateImagePaths;
       _animationTemplateImagePath = snapshot.animationTemplateImagePath;
       _editorImagePath = snapshot.editorImagePath;
       _editorPatchImagePath = snapshot.editorPatchImagePath;

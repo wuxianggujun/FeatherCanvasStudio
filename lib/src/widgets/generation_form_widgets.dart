@@ -6,6 +6,7 @@ import '../models/image_advanced_settings.dart';
 import '../models/sprite_sheet_grid_spec.dart';
 import '../l10n/app_l10n.dart';
 import '../theme/layout_constants.dart';
+import '../utils/display_labels.dart';
 import '../utils/generation_limits.dart';
 import '../utils/image_dimensions.dart';
 import '../utils/localized_display_labels.dart';
@@ -26,7 +27,7 @@ class ControlPanel extends StatelessWidget {
     required this.negativePromptController,
     required this.size,
     required this.imageCount,
-    required this.templateImagePath,
+    required this.templateImagePaths,
     required this.advancedSettings,
     required this.userController,
     required this.isGenerating,
@@ -37,6 +38,7 @@ class ControlPanel extends StatelessWidget {
     required this.onAdvancedSettingsChanged,
     required this.onPickTemplateImage,
     required this.onClearTemplateImage,
+    required this.onRemoveTemplateImage,
     required this.onGenerate,
     super.key,
   });
@@ -50,7 +52,7 @@ class ControlPanel extends StatelessWidget {
   final TextEditingController negativePromptController;
   final String size;
   final int imageCount;
-  final String? templateImagePath;
+  final List<String> templateImagePaths;
   final ImageAdvancedSettings advancedSettings;
   final TextEditingController userController;
   final bool isGenerating;
@@ -61,11 +63,13 @@ class ControlPanel extends StatelessWidget {
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final VoidCallback onPickTemplateImage;
   final VoidCallback onClearTemplateImage;
+  final ValueChanged<String> onRemoveTemplateImage;
   final VoidCallback onGenerate;
 
   @override
   Widget build(BuildContext context) {
     final l10n = appL10nOf(context);
+    final hasTemplateImages = templateImagePaths.isNotEmpty;
     final sizeValidation = validateImageSizeForModel(
       size: size,
       providerKind: providerKind,
@@ -86,15 +90,26 @@ class ControlPanel extends StatelessWidget {
           ),
           const SizedBox(height: fieldGap),
           TemplateImagePicker(
-            imagePath: templateImagePath,
+            imagePaths: templateImagePaths,
             title: l10n.imageGenerationReferenceImageTitle,
-            pickLabel: templateImagePath == null
-                ? l10n.imageGenerationReferenceImagePickLabel
-                : l10n.replaceAction,
+            pickLabel: hasTemplateImages
+                ? l10n.imageGenerationAddReferenceImagesLabel
+                : l10n.imageGenerationReferenceImagePickLabel,
             onPick: isGenerating ? null : onPickTemplateImage,
-            onClear: templateImagePath == null || isGenerating
+            onClear: !hasTemplateImages || isGenerating
                 ? null
                 : onClearTemplateImage,
+            onRemoveImage: isGenerating ? null : onRemoveTemplateImage,
+            removeImageTooltipBuilder: (path) =>
+                l10n.imageGenerationRemoveReferenceImageTooltip(
+                  fileNameFromPath(path),
+                ),
+            selectedSummary: hasTemplateImages
+                ? l10n.imageGenerationReferenceImageCountLabel(
+                    templateImagePaths.length,
+                  )
+                : null,
+            clearTooltip: l10n.imageGenerationClearReferenceImagesTooltip,
             previewHeight: 132,
           ),
           const SizedBox(height: fieldGap),
@@ -131,7 +146,7 @@ class ControlPanel extends StatelessWidget {
           ImageAdvancedSettingsSection(
             settings: advancedSettings,
             userController: userController,
-            hasTemplateImage: templateImagePath != null,
+            hasTemplateImage: hasTemplateImages,
             onChanged: onAdvancedSettingsChanged,
           ),
           const SizedBox(height: fieldGap),
@@ -152,15 +167,15 @@ class ControlPanel extends StatelessWidget {
             onPressed: isGenerating || !sizeValidation.isValid
                 ? null
                 : onGenerate,
-            icon: templateImagePath == null
-                ? Icons.auto_awesome
-                : Icons.compare_outlined,
-            label: templateImagePath == null
-                ? l10n.generateImageButton
-                : l10n.imageGenerationGenerateWithReferenceButton,
-            busyLabel: templateImagePath == null
-                ? l10n.generatingImageButton
-                : l10n.imageGenerationGeneratingWithReferenceButton,
+            icon: hasTemplateImages
+                ? Icons.compare_outlined
+                : Icons.auto_awesome,
+            label: hasTemplateImages
+                ? l10n.imageGenerationGenerateWithReferenceButton
+                : l10n.generateImageButton,
+            busyLabel: hasTemplateImages
+                ? l10n.imageGenerationGeneratingWithReferenceButton
+                : l10n.generatingImageButton,
             isBusy: isGenerating,
           ),
         ],

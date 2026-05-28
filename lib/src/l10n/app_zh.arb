@@ -880,6 +880,43 @@
   "@imageGenerationReferenceImagePickLabel": {
     "description": "文本生图：选择图生图参考图按钮"
   },
+  "imageGenerationAddReferenceImagesLabel": "添加参考图",
+  "@imageGenerationAddReferenceImagesLabel": {
+    "description": "文本生图：已有参考图时继续添加参考图按钮"
+  },
+  "imageGenerationReferenceImageCountLabel": "{count} 张参考图",
+  "@imageGenerationReferenceImageCountLabel": {
+    "description": "文本生图：已选择参考图数量摘要",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationRemoveReferenceImageTooltip": "移除参考图：{fileName}",
+  "@imageGenerationRemoveReferenceImageTooltip": {
+    "description": "文本生图：移除单张参考图 tooltip",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageGenerationClearReferenceImagesTooltip": "清除全部参考图",
+  "@imageGenerationClearReferenceImagesTooltip": {
+    "description": "文本生图：清除全部参考图 tooltip"
+  },
+  "imageGenerationReferenceImagesLimitMessage": "最多选择 {max} 张参考图",
+  "@imageGenerationReferenceImagesLimitMessage": {
+    "description": "文本生图：参考图数量超过上限提示",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "imageGenerationCompatibleMultiReferenceWarning": "兼容接口将按多文件 image 字段发送参考图，实际是否支持取决于服务商。",
+  "@imageGenerationCompatibleMultiReferenceWarning": {
+    "description": "文本生图：兼容接口多参考图能力提示"
+  },
   "imageGenerationGenerateWithReferenceButton": "图生图",
   "@imageGenerationGenerateWithReferenceButton": {
     "description": "文本生图：带参考图生成按钮"
@@ -1024,6 +1061,15 @@
     "description": "文本生图状态：选择参考图成功提示",
     "placeholders": {
       "fileName": {}
+    }
+  },
+  "imageGenerationSelectedReferenceImagesMessage": "已选择 {count} 张参考图",
+  "@imageGenerationSelectedReferenceImagesMessage": {
+    "description": "文本生图状态：选择多张参考图成功提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
     }
   },
   "imageGenerationSelectedReferenceSliceMessage": "已选择参考切片：{label}",

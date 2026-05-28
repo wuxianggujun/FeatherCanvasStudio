@@ -77,8 +77,8 @@ mixin _ImageGenerationStateMixin
   @override
   List<GeneratedImage> get _animationFrames;
   set _animationFrames(List<GeneratedImage> value);
-  String? get _imageTemplateImagePath;
-  set _imageTemplateImagePath(String? value);
+  List<String> get _imageTemplateImagePaths;
+  set _imageTemplateImagePaths(List<String> value);
   Set<String> get _ephemeralTemplatePaths;
   @override
   String? get _animationTemplateImagePath;
@@ -258,7 +258,8 @@ mixin _ImageGenerationStateMixin
     }
 
     final prompt = _promptController.text.trim();
-    final templatePath = _imageTemplateImagePath;
+    final templatePaths = List<String>.unmodifiable(_imageTemplateImagePaths);
+    final hasTemplateImages = templatePaths.isNotEmpty;
     final beforeImages = List<GeneratedImage>.unmodifiable(_generatedImages);
     final beforeDebugRecord = _imageRequestDebugRecord;
 
@@ -277,9 +278,18 @@ mixin _ImageGenerationStateMixin
       return;
     }
 
-    if (templatePath != null && !await _fileService.fileExists(templatePath)) {
-      _showMessage(l10n.imageGenerationTemplateImageMissingMessage);
-      return;
+    if (hasTemplateImages) {
+      if (apiConfig.providerKind == ApiProviderKind.compatible &&
+          templatePaths.length > 1) {
+        _showMessage(l10n.imageGenerationCompatibleMultiReferenceWarning);
+      }
+
+      for (final templatePath in templatePaths) {
+        if (!await _fileService.fileExists(templatePath)) {
+          _showMessage(l10n.imageGenerationTemplateImageMissingMessage);
+          return;
+        }
+      }
     }
 
     setState(() {
@@ -312,11 +322,11 @@ mixin _ImageGenerationStateMixin
           imageCount: batchCount,
           advancedSettings: _advancedSettings,
           user: user,
-          templateImagePath: templatePath,
-          titlePrefix: templatePath == null
+          templateImagePaths: templatePaths,
+          titlePrefix: !hasTemplateImages
               ? l10n.imageGenerationTextImageSource
               : l10n.imageGenerationReferenceImageSource,
-          source: templatePath == null
+          source: !hasTemplateImages
               ? l10n.imageGenerationTextImageSource
               : l10n.imageGenerationReferenceImageSource,
           onDebugRecord: (record) => _imageRequestDebugRecord = record,
@@ -342,7 +352,7 @@ mixin _ImageGenerationStateMixin
         appendedItems: List<ImageLibraryItem>.unmodifiable(allLibraryItems),
       );
       _showMessage(
-        templatePath == null
+        !hasTemplateImages
             ? l10n.imageGenerationImagesGeneratedMessage(allImages.length)
             : l10n.imageGenerationReferenceImagesGeneratedMessage(
                 allImages.length,
@@ -397,69 +407,132 @@ mixin _ImageGenerationStateMixin
       return;
     }
 
-    String? imagePath;
-    String? sliceLabel;
+    final imagePaths = <String>[];
+    var sliceCount = 0;
     if (source == ImagePickSource.localFile) {
-      final image = await openFile(acceptedTypeGroups: templateImageTypeGroups);
-      imagePath = image?.path;
+      final images = await openFiles(
+        acceptedTypeGroups: templateImageTypeGroups,
+      );
+      imagePaths.addAll(images.map((image) => image.path));
     } else {
-      final item = await _showImageLibraryPicker<ImageLibraryItem>(
+      final items = await _showImageLibraryPicker<List<ImageLibraryItem>>(
         title: l10n.imageGenerationSelectReferenceImageTitle,
+        allowMultiple: true,
         allowedKinds: templateLibraryKinds,
       );
-      if (item == null || !mounted) {
+      if (items == null || items.isEmpty || !mounted) {
         return;
       }
-      if (item.isSpriteSheetWithMetadata) {
-        final picked = await _showSlicePicker(item, allowMultiple: false);
-        if (picked == null || picked.isEmpty || !mounted) {
-          return;
+      for (final item in items) {
+        if (item.isSpriteSheetWithMetadata) {
+          final picked = await _showSlicePicker(item, allowMultiple: true);
+          if (picked == null || picked.isEmpty || !mounted) {
+            continue;
+          }
+          for (final entry in picked) {
+            final file = await _store.saveEphemeralBytes(
+              prefix: 'reference',
+              bytes: entry.value,
+            );
+            _ephemeralTemplatePaths.add(file.path);
+            imagePaths.add(file.path);
+            sliceCount++;
+          }
+        } else {
+          imagePaths.add(item.path);
         }
-        final entry = picked.first;
-        final file = await _store.saveEphemeralBytes(
-          prefix: 'reference',
-          bytes: entry.value,
-        );
-        _ephemeralTemplatePaths.add(file.path);
-        imagePath = file.path;
-        sliceLabel = l10n.editorGifTemplateSliceLabel(
-          item.displayTitle,
-          entry.key + 1,
-        );
-      } else {
-        imagePath = item.path;
       }
     }
 
-    if (imagePath == null || !mounted) {
+    final nextPaths = _mergeTemplateImagePaths(
+      _imageTemplateImagePaths,
+      imagePaths,
+    );
+    if (imagePaths.isEmpty || !mounted) {
+      return;
+    }
+    final previousPaths = _imageTemplateImagePaths;
+    final duplicateEphemeralPaths = [
+      for (final path in imagePaths)
+        if (previousPaths.contains(path)) path,
+    ];
+    if (nextPaths.length > maxTemplateImageReferenceCount) {
+      _deleteEphemeralTemplateImages(imagePaths);
+      _showMessage(
+        l10n.imageGenerationReferenceImagesLimitMessage(
+          maxTemplateImageReferenceCount,
+        ),
+      );
+      return;
+    }
+    final addedCount = nextPaths.length - previousPaths.length;
+    if (addedCount <= 0) {
+      _deleteEphemeralTemplateImages(imagePaths);
       return;
     }
 
-    final previous = _imageTemplateImagePath;
     setState(() {
-      _imageTemplateImagePath = imagePath;
+      _imageTemplateImagePaths = nextPaths;
       _errorMessage = null;
     });
-    if (previous != null &&
-        previous != imagePath &&
-        _ephemeralTemplatePaths.remove(previous)) {
-      unawaited(_fileService.safeDeleteFile(previous));
-    }
+    _deleteEphemeralTemplateImages(duplicateEphemeralPaths);
     _showMessage(
-      sliceLabel != null
-          ? l10n.imageGenerationSelectedReferenceSliceMessage(sliceLabel)
+      addedCount != 1
+          ? l10n.imageGenerationSelectedReferenceImagesMessage(addedCount)
           : l10n.imageGenerationSelectedReferenceImageMessage(
-              fileNameFromPath(imagePath),
+              imagePaths.length == 1 && sliceCount == 0
+                  ? fileNameFromPath(imagePaths.single)
+                  : l10n.imageGenerationReferenceImageCountLabel(addedCount),
             ),
     );
   }
 
   void _clearImageTemplateImage() {
-    final previous = _imageTemplateImagePath;
-    setState(() => _imageTemplateImagePath = null);
-    if (previous != null && _ephemeralTemplatePaths.remove(previous)) {
-      unawaited(_fileService.safeDeleteFile(previous));
+    final previous = _imageTemplateImagePaths;
+    setState(() => _imageTemplateImagePaths = const <String>[]);
+    for (final path in previous) {
+      if (_ephemeralTemplatePaths.remove(path)) {
+        unawaited(_fileService.safeDeleteFile(path));
+      }
     }
+  }
+
+  void _removeImageTemplateImage(String path) {
+    if (!_imageTemplateImagePaths.contains(path)) {
+      return;
+    }
+    setState(() {
+      _imageTemplateImagePaths = [
+        for (final currentPath in _imageTemplateImagePaths)
+          if (currentPath != path) currentPath,
+      ];
+    });
+    if (_ephemeralTemplatePaths.remove(path)) {
+      unawaited(_fileService.safeDeleteFile(path));
+    }
+  }
+
+  void _deleteEphemeralTemplateImages(Iterable<String> paths) {
+    for (final path in paths) {
+      if (_ephemeralTemplatePaths.remove(path)) {
+        unawaited(_fileService.safeDeleteFile(path));
+      }
+    }
+  }
+
+  List<String> _mergeTemplateImagePaths(
+    List<String> currentPaths,
+    List<String> addedPaths,
+  ) {
+    final merged = <String>[];
+    final seen = <String>{};
+    for (final path in [...currentPaths, ...addedPaths]) {
+      final normalized = path.trim();
+      if (normalized.isNotEmpty && seen.add(normalized)) {
+        merged.add(normalized);
+      }
+    }
+    return List<String>.unmodifiable(merged);
   }
 
   Future<Uint8List> _resolveGeneratedPreviewBytes(GeneratedImage image) {
@@ -2070,7 +2143,7 @@ mixin _ImageGenerationStateMixin
       negativePromptController: _negativePromptController,
       size: _size,
       imageCount: _imageCount,
-      templateImagePath: _imageTemplateImagePath,
+      templateImagePaths: _imageTemplateImagePaths,
       advancedSettings: _advancedSettings,
       userController: _userController,
       onApiConfigChanged: _selectApiConfig,
@@ -2081,6 +2154,7 @@ mixin _ImageGenerationStateMixin
       onAdvancedSettingsChanged: _setAdvancedSettings,
       onPickTemplateImage: _pickImageTemplateImage,
       onClearTemplateImage: _clearImageTemplateImage,
+      onRemoveTemplateImage: _removeImageTemplateImage,
       onGenerate: _generateImage,
       onCopyImage: (index, image) =>
           unawaited(_copyGeneratedPreviewImage(image)),

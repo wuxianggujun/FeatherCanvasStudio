@@ -634,6 +634,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get imageGenerationReferenceImagePickLabel => '选择参考图';
 
   @override
+  String get imageGenerationAddReferenceImagesLabel => '添加参考图';
+
+  @override
+  String imageGenerationReferenceImageCountLabel(int count) {
+    return '$count 张参考图';
+  }
+
+  @override
+  String imageGenerationRemoveReferenceImageTooltip(Object fileName) {
+    return '移除参考图：$fileName';
+  }
+
+  @override
+  String get imageGenerationClearReferenceImagesTooltip => '清除全部参考图';
+
+  @override
+  String imageGenerationReferenceImagesLimitMessage(int max) {
+    return '最多选择 $max 张参考图';
+  }
+
+  @override
+  String get imageGenerationCompatibleMultiReferenceWarning =>
+      '兼容接口将按多文件 image 字段发送参考图，实际是否支持取决于服务商。';
+
+  @override
   String get imageGenerationGenerateWithReferenceButton => '图生图';
 
   @override
@@ -729,6 +754,11 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String imageGenerationSelectedReferenceImageMessage(Object fileName) {
     return '已选择参考图：$fileName';
+  }
+
+  @override
+  String imageGenerationSelectedReferenceImagesMessage(int count) {
+    return '已选择 $count 张参考图';
   }
 
   @override

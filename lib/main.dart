@@ -61,7 +61,10 @@ import 'src/utils/file_type_groups.dart';
 import 'src/utils/generation_limits.dart';
 import 'src/utils/generation_snapshot_summary.dart';
 import 'src/utils/image_library_deletion.dart';
+import 'src/utils/image_library_export_plan.dart';
+import 'src/utils/image_library_file_feedback.dart';
 import 'src/utils/image_library_generation_reuse.dart';
+import 'src/utils/image_library_merge.dart';
 import 'src/utils/image_selection_logic.dart';
 import 'src/utils/image_dimensions.dart';
 import 'src/utils/localized_display_labels.dart';
@@ -290,7 +293,7 @@ class _FeatherCanvasHomePageState extends State<FeatherCanvasHomePage>
   @override
   final Set<String> _ephemeralTemplatePaths = <String>{};
   @override
-  String? _imageTemplateImagePath;
+  List<String> _imageTemplateImagePaths = const <String>[];
   @override
   String? _animationTemplateImagePath;
   WorkspaceFeature? _focusedFeature;

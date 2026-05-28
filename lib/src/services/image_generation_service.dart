@@ -59,6 +59,7 @@ class ImageGenerationService {
     required ImageAdvancedSettings advancedSettings,
     required String user,
     String? templateImagePath,
+    List<String> templateImagePaths = const <String>[],
     ImageAssetKind libraryKind = ImageAssetKind.generatedImage,
     required String titlePrefix,
     required String source,
@@ -83,6 +84,7 @@ class ImageGenerationService {
       advancedSettings: advancedSettings,
       user: user,
       templateImagePath: templateImagePath,
+      templateImagePaths: templateImagePaths,
     );
     final response = await client.generate(
       request,

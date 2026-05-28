@@ -1189,6 +1189,42 @@ abstract class AppLocalizations {
   /// **'选择参考图'**
   String get imageGenerationReferenceImagePickLabel;
 
+  /// 文本生图：已有参考图时继续添加参考图按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'添加参考图'**
+  String get imageGenerationAddReferenceImagesLabel;
+
+  /// 文本生图：已选择参考图数量摘要
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 张参考图'**
+  String imageGenerationReferenceImageCountLabel(int count);
+
+  /// 文本生图：移除单张参考图 tooltip
+  ///
+  /// In zh, this message translates to:
+  /// **'移除参考图：{fileName}'**
+  String imageGenerationRemoveReferenceImageTooltip(Object fileName);
+
+  /// 文本生图：清除全部参考图 tooltip
+  ///
+  /// In zh, this message translates to:
+  /// **'清除全部参考图'**
+  String get imageGenerationClearReferenceImagesTooltip;
+
+  /// 文本生图：参考图数量超过上限提示
+  ///
+  /// In zh, this message translates to:
+  /// **'最多选择 {max} 张参考图'**
+  String imageGenerationReferenceImagesLimitMessage(int max);
+
+  /// 文本生图：兼容接口多参考图能力提示
+  ///
+  /// In zh, this message translates to:
+  /// **'兼容接口将按多文件 image 字段发送参考图，实际是否支持取决于服务商。'**
+  String get imageGenerationCompatibleMultiReferenceWarning;
+
   /// 文本生图：带参考图生成按钮
   ///
   /// In zh, this message translates to:
@@ -1344,6 +1380,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已选择参考图：{fileName}'**
   String imageGenerationSelectedReferenceImageMessage(Object fileName);
+
+  /// 文本生图状态：选择多张参考图成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'已选择 {count} 张参考图'**
+  String imageGenerationSelectedReferenceImagesMessage(int count);
 
   /// 文本生图状态：选择 Sprite Sheet 切片作为参考图成功提示
   ///

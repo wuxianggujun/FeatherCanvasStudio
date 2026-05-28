@@ -152,10 +152,16 @@ class OpenAICompatibleImageClient {
   Future<http.Response> _postImageEdit(OpenAIImageRequest request) async {
     final multipartRequest = http.MultipartRequest('POST', request.endpoint)
       ..headers['Authorization'] = 'Bearer ${request.apiKey}'
-      ..fields.addAll(request.toMultipartFields())
-      ..files.add(
-        await http.MultipartFile.fromPath('image', request.templateImagePath!),
+      ..fields.addAll(request.toMultipartFields());
+
+    final imageFieldName = request.providerKind == ApiProviderKind.official
+        ? 'image[]'
+        : 'image';
+    for (final path in request.normalizedTemplateImagePaths) {
+      multipartRequest.files.add(
+        await http.MultipartFile.fromPath(imageFieldName, path),
       );
+    }
 
     final timeout = request.generationTimeout ?? _generationTimeout;
     final streamedResponse = await _httpClient

@@ -179,16 +179,22 @@ class OptionDropdown<T> extends StatelessWidget {
 }
 
 class ResponsivePair extends StatelessWidget {
-  const ResponsivePair({required this.first, required this.second, super.key});
+  const ResponsivePair({
+    required this.first,
+    required this.second,
+    this.breakpoint = 360,
+    super.key,
+  });
 
   final Widget first;
   final Widget second;
+  final double breakpoint;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 360) {
+        if (constraints.maxWidth < breakpoint) {
           return Column(
             children: [
               first,
@@ -751,31 +757,44 @@ class RequestDebugButton extends StatelessWidget {
 }
 
 class TemplateImagePicker extends StatelessWidget {
-  const TemplateImagePicker({
-    required this.imagePath,
+  TemplateImagePicker({
     required this.onPick,
     required this.onClear,
+    String? imagePath,
+    List<String> imagePaths = const <String>[],
     this.title,
     this.pickLabel,
     this.clearTooltip,
     this.previewHeight,
+    this.onRemoveImage,
+    this.removeImageTooltipBuilder,
+    this.selectedSummary,
     super.key,
-  });
+  }) : imagePaths = imagePath == null
+           ? imagePaths
+           : <String>[imagePath, ...imagePaths];
 
-  final String? imagePath;
+  final List<String> imagePaths;
   final VoidCallback? onPick;
   final VoidCallback? onClear;
   final String? title;
   final String? pickLabel;
   final String? clearTooltip;
   final double? previewHeight;
+  final ValueChanged<String>? onRemoveImage;
+  final String Function(String path)? removeImageTooltipBuilder;
+  final String? selectedSummary;
 
   @override
   Widget build(BuildContext context) {
     final l10n = appL10nOf(context);
     final theme = Theme.of(context);
-    final path = imagePath;
+    final paths = imagePaths
+        .map((path) => path.trim())
+        .where((path) => path.isNotEmpty)
+        .toList(growable: false);
     final resolvedTitle = title ?? l10n.templateImagePickerDefaultTitle;
+    final hasImages = paths.isNotEmpty;
 
     return Container(
       width: double.infinity,
@@ -792,7 +811,11 @@ class TemplateImagePicker extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  path == null ? resolvedTitle : fileNameFromPath(path),
+                  _templateImagePickerTitle(
+                    paths: paths,
+                    fallbackTitle: resolvedTitle,
+                    selectedSummary: selectedSummary,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall,
@@ -803,7 +826,7 @@ class TemplateImagePicker extends StatelessWidget {
                 icon: const Icon(Icons.image_search_outlined),
                 label: Text(
                   pickLabel ??
-                      (path == null ? l10n.selectAction : l10n.replaceAction),
+                      (hasImages ? l10n.replaceAction : l10n.selectAction),
                 ),
               ),
               IconButton(
@@ -813,33 +836,119 @@ class TemplateImagePicker extends StatelessWidget {
               ),
             ],
           ),
-          if (path != null) ...[
+          if (hasImages) ...[
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                height: previewHeight ?? 220,
-                width: double.infinity,
-                child: Image.file(
-                  File(path),
-                  fit: BoxFit.contain,
-                  semanticLabel: fileNameFromPath(path),
-                  errorBuilder: (context, error, stackTrace) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(l10n.templateImagePickerLoadFailed),
+            SizedBox(
+              height: previewHeight ?? 220,
+              child: paths.length == 1
+                  ? _TemplateImagePreviewTile(
+                      path: paths.single,
+                      onRemove: onRemoveImage == null
+                          ? null
+                          : () => onRemoveImage!(paths.single),
+                      removeTooltip: removeImageTooltipBuilder?.call(
+                        paths.single,
                       ),
-                    );
-                  },
-                ),
-              ),
+                    )
+                  : GridView.builder(
+                      primary: false,
+                      itemCount: paths.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 132,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
+                          ),
+                      itemBuilder: (context, index) {
+                        final path = paths[index];
+                        return _TemplateImagePreviewTile(
+                          path: path,
+                          onRemove: onRemoveImage == null
+                              ? null
+                              : () => onRemoveImage!(path),
+                          removeTooltip: removeImageTooltipBuilder?.call(path),
+                        );
+                      },
+                    ),
             ),
           ],
         ],
       ),
     );
   }
+}
+
+class _TemplateImagePreviewTile extends StatelessWidget {
+  const _TemplateImagePreviewTile({
+    required this.path,
+    required this.onRemove,
+    this.removeTooltip,
+  });
+
+  final String path;
+  final VoidCallback? onRemove;
+  final String? removeTooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    final theme = Theme.of(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: Image.file(
+              File(path),
+              fit: BoxFit.contain,
+              semanticLabel: fileNameFromPath(path),
+              errorBuilder: (context, error, stackTrace) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l10n.templateImagePickerLoadFailed),
+                  ),
+                );
+              },
+            ),
+          ),
+          if (onRemove != null)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton.filledTonal(
+                tooltip: removeTooltip ?? l10n.templateImagePickerClearTooltip,
+                onPressed: onRemove,
+                icon: const Icon(Icons.close),
+                visualDensity: VisualDensity.compact,
+                iconSize: 18,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+String _templateImagePickerTitle({
+  required List<String> paths,
+  required String fallbackTitle,
+  required String? selectedSummary,
+}) {
+  if (paths.isEmpty) {
+    return fallbackTitle;
+  }
+  if (selectedSummary != null) {
+    return selectedSummary;
+  }
+  if (paths.length == 1) {
+    return fileNameFromPath(paths.single);
+  }
+  final names = paths.take(2).map(fileNameFromPath).join('、');
+  final extraCount = paths.length - 2;
+  return extraCount > 0 ? '$names 等 $extraCount 张' : names;
 }
 
 Future<void> showRequestDebugDialog(

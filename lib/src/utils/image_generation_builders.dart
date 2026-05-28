@@ -12,6 +12,7 @@ OpenAIImageRequest buildImageGenerationRequest({
   required ImageAdvancedSettings advancedSettings,
   required String user,
   String? templateImagePath,
+  List<String> templateImagePaths = const <String>[],
 }) {
   final normalizedImageCount = normalizeImageGenerationRequestCount(imageCount);
   return OpenAIImageRequest(
@@ -26,6 +27,7 @@ OpenAIImageRequest buildImageGenerationRequest({
     imageSizeCapabilityOverride: apiConfig.imageSizeCapabilityOverride,
     advancedSettings: advancedSettings.copyWith(user: user.trim()),
     templateImagePath: templateImagePath,
+    templateImagePaths: templateImagePaths,
     generationTimeout: apiConfig.generationTimeout,
   );
 }

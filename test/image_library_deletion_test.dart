@@ -58,15 +58,61 @@ void main() {
       selectedItemIds: {'deleted-id', 'kept-id'},
       editorImagePath: '/tmp/deleted.png',
       editorPatchImagePath: '/tmp/patch.png',
-      imageTemplateImagePath: '/tmp/template.png',
+      imageTemplateImagePaths: const [
+        '/tmp/template.png',
+        '/tmp/reference-kept.png',
+      ],
       animationTemplateImagePath: '/tmp/template.png',
     );
 
     expect(cleanup.selectedItemIds, {'kept-id'});
     expect(cleanup.editorImagePath, isNull);
     expect(cleanup.editorPatchImagePath, '/tmp/patch.png');
-    expect(cleanup.imageTemplateImagePath, isNull);
+    expect(cleanup.imageTemplateImagePaths, ['/tmp/reference-kept.png']);
     expect(cleanup.animationTemplateImagePath, isNull);
+  });
+
+  test('deletion state patch clears references and open animation project', () {
+    final animationProject = _item(
+      id: 'project-item',
+      path: '/tmp/project.fcsanim',
+      kind: ImageAssetKind.animationProject,
+      groupId: 'project-id',
+    );
+    final impact = ImageLibraryDeleteImpact(
+      removedItems: [animationProject],
+      removedPaths: {'/tmp/project.fcsanim', '/tmp/deleted.png'},
+      remainingItems: const [],
+    );
+
+    final patch = buildImageLibraryDeletionStatePatch(
+      impact: impact,
+      removedIds: {'project-item', 'deleted-id'},
+      selectedItemIds: {'project-item', 'deleted-id', 'kept-id'},
+      editorImagePath: '/tmp/deleted.png',
+      editorPatchImagePath: '/tmp/kept.png',
+      imageTemplateImagePaths: const ['/tmp/deleted.png', '/tmp/kept.png'],
+      animationTemplateImagePath: '/tmp/project.fcsanim',
+      openAnimationProjectId: 'project-id',
+    );
+    final unrelatedProjectPatch = buildImageLibraryDeletionStatePatch(
+      impact: impact,
+      removedIds: {'project-item'},
+      selectedItemIds: const {},
+      editorImagePath: null,
+      editorPatchImagePath: null,
+      imageTemplateImagePaths: const [],
+      animationTemplateImagePath: null,
+      openAnimationProjectId: 'other-project',
+    );
+
+    expect(patch.referenceCleanup.selectedItemIds, {'kept-id'});
+    expect(patch.referenceCleanup.editorImagePath, isNull);
+    expect(patch.referenceCleanup.editorPatchImagePath, '/tmp/kept.png');
+    expect(patch.referenceCleanup.imageTemplateImagePaths, ['/tmp/kept.png']);
+    expect(patch.referenceCleanup.animationTemplateImagePath, isNull);
+    expect(patch.clearsOpenAnimationProject, isTrue);
+    expect(unrelatedProjectPatch.clearsOpenAnimationProject, isFalse);
   });
 
   test('generation snapshot summary includes reusable request details', () {

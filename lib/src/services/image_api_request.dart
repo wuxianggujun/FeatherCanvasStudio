@@ -20,6 +20,7 @@ class OpenAIImageRequest {
     required this.imageCount,
     this.advancedSettings = const ImageAdvancedSettings(),
     this.templateImagePath,
+    this.templateImagePaths = const <String>[],
     this.providerKind = ApiProviderKind.official,
     this.imageSizeCapabilityOverride = ImageSizeCapabilityOverride.auto,
     this.generationTimeout,
@@ -34,12 +35,19 @@ class OpenAIImageRequest {
   final int imageCount;
   final ImageAdvancedSettings advancedSettings;
   final String? templateImagePath;
+  final List<String> templateImagePaths;
   final ApiProviderKind providerKind;
   final ImageSizeCapabilityOverride imageSizeCapabilityOverride;
   final Duration? generationTimeout;
 
-  bool get hasTemplateImage =>
-      templateImagePath != null && templateImagePath!.trim().isNotEmpty;
+  List<String> get normalizedTemplateImagePaths {
+    final paths = <String>[?templateImagePath, ...templateImagePaths];
+    return List<String>.unmodifiable(
+      paths.map((path) => path.trim()).where((path) => path.isNotEmpty),
+    );
+  }
+
+  bool get hasTemplateImage => normalizedTemplateImagePaths.isNotEmpty;
 
   int get normalizedImageCount =>
       normalizeImageGenerationRequestCount(imageCount);
@@ -114,7 +122,8 @@ class OpenAIImageRequest {
           imageSizeCapabilityOverride,
         ),
         'apiKey': apiKey.trim().isEmpty ? '未填写' : '已填写（已隐藏）',
-        if (hasTemplateImage) 'templateImagePath': templateImagePath,
+        if (hasTemplateImage)
+          'templateImagePaths': normalizedTemplateImagePaths,
         'jsonBody': toGeminiDebugJson(),
       };
     }
@@ -128,7 +137,7 @@ class OpenAIImageRequest {
         imageSizeCapabilityOverride,
       ),
       'apiKey': apiKey.trim().isEmpty ? '未填写' : '已填写（已隐藏）',
-      if (hasTemplateImage) 'templateImagePath': templateImagePath,
+      if (hasTemplateImage) 'templateImagePaths': normalizedTemplateImagePaths,
       if (hasTemplateImage)
         'multipartFields': _debugMultipartFields()
       else
@@ -154,8 +163,7 @@ class OpenAIImageRequest {
       {'text': _geminiPrompt},
     ];
 
-    if (hasTemplateImage) {
-      final path = templateImagePath!.trim();
+    for (final path in normalizedTemplateImagePaths) {
       parts.add({
         'inlineData': {
           'mimeType': _mimeTypeForPath(path),
@@ -184,10 +192,10 @@ class OpenAIImageRequest {
           'role': 'user',
           'parts': [
             {'text': _geminiPrompt},
-            if (hasTemplateImage)
+            for (final path in normalizedTemplateImagePaths)
               {
                 'inlineData': {
-                  'mimeType': _mimeTypeForPath(templateImagePath!.trim()),
+                  'mimeType': _mimeTypeForPath(path),
                   'data': '已省略（本地参考图）',
                 },
               },

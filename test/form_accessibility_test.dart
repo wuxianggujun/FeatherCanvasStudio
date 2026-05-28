@@ -123,7 +123,7 @@ void main() {
                 negativePromptController: negativePromptController,
                 size: '1024x1024',
                 imageCount: 2,
-                templateImagePath: null,
+                templateImagePaths: const <String>[],
                 advancedSettings: const ImageAdvancedSettings(
                   outputFormat: 'jpeg',
                   outputCompression: 80,
@@ -137,6 +137,7 @@ void main() {
                 onAdvancedSettingsChanged: (_) {},
                 onPickTemplateImage: () {},
                 onClearTemplateImage: () {},
+                onRemoveTemplateImage: (_) {},
                 onGenerate: () {},
               ),
             ),
@@ -175,7 +176,10 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      String? templateImagePath = 'C:/tmp/reference.png';
+      var templateImagePaths = <String>[
+        'C:/tmp/reference.png',
+        'C:/tmp/style.png',
+      ];
 
       await tester.pumpWidget(
         MaterialApp(
@@ -189,7 +193,7 @@ void main() {
                       apiConfigs: const [
                         ApiConfig(
                           id: 'default',
-                          name: '榛樿閰嶇疆',
+                          name: '默认配置',
                           baseUrl: 'https://api.openai.com/v1',
                           apiKey: '',
                           model: 'gpt-image-2',
@@ -205,7 +209,7 @@ void main() {
                       negativePromptController: negativePromptController,
                       size: '1024x1024',
                       imageCount: 2,
-                      templateImagePath: templateImagePath,
+                      templateImagePaths: templateImagePaths,
                       advancedSettings: const ImageAdvancedSettings(),
                       userController: userController,
                       isGenerating: false,
@@ -216,7 +220,15 @@ void main() {
                       onAdvancedSettingsChanged: (_) {},
                       onPickTemplateImage: () {},
                       onClearTemplateImage: () {
-                        setState(() => templateImagePath = null);
+                        setState(() => templateImagePaths = const <String>[]);
+                      },
+                      onRemoveTemplateImage: (path) {
+                        setState(
+                          () => templateImagePaths = [
+                            for (final currentPath in templateImagePaths)
+                              if (currentPath != path) currentPath,
+                          ],
+                        );
                       },
                       onGenerate: () {},
                     ),
@@ -228,15 +240,23 @@ void main() {
         ),
       );
 
-      expect(find.text('reference.png'), findsOneWidget);
+      expect(find.text('2 张参考图'), findsOneWidget);
       expect(find.text('图生图'), findsOneWidget);
-      expect(find.byTooltip('清除模板图片'), findsOneWidget);
+      expect(find.byTooltip('清除全部参考图'), findsOneWidget);
+      expect(find.bySemanticsLabel('reference.png'), findsOneWidget);
+      expect(find.bySemanticsLabel('style.png'), findsOneWidget);
 
       await tester.tap(find.text('高级输出参数'));
       await tester.pumpAndSettle();
       expect(find.text('参考图保真度'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('清除模板图片'));
+      await tester.tap(find.byTooltip('移除参考图：reference.png'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 张参考图'), findsOneWidget);
+      expect(find.text('参考图保真度'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('清除全部参考图'));
       await tester.pumpAndSettle();
 
       expect(find.text('参考图（图生图）'), findsOneWidget);

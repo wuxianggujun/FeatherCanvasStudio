@@ -42,15 +42,25 @@ class ImageLibraryReferenceCleanup {
     required this.selectedItemIds,
     required this.editorImagePath,
     required this.editorPatchImagePath,
-    required this.imageTemplateImagePath,
+    required this.imageTemplateImagePaths,
     required this.animationTemplateImagePath,
   });
 
   final Set<String> selectedItemIds;
   final String? editorImagePath;
   final String? editorPatchImagePath;
-  final String? imageTemplateImagePath;
+  final List<String> imageTemplateImagePaths;
   final String? animationTemplateImagePath;
+}
+
+class ImageLibraryDeletionStatePatch {
+  const ImageLibraryDeletionStatePatch({
+    required this.referenceCleanup,
+    required this.clearsOpenAnimationProject,
+  });
+
+  final ImageLibraryReferenceCleanup referenceCleanup;
+  final bool clearsOpenAnimationProject;
 }
 
 ImageLibraryDeletePlan buildImageLibraryDeletePlan({
@@ -101,13 +111,43 @@ ImageLibraryDeleteImpact buildImageLibraryDeleteImpact(
   );
 }
 
+ImageLibraryDeletionStatePatch buildImageLibraryDeletionStatePatch({
+  required ImageLibraryDeleteImpact impact,
+  required Set<String> removedIds,
+  required Set<String> selectedItemIds,
+  required String? editorImagePath,
+  required String? editorPatchImagePath,
+  required List<String> imageTemplateImagePaths,
+  required String? animationTemplateImagePath,
+  required String? openAnimationProjectId,
+}) {
+  return ImageLibraryDeletionStatePatch(
+    referenceCleanup: cleanDeletedImageLibraryReferences(
+      removedIds: removedIds,
+      removedPaths: impact.removedPaths,
+      selectedItemIds: selectedItemIds,
+      editorImagePath: editorImagePath,
+      editorPatchImagePath: editorPatchImagePath,
+      imageTemplateImagePaths: imageTemplateImagePaths,
+      animationTemplateImagePath: animationTemplateImagePath,
+    ),
+    clearsOpenAnimationProject:
+        openAnimationProjectId != null &&
+        impact.removedItems.any(
+          (item) =>
+              item.kind == ImageAssetKind.animationProject &&
+              item.groupId == openAnimationProjectId,
+        ),
+  );
+}
+
 ImageLibraryReferenceCleanup cleanDeletedImageLibraryReferences({
   required Set<String> removedIds,
   required Set<String> removedPaths,
   required Set<String> selectedItemIds,
   required String? editorImagePath,
   required String? editorPatchImagePath,
-  required String? imageTemplateImagePath,
+  required List<String> imageTemplateImagePaths,
   required String? animationTemplateImagePath,
 }) {
   return ImageLibraryReferenceCleanup(
@@ -117,8 +157,8 @@ ImageLibraryReferenceCleanup cleanDeletedImageLibraryReferences({
     },
     editorImagePath: _clearRemovedPath(editorImagePath, removedPaths),
     editorPatchImagePath: _clearRemovedPath(editorPatchImagePath, removedPaths),
-    imageTemplateImagePath: _clearRemovedPath(
-      imageTemplateImagePath,
+    imageTemplateImagePaths: _filterRemovedPaths(
+      imageTemplateImagePaths,
       removedPaths,
     ),
     animationTemplateImagePath: _clearRemovedPath(
@@ -130,4 +170,10 @@ ImageLibraryReferenceCleanup cleanDeletedImageLibraryReferences({
 
 String? _clearRemovedPath(String? path, Set<String> removedPaths) {
   return path != null && removedPaths.contains(path) ? null : path;
+}
+
+List<String> _filterRemovedPaths(List<String> paths, Set<String> removedPaths) {
+  return List<String>.unmodifiable(
+    paths.where((path) => !removedPaths.contains(path)),
+  );
 }

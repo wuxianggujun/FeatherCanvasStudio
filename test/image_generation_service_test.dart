@@ -95,7 +95,9 @@ void main() {
     final templateFile = File(
       '${tempDir.path}${Platform.pathSeparator}reference.png',
     );
+    final styleFile = File('${tempDir.path}${Platform.pathSeparator}style.jpg');
     await templateFile.writeAsBytes([9, 8, 7, 6], flush: true);
+    await styleFile.writeAsBytes([5, 4, 3, 2], flush: true);
 
     ImageRequestDebugRecord? debugRecord;
     final client = OpenAICompatibleImageClient(
@@ -109,8 +111,11 @@ void main() {
         final multipartRequest = request as http.MultipartRequest;
         expect(multipartRequest.fields['prompt'], contains('a robot'));
         expect(multipartRequest.fields['input_fidelity'], 'high');
-        expect(multipartRequest.files, hasLength(1));
-        expect(multipartRequest.files.single.field, 'image');
+        expect(multipartRequest.files, hasLength(2));
+        expect(
+          multipartRequest.files.map((file) => file.field),
+          everyElement('image[]'),
+        );
         await bodyStream.drain<void>();
 
         return http.StreamedResponse(
@@ -143,6 +148,7 @@ void main() {
       advancedSettings: const ImageAdvancedSettings(inputFidelity: 'high'),
       user: 'user-456',
       templateImagePath: templateFile.path,
+      templateImagePaths: [styleFile.path],
       titlePrefix: '图生图',
       source: '图生图',
       onDebugRecord: (record) => debugRecord = record,

@@ -22,6 +22,7 @@ void main() {
       advancedSettings: const ImageAdvancedSettings(user: 'old-user'),
       user: ' new-user ',
       templateImagePath: '/tmp/template.png',
+      templateImagePaths: const ['/tmp/style.png'],
     );
 
     expect(request.baseUrl, 'https://example.com/v1');
@@ -38,6 +39,10 @@ void main() {
     );
     expect(request.advancedSettings.user, 'new-user');
     expect(request.templateImagePath, '/tmp/template.png');
+    expect(request.normalizedTemplateImagePaths, [
+      '/tmp/template.png',
+      '/tmp/style.png',
+    ]);
   });
 
   test('builds generation snapshot with reusable metadata', () {

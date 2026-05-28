@@ -31,6 +31,47 @@ void main() {
     expect(tester.widget<Image>(find.byType(Image)).fit, BoxFit.contain);
   });
 
+  testWidgets('template image picker can preview multiple images', (
+    tester,
+  ) async {
+    final firstPath = _writeTempPng('template_preview_multi_a.png');
+    final secondPath = _writeTempPng('template_preview_multi_b.png');
+    addTearDown(() => File(firstPath).deleteSync());
+    addTearDown(() => File(secondPath).deleteSync());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TemplateImagePicker(
+            imagePaths: [firstPath, secondPath],
+            selectedSummary: '2 张参考图',
+            onPick: () {},
+            onClear: () {},
+            onRemoveImage: (_) {},
+            removeImageTooltipBuilder: (path) =>
+                '移除：${path.split(RegExp(r'[\\/]+')).last}',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('2 张参考图'), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(2));
+    expect(
+      find.bySemanticsLabel('template_preview_multi_a.png'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('template_preview_multi_b.png'),
+      findsOneWidget,
+    );
+    expect(
+      tester.widgetList<Image>(find.byType(Image)).map((image) => image.fit),
+      everyElement(BoxFit.contain),
+    );
+  });
+
   testWidgets('image library previews preserve the full image', (tester) async {
     final imagePath = _writeTempPng('library_preview_fit.png');
     addTearDown(() => File(imagePath).deleteSync());

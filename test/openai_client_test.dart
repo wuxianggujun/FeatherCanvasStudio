@@ -593,7 +593,7 @@ void main() {
         expect(multipartRequest.fields['input_fidelity'], 'high');
         expect(multipartRequest.fields.containsKey('moderation'), isFalse);
         expect(multipartRequest.files, hasLength(1));
-        expect(multipartRequest.files.single.field, 'image');
+        expect(multipartRequest.files.single.field, 'image[]');
         await bodyStream.drain<void>();
 
         return http.StreamedResponse(
@@ -636,6 +636,71 @@ void main() {
 
     expect(response.images, hasLength(1));
     expect(response.images.single.bytes, isNotNull);
+  });
+
+  test('official image edits send multiple reference images', () async {
+    final firstFile = File(
+      '${Directory.systemTemp.path}${Platform.pathSeparator}reference-a.png',
+    );
+    final secondFile = File(
+      '${Directory.systemTemp.path}${Platform.pathSeparator}reference-b.jpg',
+    );
+    await firstFile.writeAsBytes([0, 1], flush: true);
+    await secondFile.writeAsBytes([2, 3], flush: true);
+    addTearDown(() {
+      if (firstFile.existsSync()) {
+        firstFile.deleteSync();
+      }
+      if (secondFile.existsSync()) {
+        secondFile.deleteSync();
+      }
+    });
+
+    final client = OpenAICompatibleImageClient(
+      httpClient: MockClient.streaming((request, bodyStream) async {
+        expect(
+          request.url.toString(),
+          'https://api.openai.com/v1/images/edits',
+        );
+        final multipartRequest = request as http.MultipartRequest;
+        expect(multipartRequest.files, hasLength(2));
+        expect(
+          multipartRequest.files.map((file) => file.field),
+          everyElement('image[]'),
+        );
+        await bodyStream.drain<void>();
+
+        return http.StreamedResponse(
+          Stream.value(
+            utf8.encode(
+              jsonEncode({
+                'data': [
+                  {
+                    'b64_json': base64Encode([4, 5, 6]),
+                  },
+                ],
+              }),
+            ),
+          ),
+          200,
+        );
+      }),
+    );
+
+    final response = await client.generate(
+      OpenAIImageRequest(
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'token',
+        model: 'gpt-image-2',
+        prompt: 'combine references',
+        negativePrompt: '',
+        size: '1024x1024',
+        imageCount: 1,
+        templateImagePaths: [firstFile.path, secondFile.path],
+      ),
+    );
+
+    expect(response.images, hasLength(1));
   });
 
   test(
@@ -708,6 +773,8 @@ void main() {
             unorderedEquals(['model', 'prompt', 'size', 'n']),
           );
           expect(multipart.fields['n'], '1');
+          expect(multipart.files, hasLength(1));
+          expect(multipart.files.single.field, 'image');
           await bodyStream.drain<void>();
 
           return http.StreamedResponse(
@@ -867,10 +934,17 @@ void main() {
     final templateFile = File(
       '${Directory.systemTemp.path}${Platform.pathSeparator}gemini-template.png',
     );
+    final styleFile = File(
+      '${Directory.systemTemp.path}${Platform.pathSeparator}gemini-style.webp',
+    );
     await templateFile.writeAsBytes([1, 2, 3], flush: true);
+    await styleFile.writeAsBytes([7, 8, 9], flush: true);
     addTearDown(() {
       if (templateFile.existsSync()) {
         templateFile.deleteSync();
+      }
+      if (styleFile.existsSync()) {
+        styleFile.deleteSync();
       }
     });
 
@@ -880,9 +954,13 @@ void main() {
         final contents = body['contents'] as List;
         final firstContent = contents.single as Map<String, dynamic>;
         final parts = firstContent['parts'] as List;
-        final inlineData = parts.last['inlineData'] as Map<String, dynamic>;
-        expect(inlineData['mimeType'], 'image/png');
-        expect(inlineData['data'], base64Encode([1, 2, 3]));
+        expect(parts, hasLength(3));
+        final firstInlineData = parts[1]['inlineData'] as Map<String, dynamic>;
+        final secondInlineData = parts[2]['inlineData'] as Map<String, dynamic>;
+        expect(firstInlineData['mimeType'], 'image/png');
+        expect(firstInlineData['data'], base64Encode([1, 2, 3]));
+        expect(secondInlineData['mimeType'], 'image/webp');
+        expect(secondInlineData['data'], base64Encode([7, 8, 9]));
 
         return http.Response(
           jsonEncode({
@@ -917,6 +995,7 @@ void main() {
         imageCount: 1,
         providerKind: ApiProviderKind.gemini,
         templateImagePath: templateFile.path,
+        templateImagePaths: [styleFile.path],
       ),
     );
 

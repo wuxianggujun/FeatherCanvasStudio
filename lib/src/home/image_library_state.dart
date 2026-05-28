@@ -226,8 +226,8 @@ mixin _ImageLibraryStateMixin
   });
   String? get _animationTemplateImagePath;
   set _animationTemplateImagePath(String? value);
-  String? get _imageTemplateImagePath;
-  set _imageTemplateImagePath(String? value);
+  List<String> get _imageTemplateImagePaths;
+  set _imageTemplateImagePaths(List<String> value);
   set _editorErrorMessage(String? value);
   String? get _errorMessage;
   set _errorMessage(String? value);
@@ -633,26 +633,12 @@ mixin _ImageLibraryStateMixin
     return true;
   }
 
-  List<ImageLibraryItem> _mergeImageLibraryState({
-    required List<ImageLibraryItem> currentLibrary,
-    List<ImageLibraryItem> appendedItems = const [],
-    Set<String> removedItemIds = const {},
-  }) {
-    final appendedIds = {for (final item in appendedItems) item.id};
-    return [
-      ...appendedItems,
-      for (final item in currentLibrary)
-        if (!removedItemIds.contains(item.id) && !appendedIds.contains(item.id))
-          item,
-    ];
-  }
-
   Future<void> _applyImageLibraryMerge({
     List<ImageLibraryItem> appendedItems = const [],
     Set<String> removedItemIds = const {},
     VoidCallback? updateState,
   }) async {
-    final nextLibrary = _mergeImageLibraryState(
+    final nextLibrary = mergeImageLibraryItems(
       currentLibrary: _imageLibrary,
       appendedItems: appendedItems,
       removedItemIds: removedItemIds,
@@ -736,12 +722,13 @@ mixin _ImageLibraryStateMixin
       if (!mounted) {
         return;
       }
-      switch (result.status) {
-        case ImageClipboardCopyStatus.imageCopied:
-          _showMessage(l10n.imageLibraryStateImageCopied);
-        case ImageClipboardCopyStatus.pathCopied:
-          _showMessage(l10n.imageLibraryStateImagePathCopied);
-      }
+      _showMessage(
+        imageLibraryClipboardCopyMessage(
+          status: result.status,
+          imageCopiedMessage: l10n.imageLibraryStateImageCopied,
+          pathCopiedMessage: l10n.imageLibraryStateImagePathCopied,
+        ),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -798,11 +785,10 @@ mixin _ImageLibraryStateMixin
 
   Future<void> _exportSelectedImageLibraryItems() async {
     final l10n = appL10nOf(context);
-    final selectedIds = _selectedImageLibraryItemIds;
-    final selectedItems = [
-      for (final item in _imageLibrary)
-        if (selectedIds.contains(item.id)) item,
-    ];
+    final selectedItems = selectedImageLibraryItemsForExport(
+      library: _imageLibrary,
+      selectedItemIds: _selectedImageLibraryItemIds,
+    );
     if (selectedItems.isEmpty) {
       _showMessage(l10n.imageLibraryStateSelectItemsToExport);
       return;
@@ -820,31 +806,29 @@ mixin _ImageLibraryStateMixin
       return;
     }
 
-    final existingItems = <ImageLibraryItem>[];
-    var missingCount = 0;
-    for (final item in selectedItems) {
-      if (await _fileService.fileExists(item.path)) {
-        existingItems.add(item);
-      } else {
-        missingCount += 1;
-      }
+    final exportPlan = await buildImageLibrarySelectedExportPlan(
+      selectedItems: selectedItems,
+      itemExists: (item) => _fileService.fileExists(item.path),
+    );
+    if (!mounted) {
+      return;
     }
-    if (existingItems.isEmpty) {
+    if (!exportPlan.hasExistingFiles) {
       _showMessage(l10n.imageLibraryStateSelectedFilesMissing);
       return;
     }
 
     try {
       final results = await _fileService.exportFilesToDirectory(
-        sourcePaths: existingItems.map((item) => item.path),
+        sourcePaths: exportPlan.existingItems.map((item) => item.path),
         directoryPath: directoryPath,
       );
       if (!mounted) {
         return;
       }
-      final skipped = missingCount == 0
+      final skipped = exportPlan.missingCount == 0
           ? ''
-          : l10n.imageLibraryStateSkippedMissingFiles(missingCount);
+          : l10n.imageLibraryStateSkippedMissingFiles(exportPlan.missingCount);
       _showMessage(
         l10n.imageLibraryStateExportedSelected(results.length, skipped),
       );
@@ -861,18 +845,18 @@ mixin _ImageLibraryStateMixin
     if (!mounted) {
       return;
     }
-    switch (result.status) {
-      case OpenFileLocationStatus.opened:
-        _showMessage(appL10nOf(context).imageLibraryStateLocationOpened);
-      case OpenFileLocationStatus.directoryMissing:
-        _showMessage(appL10nOf(context).imageLibraryStateDirectoryMissing);
-      case OpenFileLocationStatus.copiedUnsupportedPlatform:
-        _showMessage(appL10nOf(context).imageLibraryStateDirectoryPathCopied);
-      case OpenFileLocationStatus.copiedAfterFailure:
-        _showMessage(
-          appL10nOf(context).imageLibraryStateDirectoryOpenFailedPathCopied,
-        );
-    }
+    final l10n = appL10nOf(context);
+    _showMessage(
+      imageLibraryOpenLocationMessage(
+        status: result.status,
+        openedMessage: l10n.imageLibraryStateLocationOpened,
+        directoryMissingMessage: l10n.imageLibraryStateDirectoryMissing,
+        copiedUnsupportedPlatformMessage:
+            l10n.imageLibraryStateDirectoryPathCopied,
+        copiedAfterFailureMessage:
+            l10n.imageLibraryStateDirectoryOpenFailedPathCopied,
+      ),
+    );
   }
 
   ImageLibraryItem? _findImageLibraryItemByPath(String? path) {
@@ -1217,7 +1201,9 @@ mixin _ImageLibraryStateMixin
     final beforeSelectedIds = _selectedImageLibraryItemIds;
     final beforeEditorImagePath = _editorImagePath;
     final beforeEditorPatchImagePath = _editorPatchImagePath;
-    final beforeImageTemplateImagePath = _imageTemplateImagePath;
+    final beforeImageTemplateImagePaths = List<String>.unmodifiable(
+      _imageTemplateImagePaths,
+    );
     final beforeAnimationTemplateImagePath = _animationTemplateImagePath;
     final beforeAnimationProject = _animationProject;
     final beforeSelectedAnimationTrackId = _selectedAnimationTrackId;
@@ -1232,22 +1218,19 @@ mixin _ImageLibraryStateMixin
     if (!mounted) {
       return;
     }
-    final cleanup = cleanDeletedImageLibraryReferences(
+    final deletionStatePatch = buildImageLibraryDeletionStatePatch(
+      impact: impact,
       removedIds: ids,
-      removedPaths: impact.removedPaths,
       selectedItemIds: _selectedImageLibraryItemIds,
       editorImagePath: _editorImagePath,
       editorPatchImagePath: _editorPatchImagePath,
-      imageTemplateImagePath: _imageTemplateImagePath,
+      imageTemplateImagePaths: _imageTemplateImagePaths,
       animationTemplateImagePath: _animationTemplateImagePath,
+      openAnimationProjectId: _animationProject?.id,
     );
+    final cleanup = deletionStatePatch.referenceCleanup;
     final removesOpenAnimationProject =
-        _animationProject != null &&
-        impact.removedItems.any(
-          (item) =>
-              item.kind == ImageAssetKind.animationProject &&
-              item.groupId == _animationProject!.id,
-        );
+        deletionStatePatch.clearsOpenAnimationProject;
     setState(() {
       _imageLibrary = impact.remainingItems;
       _imageLibraryViewState = _imageLibraryViewState.copyWith(
@@ -1255,7 +1238,7 @@ mixin _ImageLibraryStateMixin
       );
       _editorImagePath = cleanup.editorImagePath;
       _editorPatchImagePath = cleanup.editorPatchImagePath;
-      _imageTemplateImagePath = cleanup.imageTemplateImagePath;
+      _imageTemplateImagePaths = cleanup.imageTemplateImagePaths;
       _animationTemplateImagePath = cleanup.animationTemplateImagePath;
       if (removesOpenAnimationProject) {
         _animationProject = null;
@@ -1288,17 +1271,19 @@ mixin _ImageLibraryStateMixin
               ids: removedItems.map((item) => item.id).toSet(),
             );
             if (!mounted) return;
-            final redoCleanup = cleanDeletedImageLibraryReferences(
+            final redoStatePatch = buildImageLibraryDeletionStatePatch(
+              impact: redoImpact,
               removedIds: redoImpact.removedItems
                   .map((item) => item.id)
                   .toSet(),
-              removedPaths: redoImpact.removedPaths,
               selectedItemIds: _selectedImageLibraryItemIds,
               editorImagePath: _editorImagePath,
               editorPatchImagePath: _editorPatchImagePath,
-              imageTemplateImagePath: _imageTemplateImagePath,
+              imageTemplateImagePaths: _imageTemplateImagePaths,
               animationTemplateImagePath: _animationTemplateImagePath,
+              openAnimationProjectId: null,
             );
+            final redoCleanup = redoStatePatch.referenceCleanup;
             trashPaths = redoImpact.trashPaths;
             setState(() {
               _imageLibrary = redoImpact.remainingItems;
@@ -1307,7 +1292,7 @@ mixin _ImageLibraryStateMixin
               );
               _editorImagePath = redoCleanup.editorImagePath;
               _editorPatchImagePath = redoCleanup.editorPatchImagePath;
-              _imageTemplateImagePath = redoCleanup.imageTemplateImagePath;
+              _imageTemplateImagePaths = redoCleanup.imageTemplateImagePaths;
               _animationTemplateImagePath =
                   redoCleanup.animationTemplateImagePath;
               if (removesOpenAnimationProject) {
@@ -1334,7 +1319,7 @@ mixin _ImageLibraryStateMixin
               );
               _editorImagePath = beforeEditorImagePath;
               _editorPatchImagePath = beforeEditorPatchImagePath;
-              _imageTemplateImagePath = beforeImageTemplateImagePath;
+              _imageTemplateImagePaths = beforeImageTemplateImagePaths;
               _animationTemplateImagePath = beforeAnimationTemplateImagePath;
               _animationProject = beforeAnimationProject;
               _selectedAnimationTrackId = beforeSelectedAnimationTrackId;
