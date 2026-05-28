@@ -225,10 +225,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get localSettingsDefaultPromptHint => '新会话或恢复默认后使用的正向提示词';
 
   @override
-  String get localSettingsDefaultNegativePromptLabel => '默认负向提示词';
+  String get localSettingsDefaultNegativePromptLabel => '默认排除描述（可选）';
 
   @override
-  String get localSettingsDefaultNegativePromptHint => '可选，会合并到 prompt 中';
+  String get localSettingsDefaultNegativePromptHint =>
+      '仅在需要默认避免特定内容时填写，会合并进 prompt';
 
   @override
   String get localSettingsDefaultImageCountLabel => '默认生成数量';
@@ -613,10 +614,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get positivePromptHint => '描述你想生成的图片';
 
   @override
-  String get negativePromptLabel => '负向提示词';
+  String get negativePromptLabel => '排除描述（可选）';
 
   @override
-  String get negativePromptHint => '会合并到 prompt 中，不额外发送非 OpenAI 字段';
+  String get negativePromptHint => '仅在需要避免特定内容时填写，少量明确描述即可';
 
   @override
   String get targetImageCountLabel => '目标数量';
@@ -1116,7 +1117,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get batchPromptHint => '每行一条提示词；每条会按目标数量自动拆分';
 
   @override
-  String get batchNegativePromptHint => '会应用到每一个批量任务';
+  String get batchNegativePromptHint => '可选，填写后会作为排除描述应用到每个批量任务';
 
   @override
   String get batchTargetCountHelper => '每条提示词最终想生成的总数';
@@ -3221,7 +3222,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get spriteSheetPromptHint => '把主体、场景、风格、动作变化写在这里即可';
 
   @override
-  String get spriteSheetNegativePromptHint => '会应用到每一帧';
+  String get spriteSheetNegativePromptHint => '可选，填写后会作为排除描述应用到每一帧';
 
   @override
   String get spriteSheetRowsLabel => '行数';
@@ -4064,7 +4065,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get localSettingsStateEditAnimationPromptHistory => '修改动画工程提示词';
 
   @override
-  String get localSettingsStateEditNegativePromptHistory => '修改负向提示词';
+  String get localSettingsStateEditNegativePromptHistory => '修改排除描述';
 
   @override
   String localSettingsStateAdjustQualityHistory(Object label) {

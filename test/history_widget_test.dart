@@ -103,6 +103,21 @@ Finder _textFieldWithLabel(String label) {
   );
 }
 
+Future<void> _expandSectionIfNeeded(WidgetTester tester, String label) async {
+  if (_textFieldWithLabel(label).evaluate().isNotEmpty) {
+    return;
+  }
+
+  final finder = find.text(label);
+  if (finder.evaluate().isEmpty) {
+    return;
+  }
+
+  await tester.ensureVisible(finder.first);
+  await tester.tap(finder.first);
+  await _pumpBoundedSettle(tester);
+}
+
 String _textFieldValue(WidgetTester tester, String label) {
   final field = tester.widget<TextField>(_textFieldWithLabel(label));
   return field.controller?.text ?? '';
@@ -177,21 +192,21 @@ void main() {
     await _applyOnlyVisiblePreset(tester, preset.name);
 
     expect(_textFieldValue(tester, '默认正向提示词'), 'preset prompt');
-    expect(_textFieldValue(tester, '默认负向提示词'), 'preset negative');
+    expect(_textFieldValue(tester, '默认排除描述（可选）'), 'preset negative');
     expect(find.text('1.5K 横图 · 请求尺寸 1536x1024'), findsOneWidget);
     expect(_textFieldValue(tester, '默认生成数量'), '3');
 
     await _pressUndo(tester);
 
     expect(_textFieldValue(tester, '默认正向提示词'), 'before prompt');
-    expect(_textFieldValue(tester, '默认负向提示词'), 'before negative');
+    expect(_textFieldValue(tester, '默认排除描述（可选）'), 'before negative');
     expect(find.text('1K 方图 · 请求尺寸 1024x1024'), findsOneWidget);
     expect(_textFieldValue(tester, '默认生成数量'), '1');
 
     await _pressRedo(tester);
 
     expect(_textFieldValue(tester, '默认正向提示词'), 'preset prompt');
-    expect(_textFieldValue(tester, '默认负向提示词'), 'preset negative');
+    expect(_textFieldValue(tester, '默认排除描述（可选）'), 'preset negative');
     expect(find.text('1.5K 横图 · 请求尺寸 1536x1024'), findsOneWidget);
     expect(_textFieldValue(tester, '默认生成数量'), '3');
   });
@@ -214,27 +229,30 @@ void main() {
 
     await _applyOnlyVisiblePreset(tester, preset.name);
     await _openWorkspace(tester, '动画工程');
+    await _expandSectionIfNeeded(tester, '排除描述（可选）');
 
     expect(_textFieldValue(tester, '提示词内容'), 'walk cycle prompt');
-    expect(_textFieldValue(tester, '负向提示词'), 'no blur');
+    expect(_textFieldValue(tester, '排除描述（可选）'), 'no blur');
     expect(find.text('5 行'), findsOneWidget);
     expect(find.text('6 列'), findsOneWidget);
 
     await _openSettings(tester);
     await _pressUndo(tester);
     await _openWorkspace(tester, '动画工程');
+    await _expandSectionIfNeeded(tester, '排除描述（可选）');
 
     expect(_textFieldValue(tester, '提示词内容'), defaultAnimationPrompt);
-    expect(_textFieldValue(tester, '负向提示词'), 'before negative');
+    expect(_textFieldValue(tester, '排除描述（可选）'), 'before negative');
     expect(find.text('4 行'), findsOneWidget);
     expect(find.text('4 列'), findsOneWidget);
 
     await _openSettings(tester);
     await _pressRedo(tester);
     await _openWorkspace(tester, '动画工程');
+    await _expandSectionIfNeeded(tester, '排除描述（可选）');
 
     expect(_textFieldValue(tester, '提示词内容'), 'walk cycle prompt');
-    expect(_textFieldValue(tester, '负向提示词'), 'no blur');
+    expect(_textFieldValue(tester, '排除描述（可选）'), 'no blur');
     expect(find.text('5 行'), findsOneWidget);
     expect(find.text('6 列'), findsOneWidget);
   });
@@ -311,21 +329,24 @@ void main() {
     await tester.tap(reuseButton);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
+    await _expandSectionIfNeeded(tester, '排除描述（可选）');
 
     expect(_textFieldValue(tester, '正向提示词'), 'library prompt');
-    expect(_textFieldValue(tester, '负向提示词'), 'library negative');
+    expect(_textFieldValue(tester, '排除描述（可选）'), 'library negative');
     expect(_textFieldValue(tester, '目标数量'), '2');
 
     await _pressUndo(tester);
+    await _expandSectionIfNeeded(tester, '排除描述（可选）');
 
     expect(_textFieldValue(tester, '正向提示词'), 'before prompt');
-    expect(_textFieldValue(tester, '负向提示词'), 'before negative');
+    expect(_textFieldValue(tester, '排除描述（可选）'), 'before negative');
     expect(_textFieldValue(tester, '目标数量'), '1');
 
     await _pressRedo(tester);
+    await _expandSectionIfNeeded(tester, '排除描述（可选）');
 
     expect(_textFieldValue(tester, '正向提示词'), 'library prompt');
-    expect(_textFieldValue(tester, '负向提示词'), 'library negative');
+    expect(_textFieldValue(tester, '排除描述（可选）'), 'library negative');
     expect(_textFieldValue(tester, '目标数量'), '2');
   });
 
@@ -355,13 +376,15 @@ void main() {
     await _confirmResetToDefaults(tester);
 
     expect(_textFieldValue(tester, '默认正向提示词'), defaultAppSettings.prompt);
-    expect(_textFieldValue(tester, '默认负向提示词'), '');
+    await _expandSectionIfNeeded(tester, '默认排除描述（可选）');
+    expect(_textFieldValue(tester, '默认排除描述（可选）'), '');
     expect(find.text(preset.name), findsOneWidget);
 
     await _pressUndo(tester);
 
     expect(_textFieldValue(tester, '默认正向提示词'), 'custom prompt');
-    expect(_textFieldValue(tester, '默认负向提示词'), 'custom negative');
+    await _expandSectionIfNeeded(tester, '默认排除描述（可选）');
+    expect(_textFieldValue(tester, '默认排除描述（可选）'), 'custom negative');
     expect(find.text('1.5K 竖图 · 请求尺寸 1024x1536'), findsOneWidget);
     expect(_textFieldValue(tester, '默认生成数量'), '4');
     expect(find.text(preset.name), findsOneWidget);
@@ -369,7 +392,8 @@ void main() {
     await _pressRedo(tester);
 
     expect(_textFieldValue(tester, '默认正向提示词'), defaultAppSettings.prompt);
-    expect(_textFieldValue(tester, '默认负向提示词'), '');
+    await _expandSectionIfNeeded(tester, '默认排除描述（可选）');
+    expect(_textFieldValue(tester, '默认排除描述（可选）'), '');
     expect(find.text(preset.name), findsOneWidget);
   });
 

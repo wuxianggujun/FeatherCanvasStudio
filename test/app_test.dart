@@ -59,7 +59,7 @@ void main() {
     expect(find.text('队列控制'), findsOneWidget);
     expect(find.text('接口配置'), findsWidgets);
     expect(find.text('批量提示词'), findsOneWidget);
-    expect(find.text('负向提示词'), findsOneWidget);
+    expect(find.text('排除描述（可选）'), findsOneWidget);
     expect(find.text('分辨率档位'), findsOneWidget);
     expect(find.text('高级输出参数'), findsOneWidget);
     expect(find.text('目标数量'), findsOneWidget);
@@ -209,7 +209,7 @@ void main() {
     expect(find.text('Y'), findsOneWidget);
     expect(find.text('默认生成设置'), findsOneWidget);
     expect(find.text('默认正向提示词'), findsOneWidget);
-    expect(find.text('默认负向提示词'), findsOneWidget);
+    expect(find.text('默认排除描述（可选）'), findsOneWidget);
     expect(find.text('默认生成数量'), findsOneWidget);
     expect(find.text('高级输出参数'), findsOneWidget);
     expect(find.text('打开接口配置'), findsOneWidget);

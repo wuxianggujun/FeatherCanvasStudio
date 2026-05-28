@@ -304,13 +304,13 @@
   "@localSettingsDefaultPromptHint": {
     "description": "本地设置：默认正向提示词字段提示"
   },
-  "localSettingsDefaultNegativePromptLabel": "默认负向提示词",
+  "localSettingsDefaultNegativePromptLabel": "默认排除描述（可选）",
   "@localSettingsDefaultNegativePromptLabel": {
-    "description": "本地设置：默认负向提示词字段标签"
+    "description": "本地设置：默认排除描述字段标签"
   },
-  "localSettingsDefaultNegativePromptHint": "可选，会合并到 prompt 中",
+  "localSettingsDefaultNegativePromptHint": "仅在需要默认避免特定内容时填写，会合并进 prompt",
   "@localSettingsDefaultNegativePromptHint": {
-    "description": "本地设置：默认负向提示词字段提示"
+    "description": "本地设置：默认排除描述字段提示"
   },
   "localSettingsDefaultImageCountLabel": "默认生成数量",
   "@localSettingsDefaultImageCountLabel": {
@@ -852,13 +852,13 @@
   "@positivePromptHint": {
     "description": "文本生图：正向提示词字段提示"
   },
-  "negativePromptLabel": "负向提示词",
+  "negativePromptLabel": "排除描述（可选）",
   "@negativePromptLabel": {
-    "description": "生成表单：负向提示词字段标签"
+    "description": "生成表单：排除描述字段标签"
   },
-  "negativePromptHint": "会合并到 prompt 中，不额外发送非 OpenAI 字段",
+  "negativePromptHint": "仅在需要避免特定内容时填写，少量明确描述即可",
   "@negativePromptHint": {
-    "description": "文本生图：负向提示词字段提示"
+    "description": "文本生图：排除描述字段提示"
   },
   "targetImageCountLabel": "目标数量",
   "@targetImageCountLabel": {
@@ -1557,9 +1557,9 @@
   "@batchPromptHint": {
     "description": "批量生成：批量提示词字段提示"
   },
-  "batchNegativePromptHint": "会应用到每一个批量任务",
+  "batchNegativePromptHint": "可选，填写后会作为排除描述应用到每个批量任务",
   "@batchNegativePromptHint": {
-    "description": "批量生成：负向提示词字段提示"
+    "description": "批量生成：排除描述字段提示"
   },
   "batchTargetCountHelper": "每条提示词最终想生成的总数",
   "@batchTargetCountHelper": {
@@ -4644,9 +4644,9 @@
   "@spriteSheetPromptHint": {
     "description": "Sprite Sheet 生成：提示词字段提示"
   },
-  "spriteSheetNegativePromptHint": "会应用到每一帧",
+  "spriteSheetNegativePromptHint": "可选，填写后会作为排除描述应用到每一帧",
   "@spriteSheetNegativePromptHint": {
-    "description": "Sprite Sheet 生成：负向提示词字段提示"
+    "description": "Sprite Sheet 生成：排除描述字段提示"
   },
   "spriteSheetRowsLabel": "行数",
   "@spriteSheetRowsLabel": {
@@ -5884,9 +5884,9 @@
   "@localSettingsStateEditAnimationPromptHistory": {
     "description": "本地设置状态：修改动画工程提示词历史动作"
   },
-  "localSettingsStateEditNegativePromptHistory": "修改负向提示词",
+  "localSettingsStateEditNegativePromptHistory": "修改排除描述",
   "@localSettingsStateEditNegativePromptHistory": {
-    "description": "本地设置状态：修改负向提示词历史动作"
+    "description": "本地设置状态：修改排除描述历史动作"
   },
   "localSettingsStateAdjustQualityHistory": "调整质量为 {label}",
   "@localSettingsStateAdjustQualityHistory": {

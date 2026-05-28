@@ -124,15 +124,12 @@ class ControlPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: fieldGap),
-          TextField(
+          OptionalPromptExclusionSection(
             controller: negativePromptController,
+            labelText: l10n.negativePromptLabel,
+            hintText: l10n.negativePromptHint,
             minLines: 3,
             maxLines: 5,
-            decoration: InputDecoration(
-              labelText: l10n.negativePromptLabel,
-              hintText: l10n.negativePromptHint,
-              alignLabelWithHint: true,
-            ),
           ),
           const SizedBox(height: fieldGap),
           ImageSizeInput(
@@ -285,15 +282,12 @@ class SpriteSheetGenerationPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: fieldGap),
-          TextField(
+          OptionalPromptExclusionSection(
             controller: negativePromptController,
+            labelText: l10n.negativePromptLabel,
+            hintText: l10n.spriteSheetNegativePromptHint,
             minLines: 2,
             maxLines: 4,
-            decoration: InputDecoration(
-              labelText: l10n.negativePromptLabel,
-              hintText: l10n.spriteSheetNegativePromptHint,
-              alignLabelWithHint: true,
-            ),
           ),
           const SizedBox(height: fieldGap),
           ImageSizeInput(

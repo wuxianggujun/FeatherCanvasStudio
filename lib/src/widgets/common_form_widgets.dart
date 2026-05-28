@@ -216,6 +216,65 @@ class ResponsivePair extends StatelessWidget {
   }
 }
 
+class OptionalPromptExclusionSection extends StatelessWidget {
+  const OptionalPromptExclusionSection({
+    required this.controller,
+    required this.labelText,
+    required this.hintText,
+    this.enabled = true,
+    this.minLines = 2,
+    this.maxLines = 4,
+    super.key,
+  });
+
+  final TextEditingController controller;
+  final String labelText;
+  final String hintText;
+  final bool enabled;
+  final int minLines;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasContent = controller.text.trim().isNotEmpty;
+
+    return Material(
+      color: Colors.transparent,
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          key: ValueKey('optional-prompt-exclusion-$hasContent'),
+          initiallyExpanded: hasContent,
+          maintainState: true,
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(top: 4),
+          title: Text(labelText),
+          subtitle: Text(
+            hintText,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          children: [
+            TextField(
+              controller: controller,
+              enabled: enabled,
+              minLines: minLines,
+              maxLines: maxLines,
+              decoration: InputDecoration(
+                labelText: labelText,
+                hintText: hintText,
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class SpriteSheetGridSpecControls extends StatelessWidget {
   const SpriteSheetGridSpecControls({
     required this.gridSpec,

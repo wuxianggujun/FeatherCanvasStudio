@@ -144,7 +144,7 @@ void main() {
     expect(summary, contains('Model: gpt-image-2'));
     expect(summary, contains('Output format: webp'));
     expect(summary, contains('User: user-1'));
-    expect(summary, contains('Negative: blurry'));
+    expect(summary, contains('Exclude: blurry'));
   });
 
   test('builds reusable generation draft and finds matching API config', () {

@@ -22,6 +22,6 @@ String formatGenerationSnapshotSummary(GenerationSnapshot generation) {
     'Input fidelity: ${generation.advancedSettings.inputFidelity}',
     'Prompt: ${generation.prompt}',
     if (generation.negativePrompt.trim().isNotEmpty)
-      'Negative: ${generation.negativePrompt}',
+      'Exclude: ${generation.negativePrompt}',
   ].join('\n');
 }

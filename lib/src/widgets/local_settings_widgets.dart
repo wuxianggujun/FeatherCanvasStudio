@@ -129,15 +129,12 @@ class LocalSettingsPanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: fieldGap),
-              TextField(
+              OptionalPromptExclusionSection(
                 controller: negativePromptController,
+                labelText: l10n.localSettingsDefaultNegativePromptLabel,
+                hintText: l10n.localSettingsDefaultNegativePromptHint,
                 minLines: 2,
                 maxLines: 5,
-                decoration: InputDecoration(
-                  labelText: l10n.localSettingsDefaultNegativePromptLabel,
-                  hintText: l10n.localSettingsDefaultNegativePromptHint,
-                  alignLabelWithHint: true,
-                ),
               ),
               const SizedBox(height: fieldGap),
               ImageSizeInput(

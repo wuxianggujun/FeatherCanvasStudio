@@ -484,16 +484,16 @@ abstract class AppLocalizations {
   /// **'新会话或恢复默认后使用的正向提示词'**
   String get localSettingsDefaultPromptHint;
 
-  /// 本地设置：默认负向提示词字段标签
+  /// 本地设置：默认排除描述字段标签
   ///
   /// In zh, this message translates to:
-  /// **'默认负向提示词'**
+  /// **'默认排除描述（可选）'**
   String get localSettingsDefaultNegativePromptLabel;
 
-  /// 本地设置：默认负向提示词字段提示
+  /// 本地设置：默认排除描述字段提示
   ///
   /// In zh, this message translates to:
-  /// **'可选，会合并到 prompt 中'**
+  /// **'仅在需要默认避免特定内容时填写，会合并进 prompt'**
   String get localSettingsDefaultNegativePromptHint;
 
   /// 本地设置：默认生成数量字段标签
@@ -1147,16 +1147,16 @@ abstract class AppLocalizations {
   /// **'描述你想生成的图片'**
   String get positivePromptHint;
 
-  /// 生成表单：负向提示词字段标签
+  /// 生成表单：排除描述字段标签
   ///
   /// In zh, this message translates to:
-  /// **'负向提示词'**
+  /// **'排除描述（可选）'**
   String get negativePromptLabel;
 
-  /// 文本生图：负向提示词字段提示
+  /// 文本生图：排除描述字段提示
   ///
   /// In zh, this message translates to:
-  /// **'会合并到 prompt 中，不额外发送非 OpenAI 字段'**
+  /// **'仅在需要避免特定内容时填写，少量明确描述即可'**
   String get negativePromptHint;
 
   /// 生成表单：目标数量字段标签
@@ -1960,10 +1960,10 @@ abstract class AppLocalizations {
   /// **'每行一条提示词；每条会按目标数量自动拆分'**
   String get batchPromptHint;
 
-  /// 批量生成：负向提示词字段提示
+  /// 批量生成：排除描述字段提示
   ///
   /// In zh, this message translates to:
-  /// **'会应用到每一个批量任务'**
+  /// **'可选，填写后会作为排除描述应用到每个批量任务'**
   String get batchNegativePromptHint;
 
   /// 批量生成：目标数量字段说明
@@ -5521,10 +5521,10 @@ abstract class AppLocalizations {
   /// **'把主体、场景、风格、动作变化写在这里即可'**
   String get spriteSheetPromptHint;
 
-  /// Sprite Sheet 生成：负向提示词字段提示
+  /// Sprite Sheet 生成：排除描述字段提示
   ///
   /// In zh, this message translates to:
-  /// **'会应用到每一帧'**
+  /// **'可选，填写后会作为排除描述应用到每一帧'**
   String get spriteSheetNegativePromptHint;
 
   /// Sprite Sheet 生成：行数字段
@@ -6910,10 +6910,10 @@ abstract class AppLocalizations {
   /// **'修改动画工程提示词'**
   String get localSettingsStateEditAnimationPromptHistory;
 
-  /// 本地设置状态：修改负向提示词历史动作
+  /// 本地设置状态：修改排除描述历史动作
   ///
   /// In zh, this message translates to:
-  /// **'修改负向提示词'**
+  /// **'修改排除描述'**
   String get localSettingsStateEditNegativePromptHistory;
 
   /// 本地设置状态：调整质量历史动作
