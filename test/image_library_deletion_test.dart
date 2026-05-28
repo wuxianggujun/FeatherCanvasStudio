@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -58,6 +58,7 @@ void main() {
       selectedItemIds: {'deleted-id', 'kept-id'},
       editorImagePath: '/tmp/deleted.png',
       editorPatchImagePath: '/tmp/patch.png',
+      generalEditorImagePath: '/tmp/deleted.png',
       imageTemplateImagePaths: const [
         '/tmp/template.png',
         '/tmp/reference-kept.png',
@@ -68,6 +69,7 @@ void main() {
     expect(cleanup.selectedItemIds, {'kept-id'});
     expect(cleanup.editorImagePath, isNull);
     expect(cleanup.editorPatchImagePath, '/tmp/patch.png');
+    expect(cleanup.generalEditorImagePath, isNull);
     expect(cleanup.imageTemplateImagePaths, ['/tmp/reference-kept.png']);
     expect(cleanup.animationTemplateImagePath, isNull);
   });
@@ -91,6 +93,7 @@ void main() {
       selectedItemIds: {'project-item', 'deleted-id', 'kept-id'},
       editorImagePath: '/tmp/deleted.png',
       editorPatchImagePath: '/tmp/kept.png',
+      generalEditorImagePath: '/tmp/deleted.png',
       imageTemplateImagePaths: const ['/tmp/deleted.png', '/tmp/kept.png'],
       animationTemplateImagePath: '/tmp/project.fcsanim',
       openAnimationProjectId: 'project-id',
@@ -101,6 +104,7 @@ void main() {
       selectedItemIds: const {},
       editorImagePath: null,
       editorPatchImagePath: null,
+      generalEditorImagePath: null,
       imageTemplateImagePaths: const [],
       animationTemplateImagePath: null,
       openAnimationProjectId: 'other-project',
@@ -109,10 +113,85 @@ void main() {
     expect(patch.referenceCleanup.selectedItemIds, {'kept-id'});
     expect(patch.referenceCleanup.editorImagePath, isNull);
     expect(patch.referenceCleanup.editorPatchImagePath, '/tmp/kept.png');
+    expect(patch.referenceCleanup.generalEditorImagePath, isNull);
     expect(patch.referenceCleanup.imageTemplateImagePaths, ['/tmp/kept.png']);
     expect(patch.referenceCleanup.animationTemplateImagePath, isNull);
     expect(patch.clearsOpenAnimationProject, isTrue);
     expect(unrelatedProjectPatch.clearsOpenAnimationProject, isFalse);
+  });
+
+  test('deletion undo snapshot freezes mutable state', () {
+    final library = [_item(id: 'before', path: '/tmp/before.png')];
+    final selectedIds = {'before'};
+    final templatePaths = ['/tmp/template.png'];
+    final project = AnimationProject.empty(title: 'Project');
+
+    final snapshot = ImageLibraryDeletionUndoSnapshot(
+      library: library,
+      selectedItemIds: selectedIds,
+      editorImagePath: '/tmp/editor.png',
+      editorPatchImagePath: '/tmp/patch.png',
+      generalEditorImagePath: '/tmp/general.png',
+      generalEditorImageInfo: const ImageInspectionResult(
+        width: 16,
+        height: 16,
+        hasAlpha: true,
+      ),
+      generalEditorErrorMessage: 'read failed',
+      imageTemplateImagePaths: templatePaths,
+      animationTemplateImagePath: '/tmp/animation-template.png',
+      animationProject: project,
+      selectedAnimationTrackId: 'track-1',
+      animationProjectErrorMessage: 'project failed',
+    );
+
+    library.add(_item(id: 'after', path: '/tmp/after.png'));
+    selectedIds.add('after');
+    templatePaths.add('/tmp/after-template.png');
+
+    expect(snapshot.library.map((item) => item.id), ['before']);
+    expect(snapshot.selectedItemIds, {'before'});
+    expect(snapshot.imageTemplateImagePaths, ['/tmp/template.png']);
+    expect(snapshot.generalEditorImagePath, '/tmp/general.png');
+    expect(snapshot.generalEditorImageInfo?.width, 16);
+    expect(snapshot.generalEditorErrorMessage, 'read failed');
+    expect(snapshot.animationProject, same(project));
+    expect(snapshot.animationProjectErrorMessage, 'project failed');
+    expect(
+      () => snapshot.selectedItemIds.add('blocked'),
+      throwsUnsupportedError,
+    );
+    expect(
+      () => snapshot.imageTemplateImagePaths.add('/tmp/blocked.png'),
+      throwsUnsupportedError,
+    );
+  });
+
+  test('restores deleted items in their original library order', () {
+    final first = _item(id: 'first', path: '/tmp/first.png');
+    final second = _item(id: 'second', path: '/tmp/second.png');
+    final third = _item(id: 'third', path: '/tmp/third.png');
+
+    final restored = restoreImageLibraryItemsInOriginalOrder(
+      currentLibrary: [third],
+      beforeLibrary: [first, second, third],
+      removedItems: [first, second],
+    );
+
+    expect(restored, [first, second, third]);
+  });
+
+  test('appends restored items missing from the before snapshot', () {
+    final current = _item(id: 'current', path: '/tmp/current.png');
+    final restoredItem = _item(id: 'restored', path: '/tmp/restored.png');
+
+    final restored = restoreImageLibraryItemsInOriginalOrder(
+      currentLibrary: [current],
+      beforeLibrary: [current],
+      removedItems: [restoredItem],
+    );
+
+    expect(restored, [current, restoredItem]);
   });
 
   test('generation snapshot summary includes reusable request details', () {

@@ -4,6 +4,117 @@ import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('splits batch prompt lines while preserving order and duplicates', () {
+    final prompts = splitBatchPromptLines(
+      ' first prompt \r\n\nsecond prompt\nfirst prompt\n  \t\n third ',
+    );
+
+    expect(prompts, ['first prompt', 'second prompt', 'first prompt', 'third']);
+  });
+
+  test('builds batch generation job creation plan from prompts', () {
+    const config = ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+    const advancedSettings = ImageAdvancedSettings(
+      quality: 'high',
+      outputFormat: 'webp',
+    );
+
+    final plan = buildBatchGenerationJobCreationPlan(
+      apiConfig: config,
+      prompts: const [' first ', '', 'second'],
+      negativePrompt: ' blurry ',
+      size: '1024x1024',
+      targetCount: 10,
+      requestCount: 4,
+      advancedSettings: advancedSettings,
+      user: ' user-1 ',
+    );
+
+    expect(plan.canCreate, isTrue);
+    expect(plan.failure, isNull);
+    expect(plan.prompts, ['first', 'second']);
+    expect(plan.jobs.map((job) => job.prompt), [
+      'first',
+      'first',
+      'first',
+      'second',
+      'second',
+      'second',
+    ]);
+    expect(plan.jobs.map((job) => job.imageCount), [4, 4, 2, 4, 4, 2]);
+    expect(plan.jobs.map((job) => job.batchIndex), [1, 2, 3, 1, 2, 3]);
+    expect(plan.jobs.map((job) => job.batchTotal).toSet(), {3});
+    expect(plan.jobs.first.apiConfig, same(config));
+    expect(plan.jobs.first.negativePrompt, 'blurry');
+    expect(plan.jobs.first.size, '1024x1024');
+    expect(plan.jobs.first.advancedSettings, advancedSettings);
+    expect(plan.jobs.first.user, 'user-1');
+  });
+
+  test('rejects invalid batch generation job creation plans', () {
+    const validConfig = ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+
+    final emptyPrompts = buildBatchGenerationJobCreationPlan(
+      apiConfig: validConfig,
+      prompts: const [' ', ''],
+      negativePrompt: '',
+      size: '1024x1024',
+      targetCount: 1,
+      requestCount: 1,
+      advancedSettings: const ImageAdvancedSettings(),
+      user: '',
+    );
+    final missingApiKey = buildBatchGenerationJobCreationPlan(
+      apiConfig: validConfig.copyWith(apiKey: ' '),
+      prompts: const ['prompt'],
+      negativePrompt: '',
+      size: '1024x1024',
+      targetCount: 1,
+      requestCount: 1,
+      advancedSettings: const ImageAdvancedSettings(),
+      user: '',
+    );
+    final missingModel = buildBatchGenerationJobCreationPlan(
+      apiConfig: validConfig.copyWith(model: ' '),
+      prompts: const ['prompt'],
+      negativePrompt: '',
+      size: '1024x1024',
+      targetCount: 1,
+      requestCount: 1,
+      advancedSettings: const ImageAdvancedSettings(),
+      user: '',
+    );
+
+    expect(emptyPrompts.canCreate, isFalse);
+    expect(
+      emptyPrompts.failure,
+      BatchGenerationJobCreationFailure.missingPrompts,
+    );
+    expect(emptyPrompts.jobs, isEmpty);
+    expect(
+      missingApiKey.failure,
+      BatchGenerationJobCreationFailure.missingApiKey,
+    );
+    expect(missingApiKey.jobs, isEmpty);
+    expect(
+      missingModel.failure,
+      BatchGenerationJobCreationFailure.missingModel,
+    );
+    expect(missingModel.jobs, isEmpty);
+  });
+
   test('tracks batch generation job lifecycle helpers', () {
     const config = ApiConfig(
       id: 'config',

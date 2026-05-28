@@ -82,71 +82,46 @@ mixin _BatchGenerationStateMixin
     _batchPromptController.dispose();
   }
 
-  Future<List<BatchGenerationJob>?> _createBatchJobs(String prompt) async {
-    final trimmedPrompt = prompt.trim();
-    if (trimmedPrompt.isEmpty) {
-      return null;
-    }
-
-    final l10n = appL10nOf(context);
-    final apiConfig = await _prepareSelectedApiConfigForRequest();
-    if (apiConfig.apiKey.trim().isEmpty) {
-      _showMessage(l10n.batchGenerationMissingApiKey);
-      return null;
-    }
-    if (apiConfig.model.trim().isEmpty) {
-      _showMessage(l10n.batchGenerationMissingModel);
-      return null;
-    }
-
-    final batches = splitImageGenerationBatches(
-      targetCount: _batchTargetCount,
-      requestCount: _batchRequestCount,
-    );
-    return [
-      for (var index = 0; index < batches.length; index++)
-        BatchGenerationJob.create(
-          apiConfig: apiConfig,
-          prompt: trimmedPrompt,
-          negativePrompt: _negativePromptController.text.trim(),
-          size: _size,
-          imageCount: batches[index],
-          advancedSettings: _advancedSettings,
-          user: _userController.text.trim(),
-          batchIndex: index + 1,
-          batchTotal: batches.length,
-        ),
-    ];
-  }
-
   Future<void> _addBatchPromptLinesToQueue() async {
-    final prompts = _batchPromptController.text
-        .split(RegExp(r'\r?\n'))
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
+    final prompts = splitBatchPromptLines(_batchPromptController.text);
     final l10n = appL10nOf(context);
     if (prompts.isEmpty) {
       _showMessage(l10n.batchGenerationMissingPrompts);
       return;
     }
 
-    final jobs = <BatchGenerationJob>[];
-    for (final prompt in prompts) {
-      final promptJobs = await _createBatchJobs(prompt);
-      if (promptJobs == null) {
-        return;
+    final apiConfig = await _prepareSelectedApiConfigForRequest();
+    final plan = buildBatchGenerationJobCreationPlan(
+      apiConfig: apiConfig,
+      prompts: prompts,
+      negativePrompt: _negativePromptController.text,
+      size: _size,
+      targetCount: _batchTargetCount,
+      requestCount: _batchRequestCount,
+      advancedSettings: _advancedSettings,
+      user: _userController.text,
+    );
+    if (!plan.canCreate) {
+      switch (plan.failure) {
+        case BatchGenerationJobCreationFailure.missingPrompts:
+          _showMessage(l10n.batchGenerationMissingPrompts);
+        case BatchGenerationJobCreationFailure.missingApiKey:
+          _showMessage(l10n.batchGenerationMissingApiKey);
+        case BatchGenerationJobCreationFailure.missingModel:
+          _showMessage(l10n.batchGenerationMissingModel);
+        case null:
+          break;
       }
-      jobs.addAll(promptJobs);
+      return;
     }
     if (!mounted) {
       return;
     }
     setState(() {
-      _batchJobs = [..._batchJobs, ...jobs];
+      _batchJobs = [..._batchJobs, ...plan.jobs];
       _batchPromptController.clear();
     });
-    _showMessage(l10n.batchGenerationJobsAdded(jobs.length));
+    _showMessage(l10n.batchGenerationJobsAdded(plan.jobs.length));
   }
 
   void _setBatchTargetCount(int value) {

@@ -1,6 +1,119 @@
+import '../models/app_config.dart';
 import '../models/batch_generation_job.dart';
 import '../models/generated_image.dart';
+import '../models/image_advanced_settings.dart';
 import '../models/image_library_item.dart';
+import 'generation_limits.dart';
+
+enum BatchGenerationJobCreationFailure {
+  missingPrompts,
+  missingApiKey,
+  missingModel,
+}
+
+class BatchGenerationJobCreationPlan {
+  const BatchGenerationJobCreationPlan._({
+    required this.prompts,
+    required this.jobs,
+    this.failure,
+  });
+
+  factory BatchGenerationJobCreationPlan.valid({
+    required List<String> prompts,
+    required List<BatchGenerationJob> jobs,
+  }) {
+    return BatchGenerationJobCreationPlan._(
+      prompts: List<String>.unmodifiable(prompts),
+      jobs: List<BatchGenerationJob>.unmodifiable(jobs),
+    );
+  }
+
+  factory BatchGenerationJobCreationPlan.invalid(
+    BatchGenerationJobCreationFailure failure,
+  ) {
+    return BatchGenerationJobCreationPlan._(
+      prompts: const <String>[],
+      jobs: const <BatchGenerationJob>[],
+      failure: failure,
+    );
+  }
+
+  final List<String> prompts;
+  final List<BatchGenerationJob> jobs;
+  final BatchGenerationJobCreationFailure? failure;
+
+  bool get canCreate => failure == null;
+}
+
+List<String> splitBatchPromptLines(String value) {
+  return List<String>.unmodifiable(
+    value
+        .split(RegExp(r'\r?\n'))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty),
+  );
+}
+
+BatchGenerationJobCreationPlan buildBatchGenerationJobCreationPlan({
+  required ApiConfig apiConfig,
+  required List<String> prompts,
+  required String negativePrompt,
+  required String size,
+  required int targetCount,
+  required int requestCount,
+  required ImageAdvancedSettings advancedSettings,
+  required String user,
+}) {
+  final normalizedPrompts = prompts
+      .map((prompt) => prompt.trim())
+      .where((prompt) => prompt.isNotEmpty)
+      .toList();
+  if (normalizedPrompts.isEmpty) {
+    return BatchGenerationJobCreationPlan.invalid(
+      BatchGenerationJobCreationFailure.missingPrompts,
+    );
+  }
+  if (apiConfig.apiKey.trim().isEmpty) {
+    return BatchGenerationJobCreationPlan.invalid(
+      BatchGenerationJobCreationFailure.missingApiKey,
+    );
+  }
+  if (apiConfig.model.trim().isEmpty) {
+    return BatchGenerationJobCreationPlan.invalid(
+      BatchGenerationJobCreationFailure.missingModel,
+    );
+  }
+
+  final batches = splitImageGenerationBatches(
+    targetCount: targetCount,
+    requestCount: requestCount,
+  );
+  final trimmedNegativePrompt = negativePrompt.trim();
+  final trimmedUser = user.trim();
+  final jobs = <BatchGenerationJob>[];
+  for (final prompt in normalizedPrompts) {
+    for (var index = 0; index < batches.length; index++) {
+      jobs.add(
+        BatchGenerationJob.create(
+          apiConfig: apiConfig,
+          prompt: prompt,
+          negativePrompt: trimmedNegativePrompt,
+          size: size,
+          imageCount: batches[index],
+          advancedSettings: advancedSettings,
+          user: trimmedUser,
+          batchIndex: index + 1,
+          batchTotal: batches.length,
+        ),
+      );
+    }
+  }
+
+  return BatchGenerationJobCreationPlan.valid(
+    prompts: normalizedPrompts,
+    jobs: jobs,
+  );
+}
 
 class BatchGenerationFailureUpdate {
   const BatchGenerationFailureUpdate({

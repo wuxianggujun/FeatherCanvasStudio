@@ -213,8 +213,11 @@ mixin _ImageLibraryStateMixin
   set _editorImagePath(String? value);
   String? get _editorPatchImagePath;
   set _editorPatchImagePath(String? value);
+  String? get _generalEditorImagePath;
   set _generalEditorImagePath(String? value);
+  ImageInspectionResult? get _generalEditorImageInfo;
   set _generalEditorImageInfo(ImageInspectionResult? value);
+  String? get _generalEditorErrorMessage;
   set _generalEditorErrorMessage(String? value);
   set _editorRows(int value);
   set _editorColumns(int value);
@@ -236,6 +239,7 @@ mixin _ImageLibraryStateMixin
   set _animationProject(AnimationProject? value);
   String? get _selectedAnimationTrackId;
   set _selectedAnimationTrackId(String? value);
+  String? get _animationProjectErrorMessage;
   set _animationProjectErrorMessage(String? value);
   @override
   Future<void> _selectFeature(WorkspaceFeature feature);
@@ -1198,15 +1202,20 @@ mixin _ImageLibraryStateMixin
       return;
     }
 
-    final beforeSelectedIds = _selectedImageLibraryItemIds;
-    final beforeEditorImagePath = _editorImagePath;
-    final beforeEditorPatchImagePath = _editorPatchImagePath;
-    final beforeImageTemplateImagePaths = List<String>.unmodifiable(
-      _imageTemplateImagePaths,
+    final undoSnapshot = ImageLibraryDeletionUndoSnapshot(
+      library: _imageLibrary,
+      selectedItemIds: _selectedImageLibraryItemIds,
+      editorImagePath: _editorImagePath,
+      editorPatchImagePath: _editorPatchImagePath,
+      generalEditorImagePath: _generalEditorImagePath,
+      generalEditorImageInfo: _generalEditorImageInfo,
+      generalEditorErrorMessage: _generalEditorErrorMessage,
+      imageTemplateImagePaths: _imageTemplateImagePaths,
+      animationTemplateImagePath: _animationTemplateImagePath,
+      animationProject: _animationProject,
+      selectedAnimationTrackId: _selectedAnimationTrackId,
+      animationProjectErrorMessage: _animationProjectErrorMessage,
     );
-    final beforeAnimationTemplateImagePath = _animationTemplateImagePath;
-    final beforeAnimationProject = _animationProject;
-    final beforeSelectedAnimationTrackId = _selectedAnimationTrackId;
 
     final impact = await _imageLibraryService.deleteItems(
       store: _store,
@@ -1224,6 +1233,7 @@ mixin _ImageLibraryStateMixin
       selectedItemIds: _selectedImageLibraryItemIds,
       editorImagePath: _editorImagePath,
       editorPatchImagePath: _editorPatchImagePath,
+      generalEditorImagePath: _generalEditorImagePath,
       imageTemplateImagePaths: _imageTemplateImagePaths,
       animationTemplateImagePath: _animationTemplateImagePath,
       openAnimationProjectId: _animationProject?.id,
@@ -1233,18 +1243,8 @@ mixin _ImageLibraryStateMixin
         deletionStatePatch.clearsOpenAnimationProject;
     setState(() {
       _imageLibrary = impact.remainingItems;
-      _imageLibraryViewState = _imageLibraryViewState.copyWith(
-        selectedItemIds: cleanup.selectedItemIds,
-      );
-      _editorImagePath = cleanup.editorImagePath;
-      _editorPatchImagePath = cleanup.editorPatchImagePath;
-      _imageTemplateImagePaths = cleanup.imageTemplateImagePaths;
-      _animationTemplateImagePath = cleanup.animationTemplateImagePath;
-      if (removesOpenAnimationProject) {
-        _animationProject = null;
-        _selectedAnimationTrackId = null;
-        _animationProjectErrorMessage = null;
-      }
+      _applyImageLibraryReferenceCleanup(cleanup);
+      _clearOpenAnimationProjectIfNeeded(removesOpenAnimationProject);
     });
 
     final removedItems = List<ImageLibraryItem>.unmodifiable(
@@ -1279,6 +1279,7 @@ mixin _ImageLibraryStateMixin
               selectedItemIds: _selectedImageLibraryItemIds,
               editorImagePath: _editorImagePath,
               editorPatchImagePath: _editorPatchImagePath,
+              generalEditorImagePath: _generalEditorImagePath,
               imageTemplateImagePaths: _imageTemplateImagePaths,
               animationTemplateImagePath: _animationTemplateImagePath,
               openAnimationProjectId: null,
@@ -1287,19 +1288,8 @@ mixin _ImageLibraryStateMixin
             trashPaths = redoImpact.trashPaths;
             setState(() {
               _imageLibrary = redoImpact.remainingItems;
-              _imageLibraryViewState = _imageLibraryViewState.copyWith(
-                selectedItemIds: redoCleanup.selectedItemIds,
-              );
-              _editorImagePath = redoCleanup.editorImagePath;
-              _editorPatchImagePath = redoCleanup.editorPatchImagePath;
-              _imageTemplateImagePaths = redoCleanup.imageTemplateImagePaths;
-              _animationTemplateImagePath =
-                  redoCleanup.animationTemplateImagePath;
-              if (removesOpenAnimationProject) {
-                _animationProject = null;
-                _selectedAnimationTrackId = null;
-                _animationProjectErrorMessage = null;
-              }
+              _applyImageLibraryReferenceCleanup(redoCleanup);
+              _clearOpenAnimationProjectIfNeeded(removesOpenAnimationProject);
             });
           },
           revert: () async {
@@ -1308,22 +1298,14 @@ mixin _ImageLibraryStateMixin
               store: _store,
               fileService: _fileService,
               currentLibrary: _imageLibrary,
+              beforeLibrary: undoSnapshot.library,
               removedItems: removedItems,
               trashPaths: trashPaths,
             );
             if (!mounted) return;
             setState(() {
               _imageLibrary = restoredLibrary;
-              _imageLibraryViewState = _imageLibraryViewState.copyWith(
-                selectedItemIds: beforeSelectedIds,
-              );
-              _editorImagePath = beforeEditorImagePath;
-              _editorPatchImagePath = beforeEditorPatchImagePath;
-              _imageTemplateImagePaths = beforeImageTemplateImagePaths;
-              _animationTemplateImagePath = beforeAnimationTemplateImagePath;
-              _animationProject = beforeAnimationProject;
-              _selectedAnimationTrackId = beforeSelectedAnimationTrackId;
-              _animationProjectErrorMessage = null;
+              _restoreImageLibraryDeletionUndoSnapshot(undoSnapshot);
             });
           },
         ),
@@ -1337,6 +1319,50 @@ mixin _ImageLibraryStateMixin
               context,
             ).imageLibraryStateDeletedMany(impact.removedItems.length),
     );
+  }
+
+  void _applyImageLibraryReferenceCleanup(
+    ImageLibraryReferenceCleanup cleanup,
+  ) {
+    _imageLibraryViewState = _imageLibraryViewState.copyWith(
+      selectedItemIds: cleanup.selectedItemIds,
+    );
+    _editorImagePath = cleanup.editorImagePath;
+    _editorPatchImagePath = cleanup.editorPatchImagePath;
+    if (_generalEditorImagePath != cleanup.generalEditorImagePath) {
+      _generalEditorImageInfo = null;
+      _generalEditorErrorMessage = null;
+    }
+    _generalEditorImagePath = cleanup.generalEditorImagePath;
+    _imageTemplateImagePaths = cleanup.imageTemplateImagePaths;
+    _animationTemplateImagePath = cleanup.animationTemplateImagePath;
+  }
+
+  void _clearOpenAnimationProjectIfNeeded(bool shouldClear) {
+    if (!shouldClear) {
+      return;
+    }
+    _animationProject = null;
+    _selectedAnimationTrackId = null;
+    _animationProjectErrorMessage = null;
+  }
+
+  void _restoreImageLibraryDeletionUndoSnapshot(
+    ImageLibraryDeletionUndoSnapshot snapshot,
+  ) {
+    _imageLibraryViewState = _imageLibraryViewState.copyWith(
+      selectedItemIds: snapshot.selectedItemIds,
+    );
+    _editorImagePath = snapshot.editorImagePath;
+    _editorPatchImagePath = snapshot.editorPatchImagePath;
+    _generalEditorImagePath = snapshot.generalEditorImagePath;
+    _generalEditorImageInfo = snapshot.generalEditorImageInfo;
+    _generalEditorErrorMessage = snapshot.generalEditorErrorMessage;
+    _imageTemplateImagePaths = snapshot.imageTemplateImagePaths;
+    _animationTemplateImagePath = snapshot.animationTemplateImagePath;
+    _animationProject = snapshot.animationProject;
+    _selectedAnimationTrackId = snapshot.selectedAnimationTrackId;
+    _animationProjectErrorMessage = snapshot.animationProjectErrorMessage;
   }
 
   Future<void> _useImageLibraryItemInEditor(ImageLibraryItem item) async {

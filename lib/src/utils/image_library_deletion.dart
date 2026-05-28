@@ -1,5 +1,7 @@
+import '../models/animation_project.dart';
 import '../models/image_asset_kind.dart';
 import '../models/image_library_item.dart';
+import '../services/general_image_editing_service.dart';
 
 class ImageLibraryDeletePlan {
   const ImageLibraryDeletePlan({
@@ -42,6 +44,7 @@ class ImageLibraryReferenceCleanup {
     required this.selectedItemIds,
     required this.editorImagePath,
     required this.editorPatchImagePath,
+    required this.generalEditorImagePath,
     required this.imageTemplateImagePaths,
     required this.animationTemplateImagePath,
   });
@@ -49,6 +52,7 @@ class ImageLibraryReferenceCleanup {
   final Set<String> selectedItemIds;
   final String? editorImagePath;
   final String? editorPatchImagePath;
+  final String? generalEditorImagePath;
   final List<String> imageTemplateImagePaths;
   final String? animationTemplateImagePath;
 }
@@ -61,6 +65,66 @@ class ImageLibraryDeletionStatePatch {
 
   final ImageLibraryReferenceCleanup referenceCleanup;
   final bool clearsOpenAnimationProject;
+}
+
+class ImageLibraryDeletionUndoSnapshot {
+  ImageLibraryDeletionUndoSnapshot({
+    required List<ImageLibraryItem> library,
+    required Set<String> selectedItemIds,
+    required this.editorImagePath,
+    required this.editorPatchImagePath,
+    required this.generalEditorImagePath,
+    required this.generalEditorImageInfo,
+    required this.generalEditorErrorMessage,
+    required List<String> imageTemplateImagePaths,
+    required this.animationTemplateImagePath,
+    required this.animationProject,
+    required this.selectedAnimationTrackId,
+    required this.animationProjectErrorMessage,
+  }) : library = List<ImageLibraryItem>.unmodifiable(library),
+       selectedItemIds = Set<String>.unmodifiable(selectedItemIds),
+       imageTemplateImagePaths = List<String>.unmodifiable(
+         imageTemplateImagePaths,
+       );
+
+  final List<ImageLibraryItem> library;
+  final Set<String> selectedItemIds;
+  final String? editorImagePath;
+  final String? editorPatchImagePath;
+  final String? generalEditorImagePath;
+  final ImageInspectionResult? generalEditorImageInfo;
+  final String? generalEditorErrorMessage;
+  final List<String> imageTemplateImagePaths;
+  final String? animationTemplateImagePath;
+  final AnimationProject? animationProject;
+  final String? selectedAnimationTrackId;
+  final String? animationProjectErrorMessage;
+}
+
+List<ImageLibraryItem> restoreImageLibraryItemsInOriginalOrder({
+  required List<ImageLibraryItem> currentLibrary,
+  required List<ImageLibraryItem> beforeLibrary,
+  required List<ImageLibraryItem> removedItems,
+}) {
+  final currentById = {for (final item in currentLibrary) item.id: item};
+  final removedById = {for (final item in removedItems) item.id: item};
+  final emittedIds = <String>{};
+  final nextLibrary = <ImageLibraryItem>[];
+
+  for (final item in beforeLibrary) {
+    final restored = currentById[item.id] ?? removedById[item.id];
+    if (restored != null && emittedIds.add(restored.id)) {
+      nextLibrary.add(restored);
+    }
+  }
+
+  for (final item in [...removedItems, ...currentLibrary]) {
+    if (emittedIds.add(item.id)) {
+      nextLibrary.add(item);
+    }
+  }
+
+  return List<ImageLibraryItem>.unmodifiable(nextLibrary);
 }
 
 ImageLibraryDeletePlan buildImageLibraryDeletePlan({
@@ -117,6 +181,7 @@ ImageLibraryDeletionStatePatch buildImageLibraryDeletionStatePatch({
   required Set<String> selectedItemIds,
   required String? editorImagePath,
   required String? editorPatchImagePath,
+  required String? generalEditorImagePath,
   required List<String> imageTemplateImagePaths,
   required String? animationTemplateImagePath,
   required String? openAnimationProjectId,
@@ -128,6 +193,7 @@ ImageLibraryDeletionStatePatch buildImageLibraryDeletionStatePatch({
       selectedItemIds: selectedItemIds,
       editorImagePath: editorImagePath,
       editorPatchImagePath: editorPatchImagePath,
+      generalEditorImagePath: generalEditorImagePath,
       imageTemplateImagePaths: imageTemplateImagePaths,
       animationTemplateImagePath: animationTemplateImagePath,
     ),
@@ -147,6 +213,7 @@ ImageLibraryReferenceCleanup cleanDeletedImageLibraryReferences({
   required Set<String> selectedItemIds,
   required String? editorImagePath,
   required String? editorPatchImagePath,
+  required String? generalEditorImagePath,
   required List<String> imageTemplateImagePaths,
   required String? animationTemplateImagePath,
 }) {
@@ -157,6 +224,10 @@ ImageLibraryReferenceCleanup cleanDeletedImageLibraryReferences({
     },
     editorImagePath: _clearRemovedPath(editorImagePath, removedPaths),
     editorPatchImagePath: _clearRemovedPath(editorPatchImagePath, removedPaths),
+    generalEditorImagePath: _clearRemovedPath(
+      generalEditorImagePath,
+      removedPaths,
+    ),
     imageTemplateImagePaths: _filterRemovedPaths(
       imageTemplateImagePaths,
       removedPaths,

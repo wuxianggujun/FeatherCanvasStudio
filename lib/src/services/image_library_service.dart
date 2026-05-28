@@ -321,6 +321,7 @@ class ImageLibraryService {
     required AppLocalStore store,
     required ImageLibraryFileService fileService,
     required List<ImageLibraryItem> currentLibrary,
+    required List<ImageLibraryItem> beforeLibrary,
     required List<ImageLibraryItem> removedItems,
     required Map<String, String> trashPaths,
   }) async {
@@ -330,12 +331,11 @@ class ImageLibraryService {
         trashPath: entry.value,
       );
     }
-    final existingIds = {for (final item in currentLibrary) item.id};
-    final restored = [
-      for (final item in removedItems)
-        if (!existingIds.contains(item.id)) item,
-    ];
-    final nextLibrary = [...restored, ...currentLibrary];
+    final nextLibrary = restoreImageLibraryItemsInOriginalOrder(
+      currentLibrary: currentLibrary,
+      beforeLibrary: beforeLibrary,
+      removedItems: removedItems,
+    );
     await store.saveImageLibrary(nextLibrary);
     return nextLibrary;
   }
