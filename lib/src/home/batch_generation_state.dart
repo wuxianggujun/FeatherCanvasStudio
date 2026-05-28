@@ -197,7 +197,7 @@ mixin _BatchGenerationStateMixin
     setState(() {
       _batchJobs = [
         for (final job in _batchJobs)
-          if (job.canRetry) _requeueFailedBatchJob(job) else job,
+          if (job.canRetry) requeueFailedBatchJob(job) else job,
       ];
     });
     _showMessage(
@@ -223,21 +223,10 @@ mixin _BatchGenerationStateMixin
       _batchJobs = _replaceBatchJob(
         _batchJobs,
         jobIndex,
-        _requeueFailedBatchJob(_batchJobs[jobIndex]),
+        requeueFailedBatchJob(_batchJobs[jobIndex]),
       );
     });
     _showMessage(appL10nOf(context).batchGenerationFailedJobRequeued);
-  }
-
-  BatchGenerationJob _requeueFailedBatchJob(BatchGenerationJob job) {
-    return job.copyWith(
-      status: BatchGenerationJobStatus.queued,
-      retryAttempt: 0,
-      resultImages: const <GeneratedImage>[],
-      libraryItems: const <ImageLibraryItem>[],
-      clearErrorMessage: true,
-      clearDebugRecord: true,
-    );
   }
 
   Future<void> _startBatchGenerationQueue() async {
@@ -486,10 +475,7 @@ mixin _BatchGenerationStateMixin
     int index,
     BatchGenerationJob replacement,
   ) {
-    return [
-      for (var i = 0; i < jobs.length; i++)
-        if (i == index) replacement else jobs[i],
-    ];
+    return replaceBatchGenerationJob(jobs, index, replacement);
   }
 
   List<BatchGenerationJob> _replaceBatchPreviewImage({
@@ -498,35 +484,12 @@ mixin _BatchGenerationStateMixin
     required GeneratedImage replacement,
     required ImageLibraryItem appendedItem,
   }) {
-    var remainingIndex = previewIndex;
-    var replaced = false;
-    final updatedJobs = <BatchGenerationJob>[];
-
-    for (final job in jobs) {
-      final images = List<GeneratedImage>.of(job.resultImages);
-      if (!replaced) {
-        for (var imageIndex = 0; imageIndex < images.length; imageIndex++) {
-          if (remainingIndex == 0) {
-            images[imageIndex] = replacement;
-            updatedJobs.add(
-              job.copyWith(
-                resultImages: List.unmodifiable(images),
-                libraryItems: [...job.libraryItems, appendedItem],
-              ),
-            );
-            replaced = true;
-            break;
-          }
-          remainingIndex -= 1;
-        }
-      }
-
-      if (!replaced || updatedJobs.last.id != job.id) {
-        updatedJobs.add(job);
-      }
-    }
-
-    return updatedJobs;
+    return replaceBatchPreviewImage(
+      jobs: jobs,
+      previewIndex: previewIndex,
+      replacement: replacement,
+      appendedItem: appendedItem,
+    );
   }
 
   Widget _buildBatchGenerationWorkspace() {

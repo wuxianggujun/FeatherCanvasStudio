@@ -74,6 +74,65 @@ BatchGenerationFailureUpdate updateBatchJobAfterFailure({
   );
 }
 
+BatchGenerationJob requeueFailedBatchJob(BatchGenerationJob job) {
+  return job.copyWith(
+    status: BatchGenerationJobStatus.queued,
+    retryAttempt: 0,
+    resultImages: const <GeneratedImage>[],
+    libraryItems: const <ImageLibraryItem>[],
+    clearErrorMessage: true,
+    clearDebugRecord: true,
+  );
+}
+
+List<BatchGenerationJob> replaceBatchGenerationJob(
+  List<BatchGenerationJob> jobs,
+  int index,
+  BatchGenerationJob replacement,
+) {
+  return [
+    for (var i = 0; i < jobs.length; i++)
+      if (i == index) replacement else jobs[i],
+  ];
+}
+
+List<BatchGenerationJob> replaceBatchPreviewImage({
+  required List<BatchGenerationJob> jobs,
+  required int previewIndex,
+  required GeneratedImage replacement,
+  required ImageLibraryItem appendedItem,
+}) {
+  var remainingIndex = previewIndex;
+  var replaced = false;
+  final updatedJobs = <BatchGenerationJob>[];
+
+  for (final job in jobs) {
+    final images = List<GeneratedImage>.of(job.resultImages);
+    if (!replaced) {
+      for (var imageIndex = 0; imageIndex < images.length; imageIndex++) {
+        if (remainingIndex == 0) {
+          images[imageIndex] = replacement;
+          updatedJobs.add(
+            job.copyWith(
+              resultImages: List.unmodifiable(images),
+              libraryItems: [...job.libraryItems, appendedItem],
+            ),
+          );
+          replaced = true;
+          break;
+        }
+        remainingIndex -= 1;
+      }
+    }
+
+    if (!replaced || updatedJobs.last.id != job.id) {
+      updatedJobs.add(job);
+    }
+  }
+
+  return updatedJobs;
+}
+
 String defaultBatchAutoRetryMessage({
   required int retryAttempt,
   required int maxRetryAttempts,

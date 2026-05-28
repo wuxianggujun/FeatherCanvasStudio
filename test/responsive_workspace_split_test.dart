@@ -72,4 +72,50 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getDouble('workspaceSplit.controlsWidth.test-split'), isNull);
   });
+
+  testWidgets('responsive workspace split stretches handle in scroll layout', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1200, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: SizedBox(
+              width: 1000,
+              child: ResponsiveWorkspaceSplit(
+                storageKey: 'scroll-layout-test-split',
+                controlsWidth: 320,
+                minControlsWidth: 240,
+                maxControlsWidth: 520,
+                controls: SizedBox(
+                  key: ValueKey('scroll-controls-panel'),
+                  height: 240,
+                  child: ColoredBox(color: Colors.red),
+                ),
+                preview: SizedBox(
+                  key: ValueKey('scroll-preview-panel'),
+                  height: 420,
+                  child: ColoredBox(color: Colors.blue),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final handle = find.byType(WorkspaceResizeHandle);
+    final preview = find.byKey(const ValueKey('scroll-preview-panel'));
+
+    expect(handle, findsOneWidget);
+    expect(tester.getSize(handle).width, WorkspaceResizeHandle.hitExtent);
+    expect(tester.getSize(handle).height, tester.getSize(preview).height);
+  });
 }

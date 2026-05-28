@@ -399,3 +399,127 @@ Phase 22 GIF 合成后台化已完成：GIF 合成中的读图、解码、缩放
 1. 继续 Phase 21 第二批，小步收敛作品库文件服务 / merge / 操作结果状态，避免 `image_library_state.dart` 再次膨胀。
 2. 做一次 Windows debug 编译和单实例启动，给用户手测作品库、图片编辑器、动画工程三条主线。
 3. 如果手测稳定，再提交推送本轮状态收敛。
+
+## 2026-05-25 Phase 21 第二批状态边界收敛
+
+本轮继续按文档推进 `image_library_state.dart`，优先处理低风险的作品库列表 merge 子簇，不改变 UI 行为。
+
+完成项：
+
+- 新增 `ImageLibraryMergePatch`，集中承载作品库追加条目和移除条目 ID。
+- 新增 `mergeImageLibraryItems` 纯函数，保留原有“新增项置顶、同 ID 新增项覆盖旧项、移除指定 ID”的合并语义。
+- `_applyImageLibraryMerge` 仍保留原有签名、持久化、`mounted` 和 `setState` 边界，只把内部列表合并计算改为调用独立工具。
+- 新增 `image_library_merge_test.dart`，覆盖追加、移除、同 ID 覆盖和无变更顺序保持。
+
+本轮验证：
+
+- `D:\Programs\flutter\bin\cache\dart-sdk\bin\dart.exe format lib\src\utils\image_library_merge.dart lib\main.dart lib\feather_canvas_studio.dart lib\src\home\image_library_state.dart test\image_library_merge_test.dart` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_merge_test.dart test\image_library_pagination_test.dart test\image_library_menu_test.dart test\image_library_deletion_test.dart test\image_library_service_test.dart test\image_library_view_data_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+- `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
+下一步建议：
+
+1. 继续 Phase 21 第二批，但不要把文件服务和删除 undo/redo 同批拆；优先选择一个独立状态簇。
+2. 后续可单独处理删除操作结果状态，围绕 `ImageLibraryDeleteImpact`、`trashPaths` 和引用清理做最小测试后再迁移。
+3. 按发布前基线做必要手测，再决定是否提交本轮状态收敛。
+
+## 2026-05-25 Phase 21 第二批删除状态补丁收敛
+
+本轮继续在 `image_library_state.dart` 内做小步边界收敛，处理删除后的引用清理和打开中动画工程清空判断，不改变 UI 行为。
+
+完成项：
+
+- 新增 `ImageLibraryDeletionStatePatch`，集中承载删除后的引用清理结果和是否需要清空当前打开动画工程。
+- 新增 `buildImageLibraryDeletionStatePatch` 纯函数，复用现有 `ImageLibraryDeleteImpact`、选中项 ID、编辑器引用路径和当前打开工程 ID 计算状态补丁。
+- `_deleteImageLibraryItems` 和删除历史 redo 路径改为通过状态补丁读取清理后的选中项、编辑器引用和动画工程清空判断，减少重复手写状态计算。
+- `image_library_deletion_test.dart` 新增状态补丁回归，覆盖删除路径引用清理、选中项清理、当前打开动画工程命中与未命中。
+
+本轮验证：
+
+- `D:\Programs\flutter\bin\cache\dart-sdk\bin\dart.exe format lib\src\utils\image_library_deletion.dart lib\src\home\image_library_state.dart test\image_library_deletion_test.dart` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_deletion_test.dart test\image_library_merge_test.dart test\image_library_pagination_test.dart test\image_library_menu_test.dart test\image_library_service_test.dart test\image_library_view_data_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+- `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
+下一步建议：
+
+1. 继续 Phase 21 第二批时，可以再小步收敛文件操作状态，但不要同时改剪贴板、导出、打开位置三条路径。
+2. 若继续删除链路，优先把 undo/redo 的快照字段收束为私有快照对象，仍保持 `HistoryAction` 外部行为不变。
+
+## 2026-05-25 Phase 21 第二批批量导出计划收敛
+
+本轮继续收敛作品库文件操作状态，只处理“导出已选作品”前的纯计划计算，不改变目录选择、文件复制、剪贴板或打开位置行为。
+
+完成项：
+
+- 新增 `ImageLibrarySelectedExportPlan`，集中承载已选作品、实际存在的作品和缺失文件数量。
+- 新增 `selectedImageLibraryItemsForExport`，保持按作品库当前顺序提取选中作品。
+- 新增 `buildImageLibrarySelectedExportPlan`，把批量导出前的文件存在性检查和缺失计数从 `image_library_state.dart` 中移出。
+- `_exportSelectedImageLibraryItems` 保留原有选择目录、复制文件和消息提示边界，只改为读取导出计划。
+- 新增 `image_library_export_plan_test.dart`，覆盖选中顺序、存在/缺失拆分和全部缺失状态。
+
+本轮验证：
+
+- `D:\Programs\flutter\bin\cache\dart-sdk\bin\dart.exe format lib\src\utils\image_library_export_plan.dart lib\main.dart lib\feather_canvas_studio.dart lib\src\home\image_library_state.dart test\image_library_export_plan_test.dart` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_export_plan_test.dart test\image_library_deletion_test.dart test\image_library_merge_test.dart test\image_library_pagination_test.dart test\image_library_menu_test.dart test\image_library_service_test.dart test\image_library_view_data_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+- `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
+下一步建议：
+
+1. 若继续文件操作状态收敛，可以单独处理“复制图片 / 复制路径”的结果映射，但不要同批改导出和打开位置。
+2. 若准备提交，先根据发布前清单手测作品库多选导出、单项导出、删除撤销 / 重做和图片编辑打开路径。
+
+## 2026-05-25 Phase 21 第二批文件反馈映射收敛
+
+本轮继续收敛作品库文件操作状态，只抽离复制图片和打开文件位置的结果提示映射，不改变平台调用和文件操作行为。
+
+完成项：
+
+- 新增 `imageLibraryClipboardCopyMessage`，把 `ImageClipboardCopyStatus` 映射为调用方传入的本地化提示。
+- 新增 `imageLibraryOpenLocationMessage`，把 `OpenFileLocationStatus` 映射为调用方传入的本地化提示。
+- `_copyImageLibraryItemImage` 和 `_openImageLibraryItemLocation` 保留原有文件服务调用，只改为通过反馈映射工具生成提示文案。
+- 新增 `image_library_file_feedback_test.dart`，覆盖复制图片和打开位置的所有状态分支。
+
+本轮验证：
+
+- `D:\Programs\flutter\bin\cache\dart-sdk\bin\dart.exe format lib\src\utils\image_library_file_feedback.dart lib\main.dart lib\feather_canvas_studio.dart lib\src\home\image_library_state.dart test\image_library_file_feedback_test.dart` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\image_library_file_feedback_test.dart test\image_library_export_plan_test.dart test\image_library_deletion_test.dart test\image_library_merge_test.dart test\image_library_menu_test.dart test\image_library_service_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+- `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
+下一步建议：
+
+1. 文件操作状态收敛可以暂告一段落；继续拆会触及平台 API 或更大交互链路。
+2. 更适合下一轮做提交前手测和整理，或转向 `batch_generation_state.dart` 的纯派生逻辑收敛。
+
+## 2026-05-25 Phase 21 第二批批量生成派生状态收敛
+
+本轮按交接建议转向 `batch_generation_state.dart` 和批量生成工作区，只处理纯派生逻辑与队列列表变换，不改变 UI 行为、服务调用、文件 IO 或平台调用。
+
+完成项：
+
+- 新增 `batch_generation_view_data.dart`：
+  - `BatchGenerationJobSummary` / `summarizeBatchGenerationJobs` 承载队列计数、预览图上限、目标预览数量、预览比例和最新调试记录。
+  - `BatchQueueStatusKind` / `batchQueueStatusKind` 承载队列提示状态选择。
+  - `BatchQueueControlsState` / `deriveBatchQueueControlsState` 承载开始、暂停、恢复、取消等待、重试失败、清理完成等操作的禁用原因代码。
+- 扩展 `batch_generation_queue.dart`：
+  - `requeueFailedBatchJob` 抽出手动重试失败任务的状态重置规则。
+  - `replaceBatchGenerationJob` 抽出按 index 替换任务的列表变换。
+  - `replaceBatchPreviewImage` 抽出按扁平预览索引替换结果图并追加作品库条目的列表变换。
+- `batch_generation_workspace.dart` 改为读取批量视图派生数据；本地化文案仍在 widget 层映射，按钮语义和禁用行为保持不变。
+- `batch_generation_state.dart` 保留原 `setState`、服务调用和透明背景保存边界，只把重试、任务替换和预览图替换委托给队列工具。
+- 新增 `batch_generation_view_data_test.dart`，扩展 `batch_generation_job_test.dart`，覆盖摘要、预览上限、状态枚举、操作禁用原因、失败任务重入队和跨任务预览图替换。
+
+本轮验证：
+
+- `D:\Programs\flutter\bin\cache\dart-sdk\bin\dart.exe format lib\src\utils\batch_generation_view_data.dart lib\src\utils\batch_generation_queue.dart lib\src\widgets\workspaces\batch_generation_workspace.dart lib\src\home\batch_generation_state.dart lib\main.dart lib\feather_canvas_studio.dart test\batch_generation_view_data_test.dart test\batch_generation_job_test.dart` 通过。
+- `D:\Programs\flutter\bin\flutter.bat test test\batch_generation_view_data_test.dart test\batch_generation_job_test.dart test\batch_generation_workspace_test.dart test\image_generation_builders_test.dart test\app_test.dart --timeout 60s --reporter expanded` 通过。
+- `D:\Programs\flutter\bin\flutter.bat analyze` 通过。
+- `D:\Programs\flutter\bin\flutter.bat build windows --debug` 通过。
+
+下一步建议：
+
+1. 优先做提交前手测和整理，重点覆盖批量生成按钮状态、失败任务重试、透明背景回填预览图、作品库导出 / 删除撤销重做。
+2. 若继续状态收敛，可再小步处理批量提示词拆分 / 创建任务前校验计划，但不要同批改服务调用或实际队列执行循环。

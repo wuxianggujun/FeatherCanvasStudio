@@ -211,30 +211,63 @@ class _ResponsiveWorkspaceSplitState extends State<ResponsiveWorkspaceSplit> {
             .clamp(widget.minControlsWidth, maxControlsWidth)
             .toDouble();
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(width: controlsWidth, child: widget.controls),
-            if (widget.resizable)
-              WorkspaceResizeHandle(
-                axis: Axis.vertical,
-                tooltip: _splitHandleTooltip(context),
-                onDragUpdate: (details) {
-                  setState(() {
-                    _controlsWidth = (controlsWidth + details.delta.dx)
-                        .clamp(widget.minControlsWidth, maxControlsWidth)
-                        .toDouble();
-                  });
-                },
-                onDragEnd: () {
-                  final w = _controlsWidth;
-                  if (w != null) _persistWidth(w);
-                },
-                onDoubleTap: _resetWidth,
-              )
-            else
+        if (!widget.resizable) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: controlsWidth, child: widget.controls),
               const SizedBox(width: layoutGap),
-            Expanded(child: widget.preview),
+              Expanded(child: widget.preview),
+            ],
+          );
+        }
+
+        final handle = WorkspaceResizeHandle(
+          axis: Axis.vertical,
+          tooltip: _splitHandleTooltip(context),
+          onDragUpdate: (details) {
+            setState(() {
+              _controlsWidth = (controlsWidth + details.delta.dx)
+                  .clamp(widget.minControlsWidth, maxControlsWidth)
+                  .toDouble();
+            });
+          },
+          onDragEnd: () {
+            final w = _controlsWidth;
+            if (w != null) _persistWidth(w);
+          },
+          onDoubleTap: _resetWidth,
+        );
+
+        if (constraints.hasBoundedHeight) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: controlsWidth, child: widget.controls),
+              handle,
+              Expanded(child: widget.preview),
+            ],
+          );
+        }
+
+        // 非固定高度页面先由左右面板撑开分割区，再让拖拽热区填满该高度。
+        return Stack(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(width: controlsWidth, child: widget.controls),
+                const SizedBox(width: WorkspaceResizeHandle.hitExtent),
+                Expanded(child: widget.preview),
+              ],
+            ),
+            PositionedDirectional(
+              start: controlsWidth,
+              top: 0,
+              bottom: 0,
+              width: WorkspaceResizeHandle.hitExtent,
+              child: handle,
+            ),
           ],
         );
       },
@@ -265,7 +298,7 @@ class WorkspaceResizeHandle extends StatelessWidget {
   final GestureDragUpdateCallback onDragUpdate;
   final VoidCallback? onDragEnd;
   final VoidCallback? onDoubleTap;
-  static const double _hitExtent = 20;
+  static const double hitExtent = 20;
   static const double _fallbackExtent = 128;
 
   @override
@@ -280,10 +313,10 @@ class WorkspaceResizeHandle extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final handleWidth = isVertical ? _hitExtent : double.infinity;
+        final handleWidth = isVertical ? hitExtent : double.infinity;
         final handleHeight = isVertical
             ? (constraints.hasBoundedHeight ? double.infinity : _fallbackExtent)
-            : _hitExtent;
+            : hitExtent;
 
         return MouseRegion(
           cursor: cursor,

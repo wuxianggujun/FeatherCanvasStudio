@@ -658,12 +658,12 @@ class _AnimationProjectWorkbench extends StatefulWidget {
 
 class _AnimationProjectWorkbenchState
     extends State<_AnimationProjectWorkbench> {
-  static const double _defaultControlsWidth = 392;
+  static const double _defaultControlsWidth = 420;
   static const double _minControlsWidth = 320;
   static const double _maxControlsWidth = 540;
   static const double _minPreviewWidth = 360;
   static const double _minStageHeight = 320;
-  static const double _minTimelineHeight = 280;
+  static const double _minTimelineHeight = 240;
   static const double _maxTimelineHeight = 520;
   static const String _controlsWidthPrefsKey =
       'animationProject.workbench.controlsWidth';
@@ -721,7 +721,7 @@ class _AnimationProjectWorkbenchState
   }
 
   double _defaultTimelineHeight(double maxHeight) {
-    return maxHeight < 760 ? 320 : 360;
+    return maxHeight < 760 ? 280 : 320;
   }
 
   double _clampControlsWidth(double width, double maxWidth) {
@@ -736,7 +736,7 @@ class _AnimationProjectWorkbenchState
   double _clampTimelineHeight(double height, double maxHeight) {
     final availableMax = math.max(
       _minTimelineHeight,
-      maxHeight - layoutGap - _minStageHeight,
+      maxHeight - WorkspaceResizeHandle.hitExtent - _minStageHeight,
     );
     final maxTimelineHeight = math.min(_maxTimelineHeight, availableMax);
     return height.clamp(_minTimelineHeight, maxTimelineHeight).toDouble();
@@ -1013,50 +1013,14 @@ class _AnimationProjectPanel extends StatelessWidget {
                   label: Text(l10n.animationProjectAddTrack),
                 ),
               ),
-              _DisabledActionSemantics(
-                label: l10n.animationProjectExportCompositedSpriteSheet,
+              _ProjectExportMenuButton(
+                enabled: !isBusy,
                 disabledReason: busyDisabledReason,
-                child: FilledButton.tonalIcon(
-                  onPressed: isBusy ? null : onExportProjectSpriteSheet,
-                  icon: const Icon(Icons.grid_on_outlined),
-                  label: Text(l10n.animationProjectExportCompositedSpriteSheet),
-                ),
-              ),
-              _DisabledActionSemantics(
-                label: l10n.animationProjectExportProjectGif,
-                disabledReason: busyDisabledReason,
-                child: FilledButton.tonalIcon(
-                  onPressed: isBusy ? null : onExportProjectGif,
-                  icon: const Icon(Icons.movie_outlined),
-                  label: Text(l10n.animationProjectExportProjectGif),
-                ),
-              ),
-              _DisabledActionSemantics(
-                label: l10n.animationProjectExportProjectPngSequence,
-                disabledReason: busyDisabledReason,
-                child: FilledButton.tonalIcon(
-                  onPressed: isBusy ? null : onExportProjectPngSequence,
-                  icon: const Icon(Icons.collections_outlined),
-                  label: Text(l10n.animationProjectExportProjectPngSequence),
-                ),
-              ),
-              _DisabledActionSemantics(
-                label: l10n.animationProjectExportTrackGif,
-                disabledReason: busyDisabledReason,
-                child: FilledButton.tonalIcon(
-                  onPressed: isBusy ? null : onExportTrackGif,
-                  icon: const Icon(Icons.gif_box_outlined),
-                  label: Text(l10n.animationProjectExportTrackGif),
-                ),
-              ),
-              _DisabledActionSemantics(
-                label: l10n.animationProjectExportPngSequence,
-                disabledReason: busyDisabledReason,
-                child: FilledButton.tonalIcon(
-                  onPressed: isBusy ? null : onExportTrackPngSequence,
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: Text(l10n.animationProjectExportPngSequence),
-                ),
+                onExportProjectSpriteSheet: onExportProjectSpriteSheet,
+                onExportProjectGif: onExportProjectGif,
+                onExportProjectPngSequence: onExportProjectPngSequence,
+                onExportTrackGif: onExportTrackGif,
+                onExportTrackPngSequence: onExportTrackPngSequence,
               ),
               _DisabledActionSemantics(
                 label: l10n.animationProjectCloseProject,
@@ -1116,6 +1080,104 @@ class _DisabledActionSemantics extends StatelessWidget {
       button: true,
       enabled: false,
       child: child,
+    );
+  }
+}
+
+class _ProjectExportMenuButton extends StatelessWidget {
+  const _ProjectExportMenuButton({
+    required this.enabled,
+    required this.disabledReason,
+    required this.onExportProjectSpriteSheet,
+    required this.onExportProjectGif,
+    required this.onExportProjectPngSequence,
+    required this.onExportTrackGif,
+    required this.onExportTrackPngSequence,
+  });
+
+  final bool enabled;
+  final String? disabledReason;
+  final VoidCallback onExportProjectSpriteSheet;
+  final VoidCallback onExportProjectGif;
+  final VoidCallback onExportProjectPngSequence;
+  final VoidCallback onExportTrackGif;
+  final VoidCallback onExportTrackPngSequence;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    return _DisabledActionSemantics(
+      label: l10n.exportImageTooltip,
+      disabledReason: disabledReason,
+      child: PopupMenuButton<VoidCallback>(
+        tooltip: l10n.exportImageTooltip,
+        enabled: enabled,
+        onSelected: (action) => action(),
+        itemBuilder: (context) => [
+          PopupMenuItem<VoidCallback>(
+            value: onExportProjectSpriteSheet,
+            child: _MenuActionLabel(
+              icon: Icons.grid_on_outlined,
+              label: l10n.animationProjectExportCompositedSpriteSheet,
+            ),
+          ),
+          PopupMenuItem<VoidCallback>(
+            value: onExportProjectGif,
+            child: _MenuActionLabel(
+              icon: Icons.movie_outlined,
+              label: l10n.animationProjectExportProjectGif,
+            ),
+          ),
+          PopupMenuItem<VoidCallback>(
+            value: onExportProjectPngSequence,
+            child: _MenuActionLabel(
+              icon: Icons.collections_outlined,
+              label: l10n.animationProjectExportProjectPngSequence,
+            ),
+          ),
+          const PopupMenuDivider(),
+          PopupMenuItem<VoidCallback>(
+            value: onExportTrackGif,
+            child: _MenuActionLabel(
+              icon: Icons.gif_box_outlined,
+              label: l10n.animationProjectExportTrackGif,
+            ),
+          ),
+          PopupMenuItem<VoidCallback>(
+            value: onExportTrackPngSequence,
+            child: _MenuActionLabel(
+              icon: Icons.photo_library_outlined,
+              label: l10n.animationProjectExportPngSequence,
+            ),
+          ),
+        ],
+        child: IgnorePointer(
+          child: FilledButton.tonalIcon(
+            onPressed: enabled ? () {} : null,
+            icon: const Icon(Icons.ios_share_outlined),
+            label: Text(l10n.exportImageTooltip),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuActionLabel extends StatelessWidget {
+  const _MenuActionLabel({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon),
+        const SizedBox(width: 12),
+        Flexible(child: Text(label)),
+      ],
     );
   }
 }
@@ -1211,7 +1273,7 @@ class _AnimationTimelineDock extends StatelessWidget {
             onImageFrameInserted: onImageFrameInserted,
           );
 
-          if (constraints.maxWidth < 760) {
+          if (constraints.maxWidth < 840) {
             return SingleChildScrollView(
               child: Column(
                 children: [
@@ -1227,7 +1289,7 @@ class _AnimationTimelineDock extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: 340,
+                width: (constraints.maxWidth * 0.34).clamp(300, 340),
                 child: SingleChildScrollView(child: trackList),
               ),
               const SizedBox(width: layoutGap),
@@ -1269,6 +1331,7 @@ class _ProjectSettingsSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         ResponsivePair(
+          breakpoint: 480,
           first: IntegerStepperField(
             label: l10n.animationProjectDefaultFrameDelay,
             value: project.timeline.defaultFrameDelayMs,
@@ -1288,6 +1351,7 @@ class _ProjectSettingsSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         ResponsivePair(
+          breakpoint: 480,
           first: IntegerStepperField(
             label: l10n.animationProjectGifLoopCount,
             value: project.exportSettings.loopCount,
@@ -1625,10 +1689,10 @@ class _AutoRepairSummary extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          OutlinedButton.icon(
+          _ResponsiveTrailingAction(
             onPressed: enabled ? onProjectAutoRepaired : null,
-            icon: const Icon(Icons.cleaning_services_outlined),
-            label: Text(l10n.animationProjectAutoRepairAction),
+            icon: Icons.cleaning_services_outlined,
+            label: l10n.animationProjectAutoRepairAction,
           ),
         ],
       ),
@@ -1692,13 +1756,46 @@ class _AssetIssueRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          OutlinedButton.icon(
+          _ResponsiveTrailingAction(
             onPressed: enabled ? () => onAssetRebound(asset.id) : null,
-            icon: const Icon(Icons.link_outlined),
-            label: Text(l10n.animationProjectRebindAsset),
+            icon: Icons.link_outlined,
+            label: l10n.animationProjectRebindAsset,
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ResponsiveTrailingAction extends StatelessWidget {
+  const _ResponsiveTrailingAction({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 152;
+        if (compact) {
+          return Tooltip(
+            message: label,
+            child: IconButton.outlined(onPressed: onPressed, icon: Icon(icon)),
+          );
+        }
+
+        return OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon),
+          label: Text(label),
+        );
+      },
     );
   }
 }
@@ -1935,6 +2032,7 @@ class _TrackTileState extends State<_TrackTile> {
               ),
               const SizedBox(height: 8),
               ResponsivePair(
+                breakpoint: 480,
                 first: IntegerStepperField(
                   label: l10n.animationProjectFrameDelayLabel,
                   value: widget.track.defaultDelayMs,
@@ -2197,6 +2295,7 @@ class _SelectedFrameEditor extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ResponsivePair(
+          breakpoint: 520,
           first: IntegerStepperField(
             label: l10n.animationProjectSingleFrameDelay,
             value: frame.delayMs,
@@ -2208,66 +2307,17 @@ class _SelectedFrameEditor extends StatelessWidget {
           ),
           second: Align(
             alignment: Alignment.centerLeft,
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(l10n.animationProjectCurrentFrame(frameIndex + 1)),
-                FilledButton.tonalIcon(
-                  onPressed: enabled ? onBlankInserted : null,
-                  icon: const Icon(Icons.add_box_outlined),
-                  label: Text(l10n.animationProjectInsertBlankFrame),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: enabled ? onImageInserted : null,
-                  icon: const Icon(Icons.add_photo_alternate_outlined),
-                  label: Text(l10n.animationProjectInsertImageFrame),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: enabled ? onReplaced : null,
-                  icon: const Icon(Icons.find_replace_outlined),
-                  label: Text(l10n.animationProjectReplaceFrame),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: enabled ? onCleared : null,
-                  icon: const Icon(Icons.layers_clear_outlined),
-                  label: Text(l10n.animationProjectClearFrame),
-                ),
-                Semantics(
-                  container: true,
-                  label: l10n.animationProjectPixelateCurrentFrame,
-                  button: true,
-                  enabled: enabled,
-                  child: PopupMenuButton<int>(
-                    tooltip: l10n.animationProjectPixelateCurrentFrame,
-                    enabled: enabled,
-                    onSelected: onPixelated,
-                    itemBuilder: (context) => [
-                      for (final blockSize in pixelBlockSizes)
-                        PopupMenuItem<int>(
-                          value: blockSize,
-                          child: Text('$blockSize px'),
-                        ),
-                    ],
-                    child: FilledButton.tonalIcon(
-                      onPressed: null,
-                      icon: const Icon(Icons.grid_4x4_outlined),
-                      label: Text(l10n.animationProjectPixelateFrame),
-                    ),
-                  ),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: enabled ? onDuplicated : null,
-                  icon: const Icon(Icons.content_copy_outlined),
-                  label: Text(l10n.animationProjectDuplicateFrame),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: enabled ? onDeleted : null,
-                  icon: const Icon(Icons.delete_outline),
-                  label: Text(l10n.animationProjectDeleteFrame),
-                ),
-              ],
+            child: _FrameActionBar(
+              enabled: enabled,
+              frameLabel: l10n.animationProjectCurrentFrame(frameIndex + 1),
+              pixelBlockSizes: pixelBlockSizes,
+              onBlankInserted: onBlankInserted,
+              onImageInserted: onImageInserted,
+              onReplaced: onReplaced,
+              onCleared: onCleared,
+              onPixelated: onPixelated,
+              onDuplicated: onDuplicated,
+              onDeleted: onDeleted,
             ),
           ),
         ),
@@ -2395,6 +2445,192 @@ class _FrameTransformSlider extends StatelessWidget {
       ],
     );
   }
+}
+
+class _FrameActionBar extends StatelessWidget {
+  const _FrameActionBar({
+    required this.enabled,
+    required this.frameLabel,
+    required this.pixelBlockSizes,
+    required this.onBlankInserted,
+    required this.onImageInserted,
+    required this.onReplaced,
+    required this.onCleared,
+    required this.onPixelated,
+    required this.onDuplicated,
+    required this.onDeleted,
+  });
+
+  final bool enabled;
+  final String frameLabel;
+  final List<int> pixelBlockSizes;
+  final VoidCallback onBlankInserted;
+  final VoidCallback onImageInserted;
+  final VoidCallback onReplaced;
+  final VoidCallback onCleared;
+  final ValueChanged<int> onPixelated;
+  final VoidCallback onDuplicated;
+  final VoidCallback? onDeleted;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(frameLabel),
+        _FrameIconActionButton(
+          tooltip: l10n.animationProjectInsertBlankFrame,
+          icon: Icons.add_box_outlined,
+          enabled: enabled,
+          onPressed: onBlankInserted,
+        ),
+        _FrameIconActionButton(
+          tooltip: l10n.animationProjectInsertImageFrame,
+          icon: Icons.add_photo_alternate_outlined,
+          enabled: enabled,
+          onPressed: onImageInserted,
+        ),
+        _FrameIconActionButton(
+          tooltip: l10n.animationProjectReplaceFrame,
+          icon: Icons.find_replace_outlined,
+          enabled: enabled,
+          onPressed: onReplaced,
+        ),
+        _FrameIconActionButton(
+          tooltip: l10n.animationProjectDuplicateFrame,
+          icon: Icons.content_copy_outlined,
+          enabled: enabled,
+          onPressed: onDuplicated,
+        ),
+        _FrameMoreActionMenu(
+          enabled: enabled,
+          pixelBlockSizes: pixelBlockSizes,
+          onCleared: onCleared,
+          onDeleted: onDeleted,
+          onPixelated: onPixelated,
+        ),
+      ],
+    );
+  }
+}
+
+class _FrameIconActionButton extends StatelessWidget {
+  const _FrameIconActionButton({
+    required this.tooltip,
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton.filledTonal(
+        onPressed: enabled ? onPressed : null,
+        icon: Icon(icon),
+      ),
+    );
+  }
+}
+
+class _FrameMoreActionMenu extends StatelessWidget {
+  const _FrameMoreActionMenu({
+    required this.enabled,
+    required this.pixelBlockSizes,
+    required this.onCleared,
+    required this.onDeleted,
+    required this.onPixelated,
+  });
+
+  final bool enabled;
+  final List<int> pixelBlockSizes;
+  final VoidCallback onCleared;
+  final VoidCallback? onDeleted;
+  final ValueChanged<int> onPixelated;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    return Semantics(
+      container: true,
+      label: l10n.imageLibraryMoreActionsTooltip,
+      button: true,
+      enabled: enabled,
+      child: PopupMenuButton<_FrameMenuAction>(
+        tooltip: l10n.imageLibraryMoreActionsTooltip,
+        enabled: enabled,
+        onSelected: (action) {
+          if (action is _ClearFrameAction) {
+            onCleared();
+          } else if (action is _DeleteFrameAction) {
+            onDeleted?.call();
+          } else if (action is _PixelateFrameAction) {
+            onPixelated(action.blockSize);
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem<_FrameMenuAction>(
+            value: const _ClearFrameAction(),
+            child: _MenuActionLabel(
+              icon: Icons.layers_clear_outlined,
+              label: l10n.animationProjectClearFrame,
+            ),
+          ),
+          PopupMenuItem<_FrameMenuAction>(
+            enabled: onDeleted != null,
+            value: const _DeleteFrameAction(),
+            child: _MenuActionLabel(
+              icon: Icons.delete_outline,
+              label: l10n.animationProjectDeleteFrame,
+            ),
+          ),
+          const PopupMenuDivider(),
+          for (final blockSize in pixelBlockSizes)
+            PopupMenuItem<_FrameMenuAction>(
+              value: _PixelateFrameAction(blockSize),
+              child: _MenuActionLabel(
+                icon: Icons.grid_4x4_outlined,
+                label: '${l10n.animationProjectPixelateFrame} $blockSize px',
+              ),
+            ),
+        ],
+        child: IgnorePointer(
+          child: IconButton.filledTonal(
+            tooltip: l10n.imageLibraryMoreActionsTooltip,
+            onPressed: enabled ? () {} : null,
+            icon: const Icon(Icons.more_horiz),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+sealed class _FrameMenuAction {
+  const _FrameMenuAction();
+}
+
+class _ClearFrameAction extends _FrameMenuAction {
+  const _ClearFrameAction();
+}
+
+class _DeleteFrameAction extends _FrameMenuAction {
+  const _DeleteFrameAction();
+}
+
+class _PixelateFrameAction extends _FrameMenuAction {
+  const _PixelateFrameAction(this.blockSize);
+
+  final int blockSize;
 }
 
 class _TimelineFrameTile extends StatelessWidget {
@@ -2807,7 +3043,7 @@ class _RenderedAnimationPreview extends StatelessWidget {
           image: true,
           child: Container(
             width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 420),
+            constraints: const BoxConstraints(minHeight: 320),
             alignment: Alignment.center,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

@@ -6,11 +6,11 @@ import '../../models/app_config.dart';
 import '../../models/batch_generation_job.dart';
 import '../../models/generated_image.dart';
 import '../../models/image_advanced_settings.dart';
-import '../../services/image_request_debug_record.dart';
 import '../../state/batch_generation_notifier.dart';
 import '../../l10n/app_l10n.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/layout_constants.dart';
+import '../../utils/batch_generation_view_data.dart';
 import '../../utils/generation_limits.dart';
 import '../../utils/image_dimensions.dart';
 import '../../utils/localized_display_labels.dart';
@@ -20,8 +20,6 @@ import '../image_advanced_settings_widgets.dart';
 import '../image_size_widgets.dart';
 import '../layout_navigation_widgets.dart';
 import '../preview_widgets.dart';
-
-const int _maxBatchPreviewImages = 120;
 
 class BatchGenerationWorkspace extends StatelessWidget {
   const BatchGenerationWorkspace({
@@ -158,86 +156,6 @@ class BatchGenerationWorkspace extends StatelessWidget {
   }
 }
 
-@visibleForTesting
-BatchGenerationJobSummary summarizeBatchGenerationJobs(
-  List<BatchGenerationJob> jobs, {
-  required String fallbackSize,
-}) {
-  var queuedCount = 0;
-  var runningCount = 0;
-  var finishedCount = 0;
-  var failedCount = 0;
-  var targetImageCount = 0;
-  var previewAspectRatio = imageAspectRatioFromSize(fallbackSize);
-  var hasPreviewAspectRatio = false;
-  ImageRequestDebugRecord? latestDebugRecord;
-  final previewImages = <GeneratedImage>[];
-
-  for (final job in jobs) {
-    if (job.isPending) {
-      queuedCount++;
-    }
-    if (job.isRunning) {
-      runningCount++;
-      targetImageCount += job.imageCount;
-    }
-    if (job.isTerminal) {
-      finishedCount++;
-    }
-    if (job.canRetry) {
-      failedCount++;
-    }
-    if (job.resultImages.isNotEmpty &&
-        previewImages.length < _maxBatchPreviewImages) {
-      final remainingPreviewSlots =
-          _maxBatchPreviewImages - previewImages.length;
-      previewImages.addAll(job.resultImages.take(remainingPreviewSlots));
-    }
-    if (!hasPreviewAspectRatio &&
-        (job.resultImages.isNotEmpty || job.isRunning)) {
-      previewAspectRatio = imageAspectRatioFromSize(job.size);
-      hasPreviewAspectRatio = true;
-    }
-    if (job.debugRecord != null) {
-      latestDebugRecord = job.debugRecord;
-    }
-  }
-
-  return BatchGenerationJobSummary(
-    queuedCount: queuedCount,
-    runningCount: runningCount,
-    finishedCount: finishedCount,
-    failedCount: failedCount,
-    previewImages: List.unmodifiable(previewImages),
-    targetImageCount: targetImageCount + previewImages.length,
-    previewAspectRatio: previewAspectRatio,
-    latestDebugRecord: latestDebugRecord,
-  );
-}
-
-@visibleForTesting
-class BatchGenerationJobSummary {
-  const BatchGenerationJobSummary({
-    required this.queuedCount,
-    required this.runningCount,
-    required this.finishedCount,
-    required this.failedCount,
-    required this.previewImages,
-    required this.targetImageCount,
-    required this.previewAspectRatio,
-    required this.latestDebugRecord,
-  });
-
-  final int queuedCount;
-  final int runningCount;
-  final int finishedCount;
-  final int failedCount;
-  final List<GeneratedImage> previewImages;
-  final int targetImageCount;
-  final double previewAspectRatio;
-  final ImageRequestDebugRecord? latestDebugRecord;
-}
-
 class _BatchGenerationControls extends StatelessWidget {
   const _BatchGenerationControls({
     required this.promptController,
@@ -299,6 +217,21 @@ class _BatchGenerationControls extends StatelessWidget {
     final isRunning = notifier.isRunning;
     final isPausing = notifier.pauseAfterCurrent;
     final summary = summarizeBatchGenerationJobs(jobs, fallbackSize: size);
+    final sizeValidation = validateImageSizeForModel(
+      size: size,
+      providerKind: providerKind,
+      model: selectedApiConfig.model,
+      capabilityOverride: imageSizeCapabilityOverride,
+      labels: localizedImageSizeDisplayLabels(l10n),
+    );
+    final controlsState = deriveBatchQueueControlsState(
+      isRunning: isRunning,
+      isPausing: isPausing,
+      queuedCount: summary.queuedCount,
+      finishedCount: summary.finishedCount,
+      failedCount: summary.failedCount,
+      isSizeValid: sizeValidation.isValid,
+    );
     final queuedCount = summary.queuedCount;
     final runningCount = summary.runningCount;
     final finishedCount = summary.finishedCount;
@@ -307,41 +240,29 @@ class _BatchGenerationControls extends StatelessWidget {
       targetCount: targetCount,
       requestCount: requestCount,
     ).length;
-    final sizeValidation = validateImageSizeForModel(
-      size: size,
-      providerKind: providerKind,
-      model: selectedApiConfig.model,
-      capabilityOverride: imageSizeCapabilityOverride,
-      labels: localizedImageSizeDisplayLabels(l10n),
-    );
     final startQueueLabel = finishedCount > 0
         ? l10n.batchContinueQueue
         : l10n.batchStartQueue;
-    final startDisabledReason = isRunning
-        ? l10n.batchActionQueueBusyUnavailable
-        : queuedCount == 0
-        ? l10n.batchActionNeedsQueuedJobs
-        : !sizeValidation.isValid
-        ? sizeValidation.message
-        : null;
-    final pauseDisabledReason = !isRunning
-        ? l10n.batchActionQueueNotRunning
-        : isPausing
-        ? l10n.batchActionQueueAlreadyPausing
-        : null;
+    final startDisabledReason = _batchQueueControlDisabledReason(
+      l10n: l10n,
+      blocker: controlsState.startBlocker,
+      validationMessage: sizeValidation.message,
+    );
+    final pauseDisabledReason = _batchQueueControlDisabledReason(
+      l10n: l10n,
+      blocker: controlsState.pauseBlocker,
+    );
     final retryFailedLabel = failedCount == 0
         ? l10n.batchRetryFailed
         : l10n.batchRetryFailedCount(failedCount);
-    final retryDisabledReason = isRunning
-        ? l10n.batchActionQueueBusyUnavailable
-        : failedCount == 0
-        ? l10n.batchGenerationNoFailedJobsToRetry
-        : null;
-    final clearFinishedDisabledReason = isRunning
-        ? l10n.batchActionQueueBusyUnavailable
-        : finishedCount == 0
-        ? l10n.batchActionNoFinishedJobs
-        : null;
+    final retryDisabledReason = _batchQueueControlDisabledReason(
+      l10n: l10n,
+      blocker: controlsState.retryFailedBlocker,
+    );
+    final clearFinishedDisabledReason = _batchQueueControlDisabledReason(
+      l10n: l10n,
+      blocker: controlsState.clearFinishedBlocker,
+    );
 
     return AppPanel(
       title: l10n.batchQueueControlTitle,
@@ -438,11 +359,12 @@ class _BatchGenerationControls extends StatelessWidget {
             width: double.infinity,
             child: _DisabledActionSemantics(
               label: l10n.batchAddPrompts,
-              disabledReason: isRunning
-                  ? l10n.batchActionQueueBusyUnavailable
-                  : null,
+              disabledReason: _batchQueueControlDisabledReason(
+                l10n: l10n,
+                blocker: controlsState.addPromptsBlocker,
+              ),
               child: OutlinedButton.icon(
-                onPressed: isRunning ? null : onAddPrompts,
+                onPressed: controlsState.canAddPrompts ? onAddPrompts : null,
                 icon: const Icon(Icons.playlist_add_outlined),
                 label: Text(l10n.batchAddPrompts),
               ),
@@ -453,10 +375,7 @@ class _BatchGenerationControls extends StatelessWidget {
             label: isRunning ? l10n.batchQueueRunning : startQueueLabel,
             disabledReason: startDisabledReason,
             child: PrimaryActionButton(
-              onPressed:
-                  isRunning || queuedCount == 0 || !sizeValidation.isValid
-                  ? null
-                  : onStart,
+              onPressed: controlsState.canStart ? onStart : null,
               icon: Icons.auto_awesome_motion_outlined,
               label: startQueueLabel,
               busyLabel: l10n.batchQueueRunning,
@@ -469,16 +388,19 @@ class _BatchGenerationControls extends StatelessWidget {
               label: l10n.batchPauseAfterCurrent,
               disabledReason: pauseDisabledReason,
               child: OutlinedButton.icon(
-                onPressed: isRunning && !isPausing ? onPause : null,
+                onPressed: controlsState.canPause ? onPause : null,
                 icon: const Icon(Icons.pause_circle_outline),
                 label: Text(l10n.batchPauseAfterCurrent),
               ),
             ),
             second: _DisabledActionSemantics(
               label: l10n.batchResumeQueue,
-              disabledReason: isPausing ? null : l10n.batchActionQueueNotPaused,
+              disabledReason: _batchQueueControlDisabledReason(
+                l10n: l10n,
+                blocker: controlsState.resumeBlocker,
+              ),
               child: OutlinedButton.icon(
-                onPressed: isPausing ? onResume : null,
+                onPressed: controlsState.canResume ? onResume : null,
                 icon: const Icon(Icons.play_circle_outline),
                 label: Text(l10n.batchResumeQueue),
               ),
@@ -487,11 +409,12 @@ class _BatchGenerationControls extends StatelessWidget {
           const SizedBox(height: 8),
           _DisabledActionSemantics(
             label: l10n.batchCancelQueued,
-            disabledReason: queuedCount == 0
-                ? l10n.batchGenerationNoQueuedJobsToCancel
-                : null,
+            disabledReason: _batchQueueControlDisabledReason(
+              l10n: l10n,
+              blocker: controlsState.cancelQueuedBlocker,
+            ),
             child: OutlinedButton.icon(
-              onPressed: queuedCount == 0 ? null : onCancelQueued,
+              onPressed: controlsState.canCancelQueued ? onCancelQueued : null,
               icon: const Icon(Icons.cancel_schedule_send_outlined),
               label: Text(l10n.batchCancelQueued),
             ),
@@ -501,7 +424,7 @@ class _BatchGenerationControls extends StatelessWidget {
             label: retryFailedLabel,
             disabledReason: retryDisabledReason,
             child: OutlinedButton.icon(
-              onPressed: isRunning || failedCount == 0 ? null : onRetryFailed,
+              onPressed: controlsState.canRetryFailed ? onRetryFailed : null,
               icon: const Icon(Icons.replay_outlined),
               label: Text(retryFailedLabel),
             ),
@@ -511,9 +434,9 @@ class _BatchGenerationControls extends StatelessWidget {
             label: l10n.batchClearFinished,
             disabledReason: clearFinishedDisabledReason,
             child: OutlinedButton.icon(
-              onPressed: isRunning || finishedCount == 0
-                  ? null
-                  : onClearFinished,
+              onPressed: controlsState.canClearFinished
+                  ? onClearFinished
+                  : null,
               icon: const Icon(Icons.clear_all_outlined),
               label: Text(l10n.batchClearFinished),
             ),
@@ -522,6 +445,29 @@ class _BatchGenerationControls extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _batchQueueControlDisabledReason({
+  required AppLocalizations l10n,
+  required BatchQueueControlBlocker? blocker,
+  String? validationMessage,
+}) {
+  return switch (blocker) {
+    null => null,
+    BatchQueueControlBlocker.queueRunning =>
+      l10n.batchActionQueueBusyUnavailable,
+    BatchQueueControlBlocker.needsQueuedJobs => l10n.batchActionNeedsQueuedJobs,
+    BatchQueueControlBlocker.invalidImageSize => validationMessage,
+    BatchQueueControlBlocker.queueNotRunning => l10n.batchActionQueueNotRunning,
+    BatchQueueControlBlocker.queueAlreadyPausing =>
+      l10n.batchActionQueueAlreadyPausing,
+    BatchQueueControlBlocker.queueNotPaused => l10n.batchActionQueueNotPaused,
+    BatchQueueControlBlocker.noQueuedJobs =>
+      l10n.batchGenerationNoQueuedJobsToCancel,
+    BatchQueueControlBlocker.noFailedJobs =>
+      l10n.batchGenerationNoFailedJobsToRetry,
+    BatchQueueControlBlocker.noFinishedJobs => l10n.batchActionNoFinishedJobs,
+  };
 }
 
 class _DisabledActionSemantics extends StatelessWidget {
@@ -605,16 +551,21 @@ class _BatchQueueStatusNote extends StatelessWidget {
   }
 
   String _message(AppLocalizations l10n) {
-    if (isRunning && isPausing) {
-      return l10n.batchQueuePausingStatus(runningCount);
-    }
-    if (isRunning) {
-      return l10n.batchQueueRunningStatus(runningCount, queuedCount);
-    }
-    if (queuedCount > 0) {
-      return l10n.batchQueueWaitingStatus(queuedCount);
-    }
-    return l10n.batchQueueEmptyStatus;
+    return switch (batchQueueStatusKind(
+      isRunning: isRunning,
+      isPausing: isPausing,
+      queuedCount: queuedCount,
+    )) {
+      BatchQueueStatusKind.pausing => l10n.batchQueuePausingStatus(
+        runningCount,
+      ),
+      BatchQueueStatusKind.running => l10n.batchQueueRunningStatus(
+        runningCount,
+        queuedCount,
+      ),
+      BatchQueueStatusKind.waiting => l10n.batchQueueWaitingStatus(queuedCount),
+      BatchQueueStatusKind.empty => l10n.batchQueueEmptyStatus,
+    };
   }
 }
 

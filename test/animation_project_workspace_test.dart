@@ -207,16 +207,11 @@ void main() {
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, '新建轨道'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '导出合成 Sprite Sheet'));
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '导出工程 GIF'));
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '导出工程 PNG 序列'));
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '导出当前轨道 GIF'));
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '导出 PNG 序列'));
-    await tester.pump();
+    await _selectExportMenuAction(tester, '导出合成 Sprite Sheet');
+    await _selectExportMenuAction(tester, '导出工程 GIF');
+    await _selectExportMenuAction(tester, '导出工程 PNG 序列');
+    await _selectExportMenuAction(tester, '导出当前轨道 GIF');
+    await _selectExportMenuAction(tester, '导出 PNG 序列');
 
     expect(imageSequenceImports, 1);
     expect(librarySequenceImports, 1);
@@ -264,48 +259,36 @@ void main() {
 
     await tester.enterText(_textFieldWithLabel('单帧时长'), '160');
     await tester.pump();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '复制帧'));
+    await tester.ensureVisible(find.byTooltip('复制帧'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '复制帧'));
-    await tester.pump();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '删除帧'));
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '删除帧'));
+    await tester.tap(find.byTooltip('复制帧'));
     await tester.pump();
     await tester.ensureVisible(find.byTooltip('水平翻转'));
     await tester.pump();
     await tester.tap(find.byTooltip('水平翻转'));
     await tester.pump();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '替换帧'));
+    await tester.ensureVisible(find.byTooltip('替换帧'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '替换帧'));
+    await tester.tap(find.byTooltip('替换帧'));
     await tester.pump();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '插入空白帧'));
+    await tester.ensureVisible(find.byTooltip('插入空白帧'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '插入空白帧'));
+    await tester.tap(find.byTooltip('插入空白帧'));
     await tester.pump();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '插入图片帧'));
+    await tester.ensureVisible(find.byTooltip('插入图片帧'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '插入图片帧'));
+    await tester.tap(find.byTooltip('插入图片帧'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '清空帧'));
-    await tester.pump();
-    final pixelateMenu = tester.widget<PopupMenuButton<int>>(
+    await _selectFrameMoreAction(tester, '清空帧');
+    await _selectFrameMoreAction(tester, '删除帧');
+    await _selectFrameMoreAction(tester, '像素化帧 8 px');
+    final moreActionSemantics = tester.getSemantics(
       find.byWidgetPredicate(
-        (widget) =>
-            widget is PopupMenuButton<int> && widget.tooltip == '像素化当前帧',
+        (widget) => widget is Semantics && widget.properties.label == '更多操作',
       ),
     );
-    final pixelateSemantics = tester.getSemantics(
-      find.byWidgetPredicate(
-        (widget) => widget is Semantics && widget.properties.label == '像素化当前帧',
-      ),
-    );
-    expect(pixelateSemantics.flagsCollection.isButton, isTrue);
-    expect(pixelateSemantics.flagsCollection.isEnabled, Tristate.isTrue);
-
-    pixelateMenu.onSelected?.call(8);
-    await tester.pump();
+    expect(moreActionSemantics.flagsCollection.isButton, isTrue);
+    expect(moreActionSemantics.flagsCollection.isEnabled, Tristate.isTrue);
 
     expect(changedFrameDelay, 160);
     expect(duplicatedFrameIndex, 0);
@@ -453,6 +436,7 @@ void main() {
     await tester.pump();
     await tester.tap(retryButton);
     await _pumpAsyncRender(tester);
+    await _pumpUntilFound(tester, find.text('渲染失败'));
 
     expect(find.text('渲染失败'), findsOneWidget);
     expect(find.textContaining('动画帧文件不存在'), findsOneWidget);
@@ -512,7 +496,7 @@ void main() {
       find
           .byWidgetPredicate(
             (widget) =>
-                widget is Semantics && widget.properties.label == '导出工程 GIF',
+                widget is Semantics && widget.properties.label == '导出图片',
           )
           .first,
     );
@@ -647,6 +631,26 @@ Finder _textFieldWithLabel(String label) {
   return find.byWidgetPredicate(
     (widget) => widget is TextField && widget.decoration?.labelText == label,
   );
+}
+
+Future<void> _selectExportMenuAction(WidgetTester tester, String label) async {
+  final menuButton = find.byTooltip('导出图片').first;
+  await tester.ensureVisible(menuButton);
+  await tester.pump();
+  await tester.tap(menuButton);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _selectFrameMoreAction(WidgetTester tester, String label) async {
+  final menuButton = find.byTooltip('更多操作').first;
+  await tester.ensureVisible(menuButton);
+  await tester.pump();
+  await tester.tap(menuButton);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
 }
 
 Future<void> _pumpBounded(WidgetTester tester, {int maxPumps = 12}) async {

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:feather_canvas_studio/feather_canvas_studio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -125,4 +127,111 @@ void main() {
     expect(finalFailure.jobs.single.status, BatchGenerationJobStatus.failed);
     expect(finalFailure.jobs.single.retryAttempt, 1);
   });
+
+  test('requeues failed batch job for manual retry', () {
+    final failed = _job('failed').copyWith(
+      status: BatchGenerationJobStatus.failed,
+      retryAttempt: 3,
+      resultImages: [GeneratedImage.bytes(Uint8List(4))],
+      libraryItems: [_libraryItem('result')],
+      errorMessage: 'network error',
+      debugRecord: ImageRequestDebugRecord(
+        createdAt: DateTime(2024),
+        request: const {'prompt': 'failed'},
+      ),
+    );
+
+    final requeued = requeueFailedBatchJob(failed);
+
+    expect(requeued.status, BatchGenerationJobStatus.queued);
+    expect(requeued.retryAttempt, 0);
+    expect(requeued.resultImages, isEmpty);
+    expect(requeued.libraryItems, isEmpty);
+    expect(requeued.errorMessage, isNull);
+    expect(requeued.debugRecord, isNull);
+  });
+
+  test('replaces batch job by index while preserving order', () {
+    final first = _job('first');
+    final second = _job('second');
+    final replacement = _job('replacement');
+
+    final result = replaceBatchGenerationJob([first, second], 1, replacement);
+
+    expect(result, [first, replacement]);
+  });
+
+  test('replaces flattened batch preview image and appends library item', () {
+    final first = _job('first').copyWith(
+      status: BatchGenerationJobStatus.succeeded,
+      resultImages: [
+        GeneratedImage.bytes(Uint8List.fromList([1])),
+        GeneratedImage.bytes(Uint8List.fromList([2])),
+      ],
+    );
+    final second = _job('second').copyWith(
+      status: BatchGenerationJobStatus.succeeded,
+      resultImages: [
+        GeneratedImage.bytes(Uint8List.fromList([3])),
+      ],
+    );
+    final replacement = GeneratedImage.file('replacement.png');
+    final appended = _libraryItem('replacement');
+
+    final result = replaceBatchPreviewImage(
+      jobs: [first, second],
+      previewIndex: 1,
+      replacement: replacement,
+      appendedItem: appended,
+    );
+
+    expect(result.first.resultImages[1], same(replacement));
+    expect(result.first.libraryItems, [appended]);
+    expect(result.last, same(second));
+  });
+
+  test('keeps jobs unchanged when preview index is out of range', () {
+    final job = _job('done').copyWith(
+      status: BatchGenerationJobStatus.succeeded,
+      resultImages: [GeneratedImage.bytes(Uint8List(4))],
+    );
+
+    final result = replaceBatchPreviewImage(
+      jobs: [job],
+      previewIndex: 2,
+      replacement: GeneratedImage.file('replacement.png'),
+      appendedItem: _libraryItem('replacement'),
+    );
+
+    expect(result, [job]);
+  });
+}
+
+BatchGenerationJob _job(String prompt) {
+  return BatchGenerationJob.create(
+    apiConfig: const ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    ),
+    prompt: prompt,
+    negativePrompt: '',
+    size: '1024x1024',
+    imageCount: 1,
+    advancedSettings: const ImageAdvancedSettings(),
+    user: '',
+  );
+}
+
+ImageLibraryItem _libraryItem(String id) {
+  return ImageLibraryItem(
+    id: id,
+    path: '$id.png',
+    createdAt: DateTime.parse('2026-05-25T12:00:00Z'),
+    kind: ImageAssetKind.generatedImage,
+    title: id,
+    source: 'test',
+  );
 }
