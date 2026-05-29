@@ -178,10 +178,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build release APK
-        run: flutter build apk --release
+      - name: Build split release APKs
+        run: flutter build apk --release --split-per-abi
 
-      - name: Stage Android APK
+      - name: Stage Android APKs
         shell: bash
         env:
           RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
@@ -189,9 +189,27 @@ jobs:
           set -euo pipefail
 
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk "dist/feather-canvas-studio-${RELEASE_TAG}-android.apk"
 
-      - name: Upload Android APK
+          stage_apk() {
+            local abi="$1"
+            local source="build/app/outputs/flutter-apk/app-${abi}-release.apk"
+            local target="dist/feather-canvas-studio-${RELEASE_TAG}-android-${abi}.apk"
+
+            if [ ! -f "${source}" ]; then
+              echo "Missing split APK: ${source}" >&2
+              exit 1
+            fi
+
+            cp "${source}" "${target}"
+          }
+
+          stage_apk arm64-v8a
+          stage_apk armeabi-v7a
+          stage_apk x86_64
+
+          ls -lh dist
+
+      - name: Upload Android APKs
         uses: actions/upload-artifact@v7
         with:
           name: release-android

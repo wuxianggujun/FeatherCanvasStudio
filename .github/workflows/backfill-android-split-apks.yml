@@ -1,0 +1,170 @@
+name: Backfill Android Split APKs
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to backfill, for example v0.2.9.
+        required: true
+      delete_legacy_universal_apk:
+        description: Delete the old universal Android APK after split APKs upload.
+        required: true
+        type: boolean
+        default: false
+      confirmation:
+        description: Type DELETE-LEGACY-ANDROID-APK to delete the old universal APK.
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backfill-android-split-apks-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_CHANNEL: stable
+  FLUTTER_VERSION: "3.44.0"
+  ARTIFACT_RETENTION_DAYS: 7
+
+jobs:
+  backfill-android:
+    name: Backfill Android (${{ inputs.release_tag }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.release_tag }}
+
+      - name: Validate release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          DELETE_LEGACY_UNIVERSAL_APK: ${{ inputs.delete_legacy_universal_apk }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${DELETE_LEGACY_UNIVERSAL_APK}" = "true" ] && [ "${CONFIRMATION}" != "DELETE-LEGACY-ANDROID-APK" ]; then
+            echo "Refusing to delete the legacy APK without confirmation." >&2
+            exit 1
+          fi
+
+          if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Unsupported release tag: ${RELEASE_TAG}" >&2
+            echo "Expected examples: v1.2.3, v1.2.3-beta.1, v1.2.3+1" >&2
+            exit 1
+          fi
+
+          pubspec_version="$(grep -E '^version: ' pubspec.yaml | head -n 1 | sed 's/^version: //')"
+          if [ -z "${pubspec_version}" ]; then
+            echo "Missing version field in pubspec.yaml" >&2
+            exit 1
+          fi
+
+          tag_version="${RELEASE_TAG#v}"
+          tag_public_version="${tag_version%%+*}"
+          pubspec_public_version="${pubspec_version%%+*}"
+          if [ "${tag_version}" != "${pubspec_version}" ] && [ "${tag_public_version}" != "${pubspec_public_version}" ]; then
+            echo "Release tag ${RELEASE_TAG} does not match pubspec.yaml version ${pubspec_version}." >&2
+            exit 1
+          fi
+
+          gh release view "${RELEASE_TAG}" >/dev/null
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+          cache-dependency-path: |
+            android/**/*.gradle*
+            android/**/gradle-wrapper.properties
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          pub-cache: true
+          cache-key: "flutter-sdk-:os:-:channel:-:version:-:arch:"
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build split release APKs
+        run: flutter build apk --release --split-per-abi
+
+      - name: Stage Android APKs
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+
+          stage_apk() {
+            local abi="$1"
+            local source="build/app/outputs/flutter-apk/app-${abi}-release.apk"
+            local target="dist/feather-canvas-studio-${RELEASE_TAG}-android-${abi}.apk"
+
+            if [ ! -f "${source}" ]; then
+              echo "Missing split APK: ${source}" >&2
+              exit 1
+            fi
+
+            cp "${source}" "${target}"
+          }
+
+          stage_apk arm64-v8a
+          stage_apk armeabi-v7a
+          stage_apk x86_64
+
+          ls -lh dist
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: feather-canvas-studio-${{ inputs.release_tag }}-android-apks
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+      - name: Upload split APKs to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh release upload "${RELEASE_TAG}" dist/*.apk --clobber
+
+      - name: Delete legacy universal APK
+        if: ${{ inputs.delete_legacy_universal_apk }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          legacy_asset="feather-canvas-studio-${RELEASE_TAG}-android.apk"
+          if gh release view "${RELEASE_TAG}" --json assets --jq '.assets[].name' | grep -Fxq "${legacy_asset}"; then
+            gh release delete-asset "${RELEASE_TAG}" "${legacy_asset}" --yes
+          else
+            echo "No legacy universal APK found: ${legacy_asset}"
+          fi

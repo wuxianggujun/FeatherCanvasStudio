@@ -120,14 +120,29 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build release APK
-        run: flutter build apk --release
+      - name: Build split release APKs
+        run: flutter build apk --release --split-per-abi
 
-      - name: Upload Android APK
+      - name: Verify Android APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            apk="build/app/outputs/flutter-apk/app-${abi}-release.apk"
+            if [ ! -f "${apk}" ]; then
+              echo "Missing split APK: ${apk}" >&2
+              exit 1
+            fi
+          done
+
+          ls -lh build/app/outputs/flutter-apk/*-release.apk
+
+      - name: Upload Android APKs
         uses: actions/upload-artifact@v7
         with:
-          name: feather-canvas-studio-${{ needs.quality.outputs.release_label }}-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: feather-canvas-studio-${{ needs.quality.outputs.release_label }}-android-apks
+          path: build/app/outputs/flutter-apk/*-release.apk
           if-no-files-found: error
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 

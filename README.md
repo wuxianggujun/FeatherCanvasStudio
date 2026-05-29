@@ -96,7 +96,7 @@ python tool/generate_app_icons.py
 ## 发布版本
 
 正式发布使用 `Release` workflow。它由 `v*` tag 自动触发，构建完成后会把
-Android APK、Windows 安装包和 Windows 便携包上传到 GitHub Release。
+Android 分 ABI APK、Windows 安装包和 Windows 便携包上传到 GitHub Release。
 
 发布版本采用语义化版本号，写在 `pubspec.yaml` 中。例如：
 
@@ -110,9 +110,15 @@ Flutter build metadata。
 推送 `v0.2.2` tag 后会自动生成：
 
 - GitHub Release：`FeatherCanvas Studio v0.2.2`
-- Android 产物：`feather-canvas-studio-v0.2.2-android.apk`
+- Android 产物：`feather-canvas-studio-v0.2.2-android-arm64-v8a.apk`
+- Android 产物：`feather-canvas-studio-v0.2.2-android-armeabi-v7a.apk`
+- Android 产物：`feather-canvas-studio-v0.2.2-android-x86_64.apk`
 - Windows 安装包：`feather-canvas-studio-v0.2.2-windows-setup.exe`
 - Windows 便携包：`feather-canvas-studio-v0.2.2-windows-portable.zip`
+
+Android 使用分 ABI APK 发布，避免把 `arm64-v8a`、`armeabi-v7a` 和 `x86_64`
+三套 Flutter/native 运行库打进同一个通用 APK。普通手机优先下载 `arm64-v8a`，
+老 32 位设备下载 `armeabi-v7a`，模拟器或 x86_64 设备下载 `x86_64`。
 
 Windows 不能只发布裸 `exe`。Flutter Windows 产物需要同时带上
 `flutter_windows.dll`、`data/` 和插件 DLL 等运行文件，所以发布页会同时提供：
@@ -142,6 +148,9 @@ git push origin v0.2.2
 对应的提交已经在 `main` 分支上。tag 不应追加 Flutter build metadata。
 它也会检查同名 Release 是否已经存在；
 如果存在，会要求先提升版本号，避免覆盖已发布版本。
+
+如果历史 Release 还保留通用 Android APK，可以手动运行
+`Backfill Android Split APKs` workflow，输入已有 tag 来重新构建并上传分 ABI APK。
 
 ## 赞助
 
