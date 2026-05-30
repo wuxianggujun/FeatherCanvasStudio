@@ -106,6 +106,12 @@ abstract class AppLocalizations {
   /// **'文本生图'**
   String get navImageGeneration;
 
+  /// 导航：图生图工作区
+  ///
+  /// In zh, this message translates to:
+  /// **'图生图'**
+  String get navImageToImage;
+
   /// 导航：批量生成工作区
   ///
   /// In zh, this message translates to:
@@ -166,7 +172,7 @@ abstract class AppLocalizations {
   /// **'收起侧栏'**
   String get navCollapseSidebar;
 
-  /// 导航分组：生成（文本生图、批量、动画工程）
+  /// 导航分组：生成（文本生图、图生图、批量、动画工程）
   ///
   /// In zh, this message translates to:
   /// **'生成'**
@@ -1129,6 +1135,18 @@ abstract class AppLocalizations {
   /// **'选择已保存的接口配置，再填写提示词生成图片'**
   String get imageGenerationWorkspaceDescription;
 
+  /// 图生图工作区标题
+  ///
+  /// In zh, this message translates to:
+  /// **'图生图'**
+  String get imageToImageWorkspaceTitle;
+
+  /// 图生图工作区说明
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴或选择本地图片，再填写提示词生成新图'**
+  String get imageToImageWorkspaceDescription;
+
   /// 文本生图：生成配置面板标题
   ///
   /// In zh, this message translates to:
@@ -1183,11 +1201,35 @@ abstract class AppLocalizations {
   /// **'参考图（图生图）'**
   String get imageGenerationReferenceImageTitle;
 
+  /// 图生图：输入图片选择器标题
+  ///
+  /// In zh, this message translates to:
+  /// **'输入图片'**
+  String get imageToImageReferenceImageTitle;
+
   /// 文本生图：选择图生图参考图按钮
   ///
   /// In zh, this message translates to:
   /// **'选择参考图'**
   String get imageGenerationReferenceImagePickLabel;
+
+  /// 图生图：选择本地图片按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'选择本地图片'**
+  String get imageToImageReferenceImagePickLabel;
+
+  /// 图生图：从剪贴板粘贴图片按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴图片'**
+  String get imageToImagePasteReferenceImageLabel;
+
+  /// 图生图：未选择输入图片时的提示
+  ///
+  /// In zh, this message translates to:
+  /// **'支持从剪贴板粘贴图片，也可以选择本地图片或作品库图片。'**
+  String get imageToImageReferenceImageEmptyHint;
 
   /// 文本生图：已有参考图时继续添加参考图按钮
   ///
@@ -1224,6 +1266,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'兼容接口将按多文件 image 字段发送参考图，实际是否支持取决于服务商。'**
   String get imageGenerationCompatibleMultiReferenceWarning;
+
+  /// 图生图状态：缺少输入图片提示
+  ///
+  /// In zh, this message translates to:
+  /// **'请先粘贴或选择一张图片。'**
+  String get imageToImageMissingReferenceImageMessage;
+
+  /// 图生图状态：剪贴板没有图片提示
+  ///
+  /// In zh, this message translates to:
+  /// **'剪贴板里没有可用图片。'**
+  String get imageToImageClipboardEmptyMessage;
+
+  /// 图生图状态：平台不支持粘贴图片提示
+  ///
+  /// In zh, this message translates to:
+  /// **'当前平台暂不支持直接粘贴图片，请选择本地图片。'**
+  String get imageToImageClipboardUnsupportedMessage;
+
+  /// 图生图状态：粘贴图片成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'已粘贴图片：{fileName}'**
+  String imageToImagePastedReferenceImageMessage(Object fileName);
+
+  /// 图生图状态：粘贴图片失败提示
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴图片失败：{error}'**
+  String imageToImagePasteReferenceImageFailedMessage(Object error);
 
   /// 文本生图：带参考图生成按钮
   ///
@@ -6398,6 +6470,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'导出图片'**
   String get exportImageTooltip;
+
+  /// 结果预览弹窗：上一张图片 tooltip
+  ///
+  /// In zh, this message translates to:
+  /// **'上一张'**
+  String get previewPreviousImageTooltip;
+
+  /// 结果预览弹窗：下一张图片 tooltip
+  ///
+  /// In zh, this message translates to:
+  /// **'下一张'**
+  String get previewNextImageTooltip;
 
   /// 通用：背景转透明 tooltip
   ///

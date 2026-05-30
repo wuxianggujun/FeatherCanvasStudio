@@ -13,6 +13,7 @@ import '../preview_widgets.dart';
 
 class ImageGenerationWorkspace extends StatelessWidget {
   const ImageGenerationWorkspace({
+    this.mode = ImageGenerationPanelMode.textToImage,
     required this.controller,
     required this.apiConfigs,
     required this.selectedApiConfig,
@@ -29,6 +30,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
     required this.onImageCountChanged,
     required this.onAdvancedSettingsChanged,
     required this.onPickTemplateImage,
+    this.onPasteTemplateImage,
     required this.onClearTemplateImage,
     required this.onRemoveTemplateImage,
     required this.onGenerate,
@@ -39,6 +41,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
     super.key,
   });
 
+  final ImageGenerationPanelMode mode;
   final ScrollController controller;
   final List<ApiConfig> apiConfigs;
   final ApiConfig selectedApiConfig;
@@ -55,6 +58,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
   final ValueChanged<int> onImageCountChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final VoidCallback onPickTemplateImage;
+  final VoidCallback? onPasteTemplateImage;
   final VoidCallback onClearTemplateImage;
   final ValueChanged<String> onRemoveTemplateImage;
   final VoidCallback onGenerate;
@@ -67,17 +71,23 @@ class ImageGenerationWorkspace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = appL10nOf(context);
+    final isImageToImage = mode == ImageGenerationPanelMode.imageToImage;
     return WorkspacePage(
-      title: l10n.imageGenerationWorkspaceTitle,
-      description: l10n.imageGenerationWorkspaceDescription,
+      title: isImageToImage
+          ? l10n.imageToImageWorkspaceTitle
+          : l10n.imageGenerationWorkspaceTitle,
+      description: isImageToImage
+          ? l10n.imageToImageWorkspaceDescription
+          : l10n.imageGenerationWorkspaceDescription,
       controller: controller,
       trailing: historyControls,
       children: [
         ResponsiveWorkspaceSplit(
-          storageKey: 'image_generation',
+          storageKey: isImageToImage ? 'image_to_image' : 'image_generation',
           controls: Selector<ImageGenerationNotifier, bool>(
             selector: (_, n) => n.isGenerating,
             builder: (context, isGenerating, _) => ControlPanel(
+              mode: mode,
               apiConfigs: apiConfigs,
               selectedApiConfigId: selectedApiConfig.id,
               providerKind: selectedApiConfig.providerKind,
@@ -98,6 +108,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
               onImageCountChanged: onImageCountChanged,
               onAdvancedSettingsChanged: onAdvancedSettingsChanged,
               onPickTemplateImage: onPickTemplateImage,
+              onPasteTemplateImage: onPasteTemplateImage,
               onClearTemplateImage: onClearTemplateImage,
               onRemoveTemplateImage: onRemoveTemplateImage,
               onGenerate: onGenerate,

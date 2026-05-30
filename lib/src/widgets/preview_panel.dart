@@ -128,12 +128,12 @@ class PreviewPanel extends StatelessWidget {
               final image = generatedImages[index];
               return _GeneratedImageTile(
                 image: image,
+                images: generatedImages,
                 previewIndex: index,
                 aspectRatio: tileAspectRatio,
-                onCopyImage: () => onCopyImage(index, image),
-                onExportImage: () => onExportImage(index, image),
-                onMakeBackgroundTransparent: () =>
-                    onMakeBackgroundTransparent(index, image),
+                onCopyImage: onCopyImage,
+                onExportImage: onExportImage,
+                onMakeBackgroundTransparent: onMakeBackgroundTransparent,
               );
             },
           ),
@@ -146,6 +146,7 @@ class PreviewPanel extends StatelessWidget {
 class _GeneratedImageTile extends StatelessWidget {
   const _GeneratedImageTile({
     required this.image,
+    required this.images,
     required this.previewIndex,
     required this.aspectRatio,
     required this.onCopyImage,
@@ -154,11 +155,13 @@ class _GeneratedImageTile extends StatelessWidget {
   });
 
   final GeneratedImage image;
+  final List<GeneratedImage> images;
   final int previewIndex;
   final double aspectRatio;
-  final VoidCallback onCopyImage;
-  final VoidCallback onExportImage;
-  final VoidCallback onMakeBackgroundTransparent;
+  final void Function(int index, GeneratedImage image) onCopyImage;
+  final void Function(int index, GeneratedImage image) onExportImage;
+  final void Function(int index, GeneratedImage image)
+  onMakeBackgroundTransparent;
 
   @override
   Widget build(BuildContext context) {
@@ -181,9 +184,13 @@ class _GeneratedImageTile extends StatelessWidget {
                     onTap: () => showGeneratedImagePreviewDialog(
                       context,
                       image: image,
+                      images: images,
+                      initialIndex: previewIndex,
                       title: l10n.previewResultTitle(previewIndex + 1),
-                      onCopyImage: onCopyImage,
-                      onExportImage: onExportImage,
+                      titleBuilder: (index, _) =>
+                          l10n.previewResultTitle(index + 1),
+                      onCopyImageAt: onCopyImage,
+                      onExportImageAt: onExportImage,
                     ),
                     child: _GeneratedImageContent(
                       image: image,
@@ -203,7 +210,7 @@ class _GeneratedImageTile extends StatelessWidget {
                     children: [
                       IconButton(
                         tooltip: l10n.copyImageTooltip,
-                        onPressed: onCopyImage,
+                        onPressed: () => onCopyImage(previewIndex, image),
                         icon: const Icon(Icons.content_copy_outlined),
                         iconSize: 18,
                         padding: EdgeInsets.zero,
@@ -215,7 +222,7 @@ class _GeneratedImageTile extends StatelessWidget {
                       ),
                       IconButton(
                         tooltip: l10n.exportImageTooltip,
-                        onPressed: onExportImage,
+                        onPressed: () => onExportImage(previewIndex, image),
                         icon: const Icon(Icons.file_download_outlined),
                         iconSize: 18,
                         padding: EdgeInsets.zero,
@@ -227,7 +234,8 @@ class _GeneratedImageTile extends StatelessWidget {
                       ),
                       IconButton(
                         tooltip: l10n.makeBackgroundTransparentTooltip,
-                        onPressed: onMakeBackgroundTransparent,
+                        onPressed: () =>
+                            onMakeBackgroundTransparent(previewIndex, image),
                         icon: const Icon(Icons.auto_fix_high_outlined),
                         iconSize: 18,
                         padding: EdgeInsets.zero,
@@ -405,84 +413,252 @@ Future<void> showGeneratedImagePreviewDialog(
   BuildContext context, {
   required GeneratedImage image,
   required String title,
+  List<GeneratedImage>? images,
+  int initialIndex = 0,
+  String Function(int index, GeneratedImage image)? titleBuilder,
+  void Function(int index, GeneratedImage image)? onCopyImageAt,
+  void Function(int index, GeneratedImage image)? onExportImageAt,
   VoidCallback? onCopyImage,
   VoidCallback? onExportImage,
 }) {
+  final previewImages = images == null || images.isEmpty ? [image] : images;
+  final clampedInitialIndex = previewImages.length <= 1
+      ? 0
+      : initialIndex.clamp(0, previewImages.length - 1).toInt();
+
   return showDialog<void>(
     context: context,
     builder: (context) {
-      final l10n = appL10nOf(context);
       return Dialog(
         insetPadding: const EdgeInsets.all(24),
-        child: FocusTraversalGroup(
-          policy: ReadingOrderTraversalPolicy(),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 980, maxHeight: 820),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                      if (onCopyImage != null)
-                        IconButton(
-                          tooltip: l10n.copyImageTooltip,
-                          onPressed: onCopyImage,
-                          icon: const Icon(Icons.content_copy_outlined),
-                        ),
-                      if (onExportImage != null)
-                        IconButton(
-                          tooltip: l10n.exportImageTooltip,
-                          onPressed: onExportImage,
-                          icon: const Icon(Icons.file_download_outlined),
-                        ),
-                      IconButton(
-                        tooltip: l10n.closeAction,
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                Flexible(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: ColoredBox(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        child: InteractiveViewer(
-                          minScale: 0.5,
-                          maxScale: 5,
-                          child: Center(
-                            child: _GeneratedImageContent(
-                              image: image,
-                              fit: BoxFit.contain,
-                              semanticLabel: title,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        child: _GeneratedImagePreviewDialog(
+          images: previewImages,
+          initialIndex: clampedInitialIndex,
+          titleBuilder: titleBuilder ?? (_, _) => title,
+          onCopyImage: onCopyImageAt,
+          onExportImage: onExportImageAt,
+          fallbackCopyImage: onCopyImage,
+          fallbackExportImage: onExportImage,
         ),
       );
     },
   );
+}
+
+class _GeneratedImagePreviewDialog extends StatefulWidget {
+  const _GeneratedImagePreviewDialog({
+    required this.images,
+    required this.initialIndex,
+    required this.titleBuilder,
+    required this.onCopyImage,
+    required this.onExportImage,
+    required this.fallbackCopyImage,
+    required this.fallbackExportImage,
+  });
+
+  final List<GeneratedImage> images;
+  final int initialIndex;
+  final String Function(int index, GeneratedImage image) titleBuilder;
+  final void Function(int index, GeneratedImage image)? onCopyImage;
+  final void Function(int index, GeneratedImage image)? onExportImage;
+  final VoidCallback? fallbackCopyImage;
+  final VoidCallback? fallbackExportImage;
+
+  @override
+  State<_GeneratedImagePreviewDialog> createState() =>
+      _GeneratedImagePreviewDialogState();
+}
+
+class _GeneratedImagePreviewDialogState
+    extends State<_GeneratedImagePreviewDialog> {
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
+
+  GeneratedImage get _currentImage => widget.images[_currentIndex];
+
+  bool get _canGoPrevious => _currentIndex > 0;
+
+  bool get _canGoNext => _currentIndex < widget.images.length - 1;
+
+  bool get _hasMultipleImages => widget.images.length > 1;
+
+  void _goPrevious() {
+    if (!_canGoPrevious) {
+      return;
+    }
+    setState(() {
+      _currentIndex -= 1;
+    });
+  }
+
+  void _goNext() {
+    if (!_canGoNext) {
+      return;
+    }
+    setState(() {
+      _currentIndex += 1;
+    });
+  }
+
+  void _copyCurrentImage() {
+    final callback = widget.onCopyImage;
+    if (callback != null) {
+      callback(_currentIndex, _currentImage);
+      return;
+    }
+    widget.fallbackCopyImage?.call();
+  }
+
+  void _exportCurrentImage() {
+    final callback = widget.onExportImage;
+    if (callback != null) {
+      callback(_currentIndex, _currentImage);
+      return;
+    }
+    widget.fallbackExportImage?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    final title = widget.titleBuilder(_currentIndex, _currentImage);
+    final hasCopyAction =
+        widget.onCopyImage != null || widget.fallbackCopyImage != null;
+    final hasExportAction =
+        widget.onExportImage != null || widget.fallbackExportImage != null;
+
+    return FocusTraversalGroup(
+      policy: ReadingOrderTraversalPolicy(),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 980, maxHeight: 820),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  if (hasCopyAction)
+                    IconButton(
+                      tooltip: l10n.copyImageTooltip,
+                      onPressed: _copyCurrentImage,
+                      icon: const Icon(Icons.content_copy_outlined),
+                    ),
+                  if (hasExportAction)
+                    IconButton(
+                      tooltip: l10n.exportImageTooltip,
+                      onPressed: _exportCurrentImage,
+                      icon: const Icon(Icons.file_download_outlined),
+                    ),
+                  IconButton(
+                    tooltip: l10n.closeAction,
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: ColoredBox(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: InteractiveViewer(
+                            key: ValueKey(_currentIndex),
+                            minScale: 0.5,
+                            maxScale: 5,
+                            child: Center(
+                              child: _GeneratedImageContent(
+                                image: _currentImage,
+                                fit: BoxFit.contain,
+                                semanticLabel: title,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_hasMultipleImages) ...[
+                          Positioned(
+                            left: 8,
+                            top: 0,
+                            bottom: 0,
+                            child: Center(
+                              child: _PreviewNavigationButton(
+                                tooltip: l10n.previewPreviousImageTooltip,
+                                icon: Icons.chevron_left,
+                                onPressed: _canGoPrevious ? _goPrevious : null,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 8,
+                            top: 0,
+                            bottom: 0,
+                            child: Center(
+                              child: _PreviewNavigationButton(
+                                tooltip: l10n.previewNextImageTooltip,
+                                icon: Icons.chevron_right,
+                                onPressed: _canGoNext ? _goNext : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewNavigationButton extends StatelessWidget {
+  const _PreviewNavigationButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: colorScheme.surface.withValues(alpha: 0.88),
+      shape: const CircleBorder(),
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon),
+      ),
+    );
+  }
 }

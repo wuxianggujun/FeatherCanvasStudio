@@ -24,6 +24,13 @@ class OpenFileLocationResult {
 
 enum ImageClipboardCopyStatus { imageCopied, pathCopied }
 
+enum ImageClipboardPasteStatus {
+  imagePasted,
+  pathPasted,
+  empty,
+  unsupportedPlatform,
+}
+
 class ImageClipboardCopyResult {
   const ImageClipboardCopyResult.image()
     : status = ImageClipboardCopyStatus.imageCopied,
@@ -34,6 +41,34 @@ class ImageClipboardCopyResult {
 
   final ImageClipboardCopyStatus status;
   final String? fallbackPath;
+}
+
+class ImageClipboardPasteResult {
+  const ImageClipboardPasteResult({
+    required this.status,
+    this.path,
+    this.isTemporary = false,
+  });
+
+  const ImageClipboardPasteResult.image(String path)
+    : this(
+        status: ImageClipboardPasteStatus.imagePasted,
+        path: path,
+        isTemporary: true,
+      );
+
+  const ImageClipboardPasteResult.path(String path)
+    : this(status: ImageClipboardPasteStatus.pathPasted, path: path);
+
+  const ImageClipboardPasteResult.empty()
+    : this(status: ImageClipboardPasteStatus.empty);
+
+  const ImageClipboardPasteResult.unsupportedPlatform()
+    : this(status: ImageClipboardPasteStatus.unsupportedPlatform);
+
+  final ImageClipboardPasteStatus status;
+  final String? path;
+  final bool isTemporary;
 }
 
 class ImageFileExportResult {
@@ -52,6 +87,8 @@ class ImageLibraryFileService {
   static String? _trashSessionId;
   static const String _windowsClipboardImagePathEnvironmentKey =
       'FEATHER_CANVAS_CLIPBOARD_IMAGE_PATH';
+  static const String _windowsClipboardPastePathEnvironmentKey =
+      'FEATHER_CANVAS_CLIPBOARD_PASTE_PATH';
   static const String _windowsCopyImageCommand = r'''
 $path = [Environment]::GetEnvironmentVariable('FEATHER_CANVAS_CLIPBOARD_IMAGE_PATH')
 if ([string]::IsNullOrWhiteSpace($path)) {
@@ -66,6 +103,45 @@ try {
   $image.Dispose()
 }
 ''';
+  static const String _windowsPasteImageCommand = r'''
+$path = [Environment]::GetEnvironmentVariable('FEATHER_CANVAS_CLIPBOARD_PASTE_PATH')
+if ([string]::IsNullOrWhiteSpace($path)) {
+  throw 'Missing destination path.'
+}
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+$image = [System.Windows.Forms.Clipboard]::GetImage()
+if ($null -eq $image -and [System.Windows.Forms.Clipboard]::ContainsFileDropList()) {
+  $allowed = @('.bmp', '.gif', '.jpeg', '.jpg', '.png')
+  foreach ($candidate in [System.Windows.Forms.Clipboard]::GetFileDropList()) {
+    if (-not [System.IO.File]::Exists($candidate)) {
+      continue
+    }
+    $extension = [System.IO.Path]::GetExtension($candidate).ToLowerInvariant()
+    if ($allowed -notcontains $extension) {
+      continue
+    }
+    $image = [System.Drawing.Image]::FromFile($candidate)
+    break
+  }
+}
+if ($null -eq $image) {
+  exit 2
+}
+try {
+  $image.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+} finally {
+  $image.Dispose()
+}
+''';
+  static const Set<String> _clipboardPathImageExtensions = {
+    '.bmp',
+    '.gif',
+    '.jpeg',
+    '.jpg',
+    '.png',
+    '.webp',
+  };
 
   Future<bool> fileExists(String path) {
     return File(path).exists();
@@ -179,6 +255,25 @@ try {
   ) async {
     final file = await _writeClipboardTempImage(bytes);
     return copyImageFileToClipboard(file.path);
+  }
+
+  Future<ImageClipboardPasteResult> pasteImageFromClipboard() async {
+    if (Platform.isWindows) {
+      final pasted = await _pasteWindowsClipboardImage();
+      if (pasted != null) {
+        return ImageClipboardPasteResult.image(pasted.path);
+      }
+    }
+
+    final path = await _readClipboardImagePath();
+    if (path != null) {
+      return ImageClipboardPasteResult.path(path);
+    }
+
+    if (!Platform.isWindows) {
+      return const ImageClipboardPasteResult.unsupportedPlatform();
+    }
+    return const ImageClipboardPasteResult.empty();
   }
 
   Future<void> safeDeleteFile(String path) async {
@@ -314,6 +409,95 @@ try {
       'feather_canvas_clipboard_${DateTime.now().microsecondsSinceEpoch}.png',
     );
     return file.writeAsBytes(bytes, flush: true);
+  }
+
+  Future<File?> _pasteWindowsClipboardImage() async {
+    final file = await _clipboardPasteDestinationFile();
+    final result = await Process.run(
+      'powershell.exe',
+      const [
+        '-NoProfile',
+        '-STA',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        _windowsPasteImageCommand,
+      ],
+      environment: {_windowsClipboardPastePathEnvironmentKey: file.path},
+    );
+    if (result.exitCode == 2) {
+      await safeDeleteFile(file.path);
+      return null;
+    }
+    if (result.exitCode != 0) {
+      await safeDeleteFile(file.path);
+      final stderrText = result.stderr.toString().trim();
+      final stdoutText = result.stdout.toString().trim();
+      final detail = stderrText.isNotEmpty ? stderrText : stdoutText;
+      throw StateError(
+        detail.isEmpty ? 'Windows clipboard image paste failed.' : detail,
+      );
+    }
+    if (!await file.exists()) {
+      return null;
+    }
+    return file;
+  }
+
+  Future<String?> _readClipboardImagePath() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final raw = data?.text?.trim();
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+
+    final candidate = _normalizeClipboardPath(raw);
+    if (candidate == null) {
+      return null;
+    }
+    final extension = _pathExtension(candidate).toLowerCase();
+    if (!_clipboardPathImageExtensions.contains(extension)) {
+      return null;
+    }
+    final file = File(candidate);
+    if (!await file.exists()) {
+      return null;
+    }
+    return file.path;
+  }
+
+  String? _normalizeClipboardPath(String raw) {
+    final firstLine = raw.split(RegExp(r'\r?\n')).first.trim();
+    if (firstLine.isEmpty) {
+      return null;
+    }
+    final unquoted = firstLine
+        .replaceFirst(RegExp(r'^"+'), '')
+        .replaceFirst(RegExp(r'"+$'), '');
+    final uri = Uri.tryParse(unquoted);
+    if (uri != null && uri.scheme == 'file') {
+      return uri.toFilePath(windows: Platform.isWindows);
+    }
+    return unquoted;
+  }
+
+  String _pathExtension(String path) {
+    final name = fileNameFromPath(path);
+    final dotIndex = name.lastIndexOf('.');
+    return dotIndex < 0 ? '' : name.substring(dotIndex);
+  }
+
+  Future<File> _clipboardPasteDestinationFile() async {
+    Directory directory;
+    try {
+      directory = await getTemporaryDirectory();
+    } catch (_) {
+      directory = Directory.systemTemp;
+    }
+    return File(
+      '${directory.path}${Platform.pathSeparator}'
+      'feather_canvas_paste_${DateTime.now().microsecondsSinceEpoch}.png',
+    );
   }
 
   Future<String> _uniqueDestinationPath({

@@ -828,6 +828,9 @@ class TemplateImagePicker extends StatelessWidget {
     this.onRemoveImage,
     this.removeImageTooltipBuilder,
     this.selectedSummary,
+    this.emptyHint,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
     super.key,
   }) : imagePaths = imagePath == null
            ? imagePaths
@@ -843,6 +846,9 @@ class TemplateImagePicker extends StatelessWidget {
   final ValueChanged<String>? onRemoveImage;
   final String Function(String path)? removeImageTooltipBuilder;
   final String? selectedSummary;
+  final String? emptyHint;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -854,6 +860,26 @@ class TemplateImagePicker extends StatelessWidget {
         .toList(growable: false);
     final resolvedTitle = title ?? l10n.templateImagePickerDefaultTitle;
     final hasImages = paths.isNotEmpty;
+    final showSecondaryAction = secondaryActionLabel != null;
+    final pickButton = TextButton.icon(
+      onPressed: onPick,
+      icon: const Icon(Icons.image_search_outlined),
+      label: Text(
+        pickLabel ?? (hasImages ? l10n.replaceAction : l10n.selectAction),
+      ),
+    );
+    final secondaryButton = showSecondaryAction
+        ? TextButton.icon(
+            onPressed: onSecondaryAction,
+            icon: const Icon(Icons.content_paste_outlined),
+            label: Text(secondaryActionLabel!),
+          )
+        : null;
+    final clearButton = IconButton(
+      tooltip: clearTooltip ?? l10n.templateImagePickerClearTooltip,
+      onPressed: onClear,
+      icon: const Icon(Icons.close),
+    );
 
     return Container(
       width: double.infinity,
@@ -866,35 +892,53 @@ class TemplateImagePicker extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _templateImagePickerTitle(
-                    paths: paths,
-                    fallbackTitle: resolvedTitle,
-                    selectedSummary: selectedSummary,
+          if (showSecondaryAction) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _templateImagePickerTitle(
+                      paths: paths,
+                      fallbackTitle: resolvedTitle,
+                      selectedSummary: selectedSummary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall,
                 ),
-              ),
-              TextButton.icon(
-                onPressed: onPick,
-                icon: const Icon(Icons.image_search_outlined),
-                label: Text(
-                  pickLabel ??
-                      (hasImages ? l10n.replaceAction : l10n.selectAction),
+                clearButton,
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [secondaryButton!, pickButton],
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _templateImagePickerTitle(
+                      paths: paths,
+                      fallbackTitle: resolvedTitle,
+                      selectedSummary: selectedSummary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall,
+                  ),
                 ),
-              ),
-              IconButton(
-                tooltip: clearTooltip ?? l10n.templateImagePickerClearTooltip,
-                onPressed: onClear,
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
+                pickButton,
+                clearButton,
+              ],
+            ),
+          if (!hasImages && emptyHint != null) ...[
+            const SizedBox(height: 8),
+            Text(emptyHint!, style: theme.textTheme.bodySmall),
+          ],
           if (hasImages) ...[
             const SizedBox(height: 12),
             SizedBox(

@@ -16,8 +16,11 @@ import '../widgets/image_advanced_settings_widgets.dart';
 import '../widgets/image_size_widgets.dart';
 import '../widgets/layout_navigation_widgets.dart';
 
+enum ImageGenerationPanelMode { textToImage, imageToImage }
+
 class ControlPanel extends StatelessWidget {
   const ControlPanel({
+    this.mode = ImageGenerationPanelMode.textToImage,
     required this.apiConfigs,
     required this.selectedApiConfigId,
     required this.providerKind,
@@ -37,12 +40,14 @@ class ControlPanel extends StatelessWidget {
     required this.onImageCountChanged,
     required this.onAdvancedSettingsChanged,
     required this.onPickTemplateImage,
+    this.onPasteTemplateImage,
     required this.onClearTemplateImage,
     required this.onRemoveTemplateImage,
     required this.onGenerate,
     super.key,
   });
 
+  final ImageGenerationPanelMode mode;
   final List<ApiConfig> apiConfigs;
   final String selectedApiConfigId;
   final ApiProviderKind providerKind;
@@ -62,6 +67,7 @@ class ControlPanel extends StatelessWidget {
   final ValueChanged<int> onImageCountChanged;
   final ValueChanged<ImageAdvancedSettings> onAdvancedSettingsChanged;
   final VoidCallback onPickTemplateImage;
+  final VoidCallback? onPasteTemplateImage;
   final VoidCallback onClearTemplateImage;
   final ValueChanged<String> onRemoveTemplateImage;
   final VoidCallback onGenerate;
@@ -69,6 +75,7 @@ class ControlPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = appL10nOf(context);
+    final isImageToImage = mode == ImageGenerationPanelMode.imageToImage;
     final hasTemplateImages = templateImagePaths.isNotEmpty;
     final sizeValidation = validateImageSizeForModel(
       size: size,
@@ -88,30 +95,35 @@ class ControlPanel extends StatelessWidget {
             onChanged: onApiConfigChanged,
             onOpenSettings: onOpenApiSettings,
           ),
-          const SizedBox(height: fieldGap),
-          TemplateImagePicker(
-            imagePaths: templateImagePaths,
-            title: l10n.imageGenerationReferenceImageTitle,
-            pickLabel: hasTemplateImages
-                ? l10n.imageGenerationAddReferenceImagesLabel
-                : l10n.imageGenerationReferenceImagePickLabel,
-            onPick: isGenerating ? null : onPickTemplateImage,
-            onClear: !hasTemplateImages || isGenerating
-                ? null
-                : onClearTemplateImage,
-            onRemoveImage: isGenerating ? null : onRemoveTemplateImage,
-            removeImageTooltipBuilder: (path) =>
-                l10n.imageGenerationRemoveReferenceImageTooltip(
-                  fileNameFromPath(path),
-                ),
-            selectedSummary: hasTemplateImages
-                ? l10n.imageGenerationReferenceImageCountLabel(
-                    templateImagePaths.length,
-                  )
-                : null,
-            clearTooltip: l10n.imageGenerationClearReferenceImagesTooltip,
-            previewHeight: 132,
-          ),
+          if (isImageToImage) ...[
+            const SizedBox(height: fieldGap),
+            TemplateImagePicker(
+              imagePaths: templateImagePaths,
+              title: l10n.imageToImageReferenceImageTitle,
+              pickLabel: hasTemplateImages
+                  ? l10n.imageGenerationAddReferenceImagesLabel
+                  : l10n.imageToImageReferenceImagePickLabel,
+              onPick: isGenerating ? null : onPickTemplateImage,
+              onClear: !hasTemplateImages || isGenerating
+                  ? null
+                  : onClearTemplateImage,
+              onRemoveImage: isGenerating ? null : onRemoveTemplateImage,
+              removeImageTooltipBuilder: (path) =>
+                  l10n.imageGenerationRemoveReferenceImageTooltip(
+                    fileNameFromPath(path),
+                  ),
+              selectedSummary: hasTemplateImages
+                  ? l10n.imageGenerationReferenceImageCountLabel(
+                      templateImagePaths.length,
+                    )
+                  : null,
+              clearTooltip: l10n.imageGenerationClearReferenceImagesTooltip,
+              previewHeight: 132,
+              emptyHint: l10n.imageToImageReferenceImageEmptyHint,
+              secondaryActionLabel: l10n.imageToImagePasteReferenceImageLabel,
+              onSecondaryAction: isGenerating ? null : onPasteTemplateImage,
+            ),
+          ],
           const SizedBox(height: fieldGap),
           TextField(
             controller: promptController,
@@ -143,7 +155,7 @@ class ControlPanel extends StatelessWidget {
           ImageAdvancedSettingsSection(
             settings: advancedSettings,
             userController: userController,
-            hasTemplateImage: hasTemplateImages,
+            hasTemplateImage: isImageToImage && hasTemplateImages,
             onChanged: onAdvancedSettingsChanged,
           ),
           const SizedBox(height: fieldGap),
@@ -164,13 +176,13 @@ class ControlPanel extends StatelessWidget {
             onPressed: isGenerating || !sizeValidation.isValid
                 ? null
                 : onGenerate,
-            icon: hasTemplateImages
+            icon: isImageToImage
                 ? Icons.compare_outlined
                 : Icons.auto_awesome,
-            label: hasTemplateImages
+            label: isImageToImage
                 ? l10n.imageGenerationGenerateWithReferenceButton
                 : l10n.generateImageButton,
-            busyLabel: hasTemplateImages
+            busyLabel: isImageToImage
                 ? l10n.imageGenerationGeneratingWithReferenceButton
                 : l10n.generatingImageButton,
             isBusy: isGenerating,

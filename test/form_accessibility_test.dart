@@ -190,6 +190,7 @@ void main() {
                   child: SizedBox(
                     width: 760,
                     child: ControlPanel(
+                      mode: ImageGenerationPanelMode.imageToImage,
                       apiConfigs: const [
                         ApiConfig(
                           id: 'default',
@@ -242,6 +243,7 @@ void main() {
 
       expect(find.text('2 张参考图'), findsOneWidget);
       expect(find.text('图生图'), findsOneWidget);
+      expect(find.text('粘贴图片'), findsOneWidget);
       expect(find.byTooltip('清除全部参考图'), findsOneWidget);
       expect(find.bySemanticsLabel('reference.png'), findsOneWidget);
       expect(find.bySemanticsLabel('style.png'), findsOneWidget);
@@ -259,9 +261,10 @@ void main() {
       await tester.tap(find.byTooltip('清除全部参考图'));
       await tester.pumpAndSettle();
 
-      expect(find.text('参考图（图生图）'), findsOneWidget);
+      expect(find.text('输入图片'), findsOneWidget);
+      expect(find.text('选择本地图片'), findsOneWidget);
       expect(find.text('参考图保真度'), findsNothing);
-      expect(find.text('生成图片'), findsOneWidget);
+      expect(find.text('图生图'), findsOneWidget);
     },
   );
 

@@ -329,6 +329,7 @@ mixin _LocalSettingsStateMixin
       remember: (value) => _lastPromptText = value,
       feature: switch (_selectedFeature) {
         WorkspaceFeature.imageGeneration => WorkspaceFeature.imageGeneration,
+        WorkspaceFeature.imageToImage => WorkspaceFeature.imageToImage,
         WorkspaceFeature.localSettings => WorkspaceFeature.localSettings,
         _ => null,
       },
@@ -459,6 +460,8 @@ mixin _LocalSettingsStateMixin
     return switch (_selectedFeature) {
       WorkspaceFeature.imageGeneration when includeImageGeneration =>
         WorkspaceFeature.imageGeneration,
+      WorkspaceFeature.imageToImage when includeImageGeneration =>
+        WorkspaceFeature.imageToImage,
       WorkspaceFeature.animationProject when includeAnimationProject =>
         WorkspaceFeature.animationProject,
       WorkspaceFeature.localSettings

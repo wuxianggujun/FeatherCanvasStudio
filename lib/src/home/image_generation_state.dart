@@ -41,6 +41,7 @@ mixin _ImageGenerationStateMixin
   AnimationProjectExportService get _animationProjectExportService;
   AnimationProjectFrameEditor get _animationProjectFrameEditor;
   ScrollController get _scrollController;
+  WorkspaceFeature get _selectedFeature;
   TextEditingController get _animationPromptController;
   SpriteSheetImportConfig get _spriteSheetImportConfig;
   set _spriteSheetImportConfig(SpriteSheetImportConfig value);
@@ -250,7 +251,10 @@ mixin _ImageGenerationStateMixin
     _lastAnimationConfigHistoryAt = now;
   }
 
-  Future<void> _generateImage() async {
+  Future<void> _generateImage({
+    WorkspaceFeature feature = WorkspaceFeature.imageGeneration,
+    bool requireTemplateImages = false,
+  }) async {
     final l10n = appL10nOf(context);
     final apiConfig = await _prepareSelectedApiConfigForRequest();
     if (!mounted) {
@@ -258,7 +262,9 @@ mixin _ImageGenerationStateMixin
     }
 
     final prompt = _promptController.text.trim();
-    final templatePaths = List<String>.unmodifiable(_imageTemplateImagePaths);
+    final templatePaths = requireTemplateImages
+        ? List<String>.unmodifiable(_imageTemplateImagePaths)
+        : const <String>[];
     final hasTemplateImages = templatePaths.isNotEmpty;
     final beforeImages = List<GeneratedImage>.unmodifiable(_generatedImages);
     final beforeDebugRecord = _imageRequestDebugRecord;
@@ -275,6 +281,11 @@ mixin _ImageGenerationStateMixin
 
     if (prompt.isEmpty) {
       _showMessage(l10n.imageGenerationMissingPositivePromptMessage);
+      return;
+    }
+
+    if (requireTemplateImages && !hasTemplateImages) {
+      _showMessage(l10n.imageToImageMissingReferenceImageMessage);
       return;
     }
 
@@ -344,6 +355,7 @@ mixin _ImageGenerationStateMixin
         });
       }
       _pushTextGenerationHistory(
+        feature: feature,
         label: l10n.imageGenerationGenerateImagesHistory(allImages.length),
         beforeImages: beforeImages,
         beforeDebugRecord: beforeDebugRecord,
@@ -390,6 +402,70 @@ mixin _ImageGenerationStateMixin
       if (mounted) {
         _isGenerating = false;
       }
+    }
+  }
+
+  Future<void> _pasteImageTemplateImage() async {
+    final l10n = appL10nOf(context);
+    try {
+      final result = await _fileService.pasteImageFromClipboard();
+      if (!mounted) {
+        return;
+      }
+
+      final pastedPath = result.path;
+      if (pastedPath == null) {
+        switch (result.status) {
+          case ImageClipboardPasteStatus.empty:
+            _showMessage(l10n.imageToImageClipboardEmptyMessage);
+          case ImageClipboardPasteStatus.unsupportedPlatform:
+            _showMessage(l10n.imageToImageClipboardUnsupportedMessage);
+          case ImageClipboardPasteStatus.imagePasted:
+          case ImageClipboardPasteStatus.pathPasted:
+            _showMessage(l10n.imageToImageClipboardEmptyMessage);
+        }
+        return;
+      }
+
+      final nextPaths = _mergeTemplateImagePaths(_imageTemplateImagePaths, [
+        pastedPath,
+      ]);
+      final addedCount = nextPaths.length - _imageTemplateImagePaths.length;
+      if (nextPaths.length > maxTemplateImageReferenceCount) {
+        if (result.isTemporary) {
+          await _fileService.safeDeleteFile(pastedPath);
+        }
+        _showMessage(
+          l10n.imageGenerationReferenceImagesLimitMessage(
+            maxTemplateImageReferenceCount,
+          ),
+        );
+        return;
+      }
+      if (addedCount <= 0) {
+        if (result.isTemporary) {
+          await _fileService.safeDeleteFile(pastedPath);
+        }
+        return;
+      }
+
+      setState(() {
+        _imageTemplateImagePaths = nextPaths;
+        _errorMessage = null;
+      });
+      if (result.isTemporary) {
+        _ephemeralTemplatePaths.add(pastedPath);
+      }
+      _showMessage(
+        l10n.imageToImagePastedReferenceImageMessage(
+          fileNameFromPath(pastedPath),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage(l10n.imageToImagePasteReferenceImageFailedMessage(error));
     }
   }
 
@@ -642,6 +718,9 @@ mixin _ImageGenerationStateMixin
     final l10n = appL10nOf(context);
     final beforeImages = List<GeneratedImage>.unmodifiable(_generatedImages);
     final beforeDebugRecord = _imageRequestDebugRecord;
+    final historyFeature = _selectedFeature == WorkspaceFeature.imageToImage
+        ? WorkspaceFeature.imageToImage
+        : WorkspaceFeature.imageGeneration;
     final sourceItem = _findImageLibraryItemByPath(image.filePath);
     final fallbackTitle = l10n.imageGenerationGeneratedResultTitle(index + 1);
     final tolerance = await showBackgroundTransparencyDialog(
@@ -659,7 +738,9 @@ mixin _ImageGenerationStateMixin
         tolerance: tolerance,
         sourceItem: sourceItem,
         fallbackTitle: fallbackTitle,
-        source: l10n.imageGenerationTextImageSource,
+        source: historyFeature == WorkspaceFeature.imageToImage
+            ? l10n.imageGenerationReferenceImageSource
+            : l10n.imageGenerationTextImageSource,
       );
       if (!mounted) {
         return;
@@ -680,6 +761,7 @@ mixin _ImageGenerationStateMixin
         }
       });
       _pushTextGenerationHistory(
+        feature: historyFeature,
         label: l10n.imageGenerationTransparentBackgroundHistory(
           sourceItem?.displayTitle ?? fallbackTitle,
         ),
@@ -870,6 +952,7 @@ mixin _ImageGenerationStateMixin
   }
 
   void _pushTextGenerationHistory({
+    required WorkspaceFeature feature,
     required String label,
     required List<GeneratedImage> beforeImages,
     required ImageRequestDebugRecord? beforeDebugRecord,
@@ -878,7 +961,7 @@ mixin _ImageGenerationStateMixin
     required List<ImageLibraryItem> appendedItems,
   }) {
     _pushHistory(
-      WorkspaceFeature.imageGeneration,
+      feature,
       HistoryAction(
         label: label,
         apply: () => _restoreTextGenerationResult(
@@ -2135,6 +2218,40 @@ mixin _ImageGenerationStateMixin
 
   Widget _buildImageGenerationWorkspace() {
     return ImageGenerationWorkspace(
+      mode: ImageGenerationPanelMode.textToImage,
+      controller: _scrollController,
+      historyControls: _buildCompactHistoryControls(),
+      apiConfigs: _apiConfigs,
+      selectedApiConfig: _selectedApiConfig,
+      promptController: _promptController,
+      negativePromptController: _negativePromptController,
+      size: _size,
+      imageCount: _imageCount,
+      templateImagePaths: const <String>[],
+      advancedSettings: _advancedSettings,
+      userController: _userController,
+      onApiConfigChanged: _selectApiConfig,
+      onOpenApiSettings: () =>
+          unawaited(_selectFeature(WorkspaceFeature.apiSettings)),
+      onSizeChanged: _setSize,
+      onImageCountChanged: _setImageCount,
+      onAdvancedSettingsChanged: _setAdvancedSettings,
+      onPickTemplateImage: _pickImageTemplateImage,
+      onClearTemplateImage: _clearImageTemplateImage,
+      onRemoveTemplateImage: _removeImageTemplateImage,
+      onGenerate: _generateImage,
+      onCopyImage: (index, image) =>
+          unawaited(_copyGeneratedPreviewImage(image)),
+      onExportImage: (index, image) =>
+          unawaited(_exportGeneratedPreviewImage(index, image)),
+      onMakeBackgroundTransparent: (index, image) =>
+          unawaited(_makeGeneratedImageBackgroundTransparent(index, image)),
+    );
+  }
+
+  Widget _buildImageToImageWorkspace() {
+    return ImageGenerationWorkspace(
+      mode: ImageGenerationPanelMode.imageToImage,
       controller: _scrollController,
       historyControls: _buildCompactHistoryControls(),
       apiConfigs: _apiConfigs,
@@ -2153,9 +2270,15 @@ mixin _ImageGenerationStateMixin
       onImageCountChanged: _setImageCount,
       onAdvancedSettingsChanged: _setAdvancedSettings,
       onPickTemplateImage: _pickImageTemplateImage,
+      onPasteTemplateImage: () => unawaited(_pasteImageTemplateImage()),
       onClearTemplateImage: _clearImageTemplateImage,
       onRemoveTemplateImage: _removeImageTemplateImage,
-      onGenerate: _generateImage,
+      onGenerate: () => unawaited(
+        _generateImage(
+          feature: WorkspaceFeature.imageToImage,
+          requireTemplateImages: true,
+        ),
+      ),
       onCopyImage: (index, image) =>
           unawaited(_copyGeneratedPreviewImage(image)),
       onExportImage: (index, image) =>

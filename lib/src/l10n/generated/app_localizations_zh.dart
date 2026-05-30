@@ -15,6 +15,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navImageGeneration => '文本生图';
 
   @override
+  String get navImageToImage => '图生图';
+
+  @override
   String get navBatchGeneration => '批量生成';
 
   @override
@@ -605,6 +608,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get imageGenerationWorkspaceDescription => '选择已保存的接口配置，再填写提示词生成图片';
 
   @override
+  String get imageToImageWorkspaceTitle => '图生图';
+
+  @override
+  String get imageToImageWorkspaceDescription => '粘贴或选择本地图片，再填写提示词生成新图';
+
+  @override
   String get generationConfigSectionTitle => '生成配置';
 
   @override
@@ -632,7 +641,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get imageGenerationReferenceImageTitle => '参考图（图生图）';
 
   @override
+  String get imageToImageReferenceImageTitle => '输入图片';
+
+  @override
   String get imageGenerationReferenceImagePickLabel => '选择参考图';
+
+  @override
+  String get imageToImageReferenceImagePickLabel => '选择本地图片';
+
+  @override
+  String get imageToImagePasteReferenceImageLabel => '粘贴图片';
+
+  @override
+  String get imageToImageReferenceImageEmptyHint =>
+      '支持从剪贴板粘贴图片，也可以选择本地图片或作品库图片。';
 
   @override
   String get imageGenerationAddReferenceImagesLabel => '添加参考图';
@@ -658,6 +680,26 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get imageGenerationCompatibleMultiReferenceWarning =>
       '兼容接口将按多文件 image 字段发送参考图，实际是否支持取决于服务商。';
+
+  @override
+  String get imageToImageMissingReferenceImageMessage => '请先粘贴或选择一张图片。';
+
+  @override
+  String get imageToImageClipboardEmptyMessage => '剪贴板里没有可用图片。';
+
+  @override
+  String get imageToImageClipboardUnsupportedMessage =>
+      '当前平台暂不支持直接粘贴图片，请选择本地图片。';
+
+  @override
+  String imageToImagePastedReferenceImageMessage(Object fileName) {
+    return '已粘贴图片：$fileName';
+  }
+
+  @override
+  String imageToImagePasteReferenceImageFailedMessage(Object error) {
+    return '粘贴图片失败：$error';
+  }
 
   @override
   String get imageGenerationGenerateWithReferenceButton => '图生图';
@@ -3725,6 +3767,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportImageTooltip => '导出图片';
+
+  @override
+  String get previewPreviousImageTooltip => '上一张';
+
+  @override
+  String get previewNextImageTooltip => '下一张';
 
   @override
   String get makeBackgroundTransparentTooltip => '背景转透明';

@@ -1,5 +1,6 @@
 enum WorkspaceFeature {
   imageGeneration,
+  imageToImage,
   batchGeneration,
   animationProject,
   imageEditor,
@@ -15,6 +16,7 @@ extension WorkspaceFeatureCategory on WorkspaceFeature {
   WorkspaceCategory get category {
     return switch (this) {
       WorkspaceFeature.imageGeneration ||
+      WorkspaceFeature.imageToImage ||
       WorkspaceFeature.batchGeneration ||
       WorkspaceFeature.animationProject => WorkspaceCategory.generate,
       WorkspaceFeature.imageEditor ||
@@ -38,6 +40,7 @@ const Map<WorkspaceCategory, List<WorkspaceFeature>> workspaceCategoryFeatures =
     {
       WorkspaceCategory.generate: [
         WorkspaceFeature.imageGeneration,
+        WorkspaceFeature.imageToImage,
         WorkspaceFeature.batchGeneration,
         WorkspaceFeature.animationProject,
       ],

@@ -70,6 +70,7 @@ import 'src/utils/image_dimensions.dart';
 import 'src/utils/localized_display_labels.dart';
 import 'src/widgets/app_dialogs.dart';
 import 'src/widgets/background_transparency_dialog.dart';
+import 'src/widgets/generation_form_widgets.dart';
 import 'src/widgets/layout_navigation_widgets.dart';
 import 'src/widgets/patch_image_framing_dialog.dart';
 import 'src/widgets/workspaces.dart';

@@ -52,6 +52,15 @@ void main() {
     await tester.tap(find.byTooltip('展开侧栏'));
     await _pumpBoundedSettle(tester);
 
+    expect(find.text('图生图'), findsOneWidget);
+    await tester.tap(find.text('图生图'));
+    await _pumpBoundedSettle(tester);
+
+    expect(find.text('图生图'), findsWidgets);
+    expect(find.text('输入图片'), findsOneWidget);
+    expect(find.text('粘贴图片'), findsOneWidget);
+    expect(find.text('选择本地图片'), findsOneWidget);
+
     await tester.tap(find.text('批量生成'));
     await _pumpBoundedSettle(tester);
 

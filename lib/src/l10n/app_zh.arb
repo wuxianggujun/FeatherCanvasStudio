@@ -8,6 +8,10 @@
   "@navImageGeneration": {
     "description": "导航：文本生图工作区"
   },
+  "navImageToImage": "图生图",
+  "@navImageToImage": {
+    "description": "导航：图生图工作区"
+  },
   "navBatchGeneration": "批量生成",
   "@navBatchGeneration": {
     "description": "导航：批量生成工作区"
@@ -50,7 +54,7 @@
   },
   "navGroupGenerate": "生成",
   "@navGroupGenerate": {
-    "description": "导航分组：生成（文本生图、批量、动画工程）"
+    "description": "导航分组：生成（文本生图、图生图、批量、动画工程）"
   },
   "navGroupEdit": "编辑",
   "@navGroupEdit": {
@@ -840,6 +844,14 @@
   "@imageGenerationWorkspaceDescription": {
     "description": "文本生图工作区说明"
   },
+  "imageToImageWorkspaceTitle": "图生图",
+  "@imageToImageWorkspaceTitle": {
+    "description": "图生图工作区标题"
+  },
+  "imageToImageWorkspaceDescription": "粘贴或选择本地图片，再填写提示词生成新图",
+  "@imageToImageWorkspaceDescription": {
+    "description": "图生图工作区说明"
+  },
   "generationConfigSectionTitle": "生成配置",
   "@generationConfigSectionTitle": {
     "description": "文本生图：生成配置面板标题"
@@ -876,9 +888,25 @@
   "@imageGenerationReferenceImageTitle": {
     "description": "文本生图：图生图参考图选择器标题"
   },
+  "imageToImageReferenceImageTitle": "输入图片",
+  "@imageToImageReferenceImageTitle": {
+    "description": "图生图：输入图片选择器标题"
+  },
   "imageGenerationReferenceImagePickLabel": "选择参考图",
   "@imageGenerationReferenceImagePickLabel": {
     "description": "文本生图：选择图生图参考图按钮"
+  },
+  "imageToImageReferenceImagePickLabel": "选择本地图片",
+  "@imageToImageReferenceImagePickLabel": {
+    "description": "图生图：选择本地图片按钮"
+  },
+  "imageToImagePasteReferenceImageLabel": "粘贴图片",
+  "@imageToImagePasteReferenceImageLabel": {
+    "description": "图生图：从剪贴板粘贴图片按钮"
+  },
+  "imageToImageReferenceImageEmptyHint": "支持从剪贴板粘贴图片，也可以选择本地图片或作品库图片。",
+  "@imageToImageReferenceImageEmptyHint": {
+    "description": "图生图：未选择输入图片时的提示"
   },
   "imageGenerationAddReferenceImagesLabel": "添加参考图",
   "@imageGenerationAddReferenceImagesLabel": {
@@ -916,6 +944,32 @@
   "imageGenerationCompatibleMultiReferenceWarning": "兼容接口将按多文件 image 字段发送参考图，实际是否支持取决于服务商。",
   "@imageGenerationCompatibleMultiReferenceWarning": {
     "description": "文本生图：兼容接口多参考图能力提示"
+  },
+  "imageToImageMissingReferenceImageMessage": "请先粘贴或选择一张图片。",
+  "@imageToImageMissingReferenceImageMessage": {
+    "description": "图生图状态：缺少输入图片提示"
+  },
+  "imageToImageClipboardEmptyMessage": "剪贴板里没有可用图片。",
+  "@imageToImageClipboardEmptyMessage": {
+    "description": "图生图状态：剪贴板没有图片提示"
+  },
+  "imageToImageClipboardUnsupportedMessage": "当前平台暂不支持直接粘贴图片，请选择本地图片。",
+  "@imageToImageClipboardUnsupportedMessage": {
+    "description": "图生图状态：平台不支持粘贴图片提示"
+  },
+  "imageToImagePastedReferenceImageMessage": "已粘贴图片：{fileName}",
+  "@imageToImagePastedReferenceImageMessage": {
+    "description": "图生图状态：粘贴图片成功提示",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "imageToImagePasteReferenceImageFailedMessage": "粘贴图片失败：{error}",
+  "@imageToImagePasteReferenceImageFailedMessage": {
+    "description": "图生图状态：粘贴图片失败提示",
+    "placeholders": {
+      "error": {}
+    }
   },
   "imageGenerationGenerateWithReferenceButton": "图生图",
   "@imageGenerationGenerateWithReferenceButton": {
@@ -5384,6 +5438,14 @@
   "exportImageTooltip": "导出图片",
   "@exportImageTooltip": {
     "description": "通用：导出图片 tooltip"
+  },
+  "previewPreviousImageTooltip": "上一张",
+  "@previewPreviousImageTooltip": {
+    "description": "结果预览弹窗：上一张图片 tooltip"
+  },
+  "previewNextImageTooltip": "下一张",
+  "@previewNextImageTooltip": {
+    "description": "结果预览弹窗：下一张图片 tooltip"
   },
   "makeBackgroundTransparentTooltip": "背景转透明",
   "@makeBackgroundTransparentTooltip": {

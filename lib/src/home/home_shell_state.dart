@@ -914,6 +914,7 @@ mixin _HomeShellStateMixin
 
   bool _workspaceSupportsHistory(WorkspaceFeature feature) {
     return feature == WorkspaceFeature.imageGeneration ||
+        feature == WorkspaceFeature.imageToImage ||
         feature == WorkspaceFeature.animationProject ||
         feature == WorkspaceFeature.imageEditor ||
         feature == WorkspaceFeature.pixelArtEditor ||
@@ -1006,6 +1007,7 @@ mixin _HomeShellStateMixin
   Widget _buildSelectedWorkspace() {
     return switch (_selectedFeature) {
       WorkspaceFeature.imageGeneration => _buildImageGenerationWorkspace(),
+      WorkspaceFeature.imageToImage => _buildImageToImageWorkspace(),
       WorkspaceFeature.batchGeneration => _buildBatchGenerationWorkspace(),
       WorkspaceFeature.animationProject => _buildAnimationProjectWorkspace(),
       WorkspaceFeature.imageEditor => _buildImageEditorWorkspace(),

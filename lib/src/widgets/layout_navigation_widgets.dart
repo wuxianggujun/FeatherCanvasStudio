@@ -446,6 +446,7 @@ class FeatureNavigationRail extends StatelessWidget {
   static String _featureLabel(AppLocalizations l10n, WorkspaceFeature feature) {
     return switch (feature) {
       WorkspaceFeature.imageGeneration => l10n.navImageGeneration,
+      WorkspaceFeature.imageToImage => l10n.navImageToImage,
       WorkspaceFeature.batchGeneration => l10n.navBatchGeneration,
       WorkspaceFeature.animationProject => l10n.navAnimationProject,
       WorkspaceFeature.imageEditor => l10n.navImageEditor,
@@ -459,6 +460,10 @@ class FeatureNavigationRail extends StatelessWidget {
   static (IconData, IconData) _featureIcons(WorkspaceFeature feature) {
     return switch (feature) {
       WorkspaceFeature.imageGeneration => (Icons.image_outlined, Icons.image),
+      WorkspaceFeature.imageToImage => (
+        Icons.compare_outlined,
+        Icons.compare,
+      ),
       WorkspaceFeature.batchGeneration => (
         Icons.auto_awesome_motion_outlined,
         Icons.auto_awesome_motion,

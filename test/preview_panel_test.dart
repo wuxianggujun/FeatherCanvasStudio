@@ -104,6 +104,60 @@ void main() {
     }
   });
 
+  testWidgets('preview dialog navigates between generated images', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final images = [
+      GeneratedImage.bytes(base64Decode(_onePixelPngBase64)),
+      GeneratedImage.bytes(base64Decode(_onePixelPngBase64)),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 900,
+            child: PreviewPanel(
+              errorMessage: null,
+              generatedImages: images,
+              isGenerating: false,
+              debugRecord: null,
+              targetAspectRatio: 1,
+              onRetry: () {},
+              onCopyImage: (_, _) {},
+              onExportImage: (_, _) {},
+              onMakeBackgroundTransparent: (_, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    await tester.tap(find.bySemanticsLabel('结果 1').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('结果 1'), findsWidgets);
+    expect(find.text('结果 2'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(find.text('结果 1'), findsNothing);
+    expect(find.text('结果 2'), findsWidgets);
+    expect(
+      tester
+          .widgetList<Image>(find.byType(Image))
+          .map((widget) => widget.semanticLabel),
+      contains('结果 2'),
+    );
+  });
+
   testWidgets('preview panel uses a lazy grid for large result sets', (
     tester,
   ) async {
