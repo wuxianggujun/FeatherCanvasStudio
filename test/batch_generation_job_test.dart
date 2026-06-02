@@ -262,6 +262,26 @@ void main() {
     expect(requeued.debugRecord, isNull);
   });
 
+  test('batch image service keeps requesting until a job is filled', () async {
+    final generationService = _OneImageAtATimeGenerationService();
+    final job = _job('under returned').copyWith(imageCount: 4);
+
+    final completed = await const BatchImageGenerationService().runJob(
+      job: job,
+      client: OpenAICompatibleImageClient(),
+      store: AppLocalStore(),
+      imageLibraryService: const ImageLibraryService(),
+      imageGenerationService: generationService,
+      titlePrefix: '批量结果',
+      source: '批量生成',
+    );
+
+    expect(completed.status, BatchGenerationJobStatus.succeeded);
+    expect(completed.resultImages, hasLength(4));
+    expect(completed.libraryItems, hasLength(4));
+    expect(generationService.requestedCounts, [4, 3, 2, 1]);
+  });
+
   test('replaces batch job by index while preserving order', () {
     final first = _job('first');
     final second = _job('second');
@@ -316,6 +336,52 @@ void main() {
 
     expect(result, [job]);
   });
+}
+
+class _OneImageAtATimeGenerationService extends ImageGenerationService {
+  final requestedCounts = <int>[];
+
+  @override
+  Future<TextImageGenerationResult> generateTextImages({
+    required OpenAICompatibleImageClient client,
+    required AppLocalStore store,
+    required ImageLibraryService imageLibraryService,
+    required ApiConfig apiConfig,
+    required String prompt,
+    required String negativePrompt,
+    required String size,
+    required int imageCount,
+    required ImageAdvancedSettings advancedSettings,
+    required String user,
+    String? templateImagePath,
+    List<String> templateImagePaths = const <String>[],
+    ImageAssetKind libraryKind = ImageAssetKind.generatedImage,
+    required String titlePrefix,
+    required String source,
+    void Function(ImageRequestDebugRecord record)? onDebugRecord,
+  }) async {
+    requestedCounts.add(imageCount);
+    final imageNumber = requestedCounts.length;
+    final groupId = 'group-$imageNumber';
+    return TextImageGenerationResult(
+      groupId: groupId,
+      cachedImages: [
+        GeneratedImage.bytes(Uint8List.fromList([imageNumber])),
+      ],
+      generation: buildGenerationSnapshot(
+        groupId: groupId,
+        apiConfig: apiConfig,
+        prompt: prompt,
+        negativePrompt: negativePrompt,
+        requestSize: size,
+        imageCount: imageCount,
+        resultCount: 1,
+        advancedSettings: advancedSettings,
+        user: user,
+      ),
+      libraryItems: [_libraryItem('result-$imageNumber')],
+    );
+  }
 }
 
 BatchGenerationJob _job(String prompt) {

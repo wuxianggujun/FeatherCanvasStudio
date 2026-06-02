@@ -36,6 +36,9 @@ void main() {
                 {
                   'b64_json': base64Encode([4, 5, 6]),
                 },
+                {
+                  'b64_json': base64Encode([7, 8, 9]),
+                },
               ],
             }),
             200,
@@ -61,21 +64,32 @@ void main() {
       );
 
       expect(result.groupId, isNotEmpty);
-      expect(result.cachedImages, hasLength(1));
-      expect(result.cachedImages.single.filePath, isNotNull);
-      expect(await File(result.cachedImages.single.filePath!).readAsBytes(), [
+      expect(result.cachedImages, hasLength(2));
+      expect(result.cachedImages.first.filePath, isNotNull);
+      expect(await File(result.cachedImages.first.filePath!).readAsBytes(), [
         4,
         5,
         6,
       ]);
+      expect(await File(result.cachedImages[1].filePath!).readAsBytes(), [
+        7,
+        8,
+        9,
+      ]);
       expect(result.generation.prompt, 'paint a bird');
       expect(result.generation.advancedSettings.user, 'user-123');
-      expect(result.libraryItems, hasLength(1));
-      expect(result.libraryItems.single.title, '文本生图 1');
-      expect(result.libraryItems.single.generation?.id, result.groupId);
+      expect(result.libraryItems, hasLength(2));
+      expect(result.libraryItems.map((item) => item.title), [
+        '文本生图 1',
+        '文本生图 2',
+      ]);
       expect(
-        (await store.loadImageLibrary()).single.id,
-        result.libraryItems.single.id,
+        result.libraryItems.map((item) => item.generation?.id),
+        everyElement(result.groupId),
+      );
+      expect(
+        (await store.loadImageLibrary()).map((item) => item.id),
+        unorderedEquals(result.libraryItems.map((item) => item.id)),
       );
       expect(debugRecord?.statusCode, 200);
     },

@@ -202,6 +202,92 @@ void main() {
     expect(find.byType(AspectRatio).evaluate().length, lessThan(images.length));
   });
 
+  testWidgets('preview panel can expand a single tall image to the viewport', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1200, 1000)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final image = GeneratedImage.bytes(base64Decode(_onePixelPngBase64));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 900,
+            child: PreviewPanel(
+              errorMessage: null,
+              generatedImages: [image],
+              isGenerating: false,
+              debugRecord: null,
+              targetAspectRatio: 1024 / 1536,
+              expandTallPreview: true,
+              onRetry: () {},
+              onCopyImage: (_, _) {},
+              onExportImage: (_, _) {},
+              onMakeBackgroundTransparent: (_, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final grid = find.byKey(const ValueKey('preview-grid'));
+    expect(grid, findsOneWidget);
+    expect(tester.getSize(grid).height, greaterThan(620));
+  });
+
+  testWidgets('preview panel shows optional source labels and notice', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1200, 1000)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final image = GeneratedImage.bytes(base64Decode(_onePixelPngBase64));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 900,
+            child: PreviewPanel(
+              errorMessage: null,
+              generatedImages: [image],
+              isGenerating: false,
+              debugRecord: null,
+              targetAspectRatio: 1,
+              imageSourceLabels: const ['第 21/21 批 · 第 4/4 张'],
+              noticeMessage: '已成功返回 124 张，当前仅预览 120 张，还有 4 张未在预览区显示。',
+              onRetry: () {},
+              onCopyImage: (_, _) {},
+              onExportImage: (_, _) {},
+              onMakeBackgroundTransparent: (_, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('第 21/21 批 · 第 4/4 张'), findsOneWidget);
+    expect(find.text('已成功返回 124 张，当前仅预览 120 张，还有 4 张未在预览区显示。'), findsOneWidget);
+
+    final tileImage = tester.widget<Image>(find.byType(Image).first);
+    expect(tileImage.semanticLabel, '结果 1 · 第 21/21 批 · 第 4/4 张');
+
+    await tester.tap(find.bySemanticsLabel('结果 1 · 第 21/21 批 · 第 4/4 张'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('结果 1 · 第 21/21 批 · 第 4/4 张'), findsWidgets);
+  });
+
   testWidgets('preview state surfaces expose empty and error semantics', (
     tester,
   ) async {

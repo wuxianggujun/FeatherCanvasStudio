@@ -2200,6 +2200,36 @@ abstract class AppLocalizations {
   /// **'{count} 个任务'**
   String batchJobCount(int count);
 
+  /// 批量生成：任务队列筛选后的数量
+  ///
+  /// In zh, this message translates to:
+  /// **'显示 {visibleCount}/{totalCount} 个任务'**
+  String batchJobFilteredCount(int visibleCount, int totalCount);
+
+  /// 批量生成：任务队列全部筛选项
+  ///
+  /// In zh, this message translates to:
+  /// **'全部 {count}'**
+  String batchJobFilterAll(int count);
+
+  /// 批量生成：任务队列需关注筛选项
+  ///
+  /// In zh, this message translates to:
+  /// **'需关注 {count}'**
+  String batchJobFilterAttention(int count);
+
+  /// 批量生成：任务队列有返回图片筛选项
+  ///
+  /// In zh, this message translates to:
+  /// **'有返回 {count}'**
+  String batchJobFilterReturned(int count);
+
+  /// 批量生成：任务队列筛选结果为空
+  ///
+  /// In zh, this message translates to:
+  /// **'当前筛选下没有任务。'**
+  String get batchJobFilterEmpty;
+
   /// 批量生成：任务摘要中的批次前缀
   ///
   /// In zh, this message translates to:
@@ -2225,6 +2255,66 @@ abstract class AppLocalizations {
     Object retryLabel,
   );
 
+  /// 批量生成：单个任务实际返回数量摘要
+  ///
+  /// In zh, this message translates to:
+  /// **'请求 {requestedCount} 张，实际返回 {returnedCount} 张'**
+  String batchJobReturnSummary(int requestedCount, int returnedCount);
+
+  /// 批量生成：失败任务的需关注提示
+  ///
+  /// In zh, this message translates to:
+  /// **'需关注：任务失败，可重试'**
+  String get batchJobAttentionFailed;
+
+  /// 批量生成：已取消任务的需关注提示
+  ///
+  /// In zh, this message translates to:
+  /// **'需关注：任务已取消'**
+  String get batchJobAttentionSkipped;
+
+  /// 批量生成：任务实际返回图片少于请求数量时的需关注提示
+  ///
+  /// In zh, this message translates to:
+  /// **'需关注：少返回 {missingCount} 张'**
+  String batchJobAttentionUnderReturned(int missingCount);
+
+  /// 批量生成：结果统计面板标题
+  ///
+  /// In zh, this message translates to:
+  /// **'批量结果统计'**
+  String get batchSummaryPanelTitle;
+
+  /// 批量生成：统计面板总任务标签
+  ///
+  /// In zh, this message translates to:
+  /// **'总批次'**
+  String get batchSummaryTotalJobsLabel;
+
+  /// 批量生成：统计面板请求图片标签
+  ///
+  /// In zh, this message translates to:
+  /// **'请求图片'**
+  String get batchSummaryRequestedImagesLabel;
+
+  /// 批量生成：统计面板返回图片标签
+  ///
+  /// In zh, this message translates to:
+  /// **'成功返回'**
+  String get batchSummaryReturnedImagesLabel;
+
+  /// 批量生成：统计面板当前预览图片标签
+  ///
+  /// In zh, this message translates to:
+  /// **'当前预览'**
+  String get batchSummaryPreviewImagesLabel;
+
+  /// 批量生成：统计面板失败任务标签
+  ///
+  /// In zh, this message translates to:
+  /// **'失败批次'**
+  String get batchSummaryFailedJobsLabel;
+
   /// 批量生成：单个任务重试 tooltip
   ///
   /// In zh, this message translates to:
@@ -2236,6 +2326,22 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'移除任务'**
   String get batchRemoveJobTooltip;
+
+  /// 批量生成：多批任务中查看单批返回图片的 tooltip
+  ///
+  /// In zh, this message translates to:
+  /// **'查看第 {batchIndex}/{batchTotal} 批返回的 {imageCount} 张图片'**
+  String batchPreviewJobImagesTooltip(
+    int batchIndex,
+    int batchTotal,
+    int imageCount,
+  );
+
+  /// 批量生成：单任务中查看返回图片的 tooltip
+  ///
+  /// In zh, this message translates to:
+  /// **'查看任务 {jobNumber} 返回的 {imageCount} 张图片'**
+  String batchPreviewSingleJobImagesTooltip(int jobNumber, int imageCount);
 
   /// 批量生成：任务状态等待中
   ///
@@ -6380,6 +6486,37 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'批量结果 {index}'**
   String batchGenerationResultTitle(int index);
+
+  /// 批量生成：预览数量达到上限时的说明
+  ///
+  /// In zh, this message translates to:
+  /// **'已成功返回 {returnedCount} 张，当前仅预览 {previewCount} 张，还有 {hiddenCount} 张未在预览区显示。'**
+  String batchPreviewTruncatedNotice(
+    int returnedCount,
+    int previewCount,
+    int hiddenCount,
+  );
+
+  /// 批量生成：多批任务中预览图片的来源标签
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {batchIndex}/{batchTotal} 批 · 第 {imageIndex}/{imageTotal} 张'**
+  String batchPreviewImageSource(
+    int batchIndex,
+    int batchTotal,
+    int imageIndex,
+    int imageTotal,
+  );
+
+  /// 批量生成：单批任务中预览图片的来源标签
+  ///
+  /// In zh, this message translates to:
+  /// **'任务 {jobNumber} · 第 {imageIndex}/{imageTotal} 张'**
+  String batchPreviewSingleJobImageSource(
+    int jobNumber,
+    int imageIndex,
+    int imageTotal,
+  );
 
   /// 批量生成：作品来源名称
   ///

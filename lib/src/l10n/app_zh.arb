@@ -1761,6 +1761,49 @@
       }
     }
   },
+  "batchJobFilteredCount": "显示 {visibleCount}/{totalCount} 个任务",
+  "@batchJobFilteredCount": {
+    "description": "批量生成：任务队列筛选后的数量",
+    "placeholders": {
+      "visibleCount": {
+        "type": "int"
+      },
+      "totalCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchJobFilterAll": "全部 {count}",
+  "@batchJobFilterAll": {
+    "description": "批量生成：任务队列全部筛选项",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchJobFilterAttention": "需关注 {count}",
+  "@batchJobFilterAttention": {
+    "description": "批量生成：任务队列需关注筛选项",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchJobFilterReturned": "有返回 {count}",
+  "@batchJobFilterReturned": {
+    "description": "批量生成：任务队列有返回图片筛选项",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchJobFilterEmpty": "当前筛选下没有任务。",
+  "@batchJobFilterEmpty": {
+    "description": "批量生成：任务队列筛选结果为空"
+  },
   "batchJobBatchPrefix": "第 {batchIndex}/{batchTotal} 批 · ",
   "@batchJobBatchPrefix": {
     "description": "批量生成：任务摘要中的批次前缀",
@@ -1799,6 +1842,59 @@
       "retryLabel": {}
     }
   },
+  "batchJobReturnSummary": "请求 {requestedCount} 张，实际返回 {returnedCount} 张",
+  "@batchJobReturnSummary": {
+    "description": "批量生成：单个任务实际返回数量摘要",
+    "placeholders": {
+      "requestedCount": {
+        "type": "int"
+      },
+      "returnedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchJobAttentionFailed": "需关注：任务失败，可重试",
+  "@batchJobAttentionFailed": {
+    "description": "批量生成：失败任务的需关注提示"
+  },
+  "batchJobAttentionSkipped": "需关注：任务已取消",
+  "@batchJobAttentionSkipped": {
+    "description": "批量生成：已取消任务的需关注提示"
+  },
+  "batchJobAttentionUnderReturned": "需关注：少返回 {missingCount} 张",
+  "@batchJobAttentionUnderReturned": {
+    "description": "批量生成：任务实际返回图片少于请求数量时的需关注提示",
+    "placeholders": {
+      "missingCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchSummaryPanelTitle": "批量结果统计",
+  "@batchSummaryPanelTitle": {
+    "description": "批量生成：结果统计面板标题"
+  },
+  "batchSummaryTotalJobsLabel": "总批次",
+  "@batchSummaryTotalJobsLabel": {
+    "description": "批量生成：统计面板总任务标签"
+  },
+  "batchSummaryRequestedImagesLabel": "请求图片",
+  "@batchSummaryRequestedImagesLabel": {
+    "description": "批量生成：统计面板请求图片标签"
+  },
+  "batchSummaryReturnedImagesLabel": "成功返回",
+  "@batchSummaryReturnedImagesLabel": {
+    "description": "批量生成：统计面板返回图片标签"
+  },
+  "batchSummaryPreviewImagesLabel": "当前预览",
+  "@batchSummaryPreviewImagesLabel": {
+    "description": "批量生成：统计面板当前预览图片标签"
+  },
+  "batchSummaryFailedJobsLabel": "失败批次",
+  "@batchSummaryFailedJobsLabel": {
+    "description": "批量生成：统计面板失败任务标签"
+  },
   "batchRetryJobTooltip": "重试任务",
   "@batchRetryJobTooltip": {
     "description": "批量生成：单个任务重试 tooltip"
@@ -1806,6 +1902,33 @@
   "batchRemoveJobTooltip": "移除任务",
   "@batchRemoveJobTooltip": {
     "description": "批量生成：单个任务移除 tooltip"
+  },
+  "batchPreviewJobImagesTooltip": "查看第 {batchIndex}/{batchTotal} 批返回的 {imageCount} 张图片",
+  "@batchPreviewJobImagesTooltip": {
+    "description": "批量生成：多批任务中查看单批返回图片的 tooltip",
+    "placeholders": {
+      "batchIndex": {
+        "type": "int"
+      },
+      "batchTotal": {
+        "type": "int"
+      },
+      "imageCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchPreviewSingleJobImagesTooltip": "查看任务 {jobNumber} 返回的 {imageCount} 张图片",
+  "@batchPreviewSingleJobImagesTooltip": {
+    "description": "批量生成：单任务中查看返回图片的 tooltip",
+    "placeholders": {
+      "jobNumber": {
+        "type": "int"
+      },
+      "imageCount": {
+        "type": "int"
+      }
+    }
   },
   "batchJobStatusQueued": "等待中",
   "@batchJobStatusQueued": {
@@ -5358,6 +5481,54 @@
     "description": "批量生成：批量结果默认标题",
     "placeholders": {
       "index": {
+        "type": "int"
+      }
+    }
+  },
+  "batchPreviewTruncatedNotice": "已成功返回 {returnedCount} 张，当前仅预览 {previewCount} 张，还有 {hiddenCount} 张未在预览区显示。",
+  "@batchPreviewTruncatedNotice": {
+    "description": "批量生成：预览数量达到上限时的说明",
+    "placeholders": {
+      "returnedCount": {
+        "type": "int"
+      },
+      "previewCount": {
+        "type": "int"
+      },
+      "hiddenCount": {
+        "type": "int"
+      }
+    }
+  },
+  "batchPreviewImageSource": "第 {batchIndex}/{batchTotal} 批 · 第 {imageIndex}/{imageTotal} 张",
+  "@batchPreviewImageSource": {
+    "description": "批量生成：多批任务中预览图片的来源标签",
+    "placeholders": {
+      "batchIndex": {
+        "type": "int"
+      },
+      "batchTotal": {
+        "type": "int"
+      },
+      "imageIndex": {
+        "type": "int"
+      },
+      "imageTotal": {
+        "type": "int"
+      }
+    }
+  },
+  "batchPreviewSingleJobImageSource": "任务 {jobNumber} · 第 {imageIndex}/{imageTotal} 张",
+  "@batchPreviewSingleJobImageSource": {
+    "description": "批量生成：单批任务中预览图片的来源标签",
+    "placeholders": {
+      "jobNumber": {
+        "type": "int"
+      },
+      "imageIndex": {
+        "type": "int"
+      },
+      "imageTotal": {
         "type": "int"
       }
     }

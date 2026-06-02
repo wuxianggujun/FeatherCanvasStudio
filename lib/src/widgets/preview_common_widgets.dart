@@ -10,6 +10,7 @@ class PreviewPanelShell extends StatelessWidget {
     required this.child,
     this.debugRecord,
     this.showDebugButton = false,
+    this.expandChild = false,
     super.key,
   });
 
@@ -17,6 +18,7 @@ class PreviewPanelShell extends StatelessWidget {
   final Widget child;
   final ImageRequestDebugRecord? debugRecord;
   final bool showDebugButton;
+  final bool expandChild;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +27,7 @@ class PreviewPanelShell extends StatelessWidget {
       trailing: showDebugButton
           ? RequestDebugButton(record: debugRecord)
           : null,
+      expandChild: expandChild,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 180),
         child: child,

@@ -121,6 +121,7 @@ class ImageGenerationWorkspace extends StatelessWidget {
               isGenerating: notifier.isGenerating,
               targetImageCount: imageCount,
               targetAspectRatio: imageAspectRatioFromSize(size),
+              expandTallPreview: true,
               debugRecord: notifier.debugRecord,
               onRetry: onGenerate,
               onCopyImage: onCopyImage,

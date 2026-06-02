@@ -7,24 +7,54 @@ const int maxBatchPreviewImages = 120;
 
 class BatchGenerationJobSummary {
   const BatchGenerationJobSummary({
+    required this.totalJobCount,
     required this.queuedCount,
     required this.runningCount,
     required this.finishedCount,
     required this.failedCount,
+    required this.requestedImageCount,
+    required this.returnedImageCount,
     required this.previewImages,
+    required this.previewImageSources,
+    required this.hiddenPreviewImageCount,
     required this.targetImageCount,
     required this.previewAspectRatio,
     required this.latestDebugRecord,
   });
 
+  final int totalJobCount;
   final int queuedCount;
   final int runningCount;
   final int finishedCount;
   final int failedCount;
+  final int requestedImageCount;
+  final int returnedImageCount;
   final List<GeneratedImage> previewImages;
+  final List<BatchPreviewImageSource> previewImageSources;
+  final int hiddenPreviewImageCount;
   final int targetImageCount;
   final double previewAspectRatio;
   final ImageRequestDebugRecord? latestDebugRecord;
+
+  bool get isPreviewTruncated => hiddenPreviewImageCount > 0;
+}
+
+class BatchPreviewImageSource {
+  const BatchPreviewImageSource({
+    required this.jobNumber,
+    required this.batchIndex,
+    required this.batchTotal,
+    required this.imageIndex,
+    required this.imageTotal,
+  });
+
+  final int jobNumber;
+  final int batchIndex;
+  final int batchTotal;
+  final int imageIndex;
+  final int imageTotal;
+
+  bool get hasMultipleBatches => batchTotal > 1;
 }
 
 BatchGenerationJobSummary summarizeBatchGenerationJobs(
@@ -35,13 +65,21 @@ BatchGenerationJobSummary summarizeBatchGenerationJobs(
   var runningCount = 0;
   var finishedCount = 0;
   var failedCount = 0;
+  var requestedImageCount = 0;
+  var returnedImageCount = 0;
   var targetImageCount = 0;
   var previewAspectRatio = imageAspectRatioFromSize(fallbackSize);
   var hasPreviewAspectRatio = false;
   ImageRequestDebugRecord? latestDebugRecord;
   final previewImages = <GeneratedImage>[];
+  final previewImageSources = <BatchPreviewImageSource>[];
 
-  for (final job in jobs) {
+  for (var jobIndex = 0; jobIndex < jobs.length; jobIndex++) {
+    final job = jobs[jobIndex];
+    if (job.status != BatchGenerationJobStatus.skipped) {
+      requestedImageCount += job.imageCount;
+    }
+    returnedImageCount += job.resultImages.length;
     if (job.isPending) {
       queuedCount++;
     }
@@ -59,7 +97,21 @@ BatchGenerationJobSummary summarizeBatchGenerationJobs(
         previewImages.length < maxBatchPreviewImages) {
       final remainingPreviewSlots =
           maxBatchPreviewImages - previewImages.length;
-      previewImages.addAll(job.resultImages.take(remainingPreviewSlots));
+      final visibleImages = job.resultImages.take(remainingPreviewSlots);
+      var imageIndex = 0;
+      for (final image in visibleImages) {
+        previewImages.add(image);
+        previewImageSources.add(
+          BatchPreviewImageSource(
+            jobNumber: jobIndex + 1,
+            batchIndex: job.batchIndex,
+            batchTotal: job.batchTotal,
+            imageIndex: imageIndex + 1,
+            imageTotal: job.resultImages.length,
+          ),
+        );
+        imageIndex++;
+      }
     }
     if (!hasPreviewAspectRatio &&
         (job.resultImages.isNotEmpty || job.isRunning)) {
@@ -72,11 +124,18 @@ BatchGenerationJobSummary summarizeBatchGenerationJobs(
   }
 
   return BatchGenerationJobSummary(
+    totalJobCount: jobs.length,
     queuedCount: queuedCount,
     runningCount: runningCount,
     finishedCount: finishedCount,
     failedCount: failedCount,
+    requestedImageCount: requestedImageCount,
+    returnedImageCount: returnedImageCount,
     previewImages: List.unmodifiable(previewImages),
+    previewImageSources: List.unmodifiable(previewImageSources),
+    hiddenPreviewImageCount: returnedImageCount > previewImages.length
+        ? returnedImageCount - previewImages.length
+        : 0,
     targetImageCount: targetImageCount + previewImages.length,
     previewAspectRatio: previewAspectRatio,
     latestDebugRecord: latestDebugRecord,

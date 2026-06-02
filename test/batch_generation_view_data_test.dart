@@ -39,10 +39,65 @@ void main() {
     expect(summary.runningCount, 1);
     expect(summary.finishedCount, maxBatchPreviewImages + 5);
     expect(summary.failedCount, 1);
+    expect(summary.totalJobCount, maxBatchPreviewImages + 7);
+    expect(summary.requestedImageCount, maxBatchPreviewImages + 8);
+    expect(summary.returnedImageCount, maxBatchPreviewImages + 4);
     expect(summary.previewImages, hasLength(maxBatchPreviewImages));
+    expect(summary.previewImageSources, hasLength(maxBatchPreviewImages));
+    expect(summary.hiddenPreviewImageCount, 4);
+    expect(summary.isPreviewTruncated, isTrue);
     expect(summary.targetImageCount, maxBatchPreviewImages + 2);
     expect(summary.previewAspectRatio, imageAspectRatioFromSize('1536x1024'));
     expect(summary.latestDebugRecord, same(debugRecord));
+  });
+
+  test('keeps every image from each batch until preview cap', () {
+    const config = ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+    final jobs = [
+      for (var index = 0; index < 21; index++)
+        BatchGenerationJob.create(
+          apiConfig: config,
+          prompt: 'done prompt $index',
+          negativePrompt: '',
+          size: '1024x1024',
+          imageCount: 4,
+          advancedSettings: const ImageAdvancedSettings(),
+          user: '',
+        ).copyWith(
+          status: BatchGenerationJobStatus.succeeded,
+          resultImages: [
+            for (var imageIndex = 0; imageIndex < 4; imageIndex++)
+              GeneratedImage.bytes(Uint8List.fromList([index, imageIndex])),
+          ],
+        ),
+    ];
+
+    final summary = summarizeBatchGenerationJobs(
+      jobs,
+      fallbackSize: '1024x1024',
+    );
+
+    expect(summary.previewImages, hasLength(84));
+    expect(summary.targetImageCount, 84);
+    expect(summary.requestedImageCount, 84);
+    expect(summary.returnedImageCount, 84);
+    expect(summary.hiddenPreviewImageCount, 0);
+    expect(summary.isPreviewTruncated, isFalse);
+    expect(summary.previewImageSources, hasLength(84));
+    expect(summary.previewImageSources.first.batchIndex, 1);
+    expect(summary.previewImageSources.first.batchTotal, 1);
+    expect(summary.previewImageSources.first.imageIndex, 1);
+    expect(summary.previewImageSources.first.imageTotal, 4);
+    expect(summary.previewImageSources.last.jobNumber, 21);
+    expect(summary.previewImageSources.last.imageIndex, 4);
+    expect(summary.previewImages.first.bytes, isNotNull);
+    expect(summary.previewImages.last.bytes, isNotNull);
   });
 
   test('derives queue status kind from running and queued state', () {

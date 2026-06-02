@@ -90,68 +90,480 @@ class BatchGenerationWorkspace extends StatelessWidget {
     return WorkspacePage(
       title: l10n.batchGenerationWorkspaceTitle,
       description: l10n.batchGenerationWorkspaceDescription,
+      scrollable: false,
       children: [
-        ResponsiveWorkspaceSplit(
-          storageKey: 'batch_generation',
-          controls: _BatchGenerationControls(
-            promptController: promptController,
-            negativePromptController: negativePromptController,
-            userController: userController,
-            apiConfigs: apiConfigs,
-            selectedApiConfig: selectedApiConfig,
-            selectedApiConfigId: selectedApiConfigId,
-            providerKind: providerKind,
-            imageSizeCapabilityOverride: imageSizeCapabilityOverride,
-            size: size,
-            advancedSettings: advancedSettings,
-            onApiConfigChanged: onApiConfigChanged,
-            onOpenApiSettings: onOpenApiSettings,
-            onSizeChanged: onSizeChanged,
-            onAdvancedSettingsChanged: onAdvancedSettingsChanged,
-            onTargetCountChanged: onTargetCountChanged,
-            onRequestCountChanged: onRequestCountChanged,
-            onAddPrompts: onAddPrompts,
-            onStart: onStart,
-            onPause: onPause,
-            onResume: onResume,
-            onCancelQueued: onCancelQueued,
-            onRetryFailed: onRetryFailed,
-            onClearFinished: onClearFinished,
-          ),
-          preview: Consumer<BatchGenerationNotifier>(
-            builder: (context, notifier, _) {
-              final jobs = notifier.jobs;
-              final isRunning = notifier.isRunning;
-              final summary = summarizeBatchGenerationJobs(
-                jobs,
-                fallbackSize: size,
-              );
-              return Column(
-                children: [
-                  _BatchGenerationJobList(
+        Expanded(
+          child: SizedBox(
+            width: double.infinity,
+            child: _BatchGenerationWorkspaceLayout(
+              controls: _BatchGenerationControls(
+                promptController: promptController,
+                negativePromptController: negativePromptController,
+                userController: userController,
+                apiConfigs: apiConfigs,
+                selectedApiConfig: selectedApiConfig,
+                selectedApiConfigId: selectedApiConfigId,
+                providerKind: providerKind,
+                imageSizeCapabilityOverride: imageSizeCapabilityOverride,
+                size: size,
+                advancedSettings: advancedSettings,
+                onApiConfigChanged: onApiConfigChanged,
+                onOpenApiSettings: onOpenApiSettings,
+                onSizeChanged: onSizeChanged,
+                onAdvancedSettingsChanged: onAdvancedSettingsChanged,
+                onTargetCountChanged: onTargetCountChanged,
+                onRequestCountChanged: onRequestCountChanged,
+                onAddPrompts: onAddPrompts,
+                onStart: onStart,
+                onPause: onPause,
+                onResume: onResume,
+                onCancelQueued: onCancelQueued,
+                onRetryFailed: onRetryFailed,
+                onClearFinished: onClearFinished,
+              ),
+              preview: Consumer<BatchGenerationNotifier>(
+                builder: (context, notifier, _) {
+                  final jobs = notifier.jobs;
+                  final summary = summarizeBatchGenerationJobs(
+                    jobs,
+                    fallbackSize: size,
+                  );
+                  return _BatchGenerationPreviewPane(
                     jobs: jobs,
+                    summary: summary,
+                    isRunning: notifier.isRunning,
+                    onStart: onStart,
                     onRemoveJob: onRemoveJob,
                     onRetryJob: onRetryJob,
-                  ),
-                  const SizedBox(height: 16),
-                  PreviewPanel(
-                    errorMessage: null,
-                    generatedImages: summary.previewImages,
-                    isGenerating: isRunning,
-                    targetImageCount: summary.targetImageCount,
-                    targetAspectRatio: summary.previewAspectRatio,
-                    debugRecord: summary.latestDebugRecord,
-                    onRetry: onStart,
+                    onPreviewJobImages: (job) =>
+                        _showBatchJobImagesPreviewDialog(
+                          context,
+                          l10n,
+                          jobs,
+                          job,
+                        ),
                     onCopyImage: onCopyImage,
                     onExportImage: onExportImage,
                     onMakeBackgroundTransparent: onMakeBackgroundTransparent,
-                  ),
-                ],
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  void _showBatchJobImagesPreviewDialog(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<BatchGenerationJob> jobs,
+    BatchGenerationJob job,
+  ) {
+    final images = job.resultImages;
+    if (images.isEmpty) {
+      return;
+    }
+
+    final jobNumber = _batchJobDisplayNumber(jobs, job);
+    showGeneratedImagePreviewDialog(
+      context,
+      image: images.first,
+      images: images,
+      title: _batchJobImagePreviewTitle(l10n, job, jobNumber, 0),
+      titleBuilder: (index, _) =>
+          _batchJobImagePreviewTitle(l10n, job, jobNumber, index),
+      onCopyImageAt: (index, image) =>
+          onCopyImage(_batchResultImageGlobalIndex(jobs, job, index), image),
+      onExportImageAt: (index, image) =>
+          onExportImage(_batchResultImageGlobalIndex(jobs, job, index), image),
+    );
+  }
+}
+
+class _BatchGenerationWorkspaceLayout extends StatelessWidget {
+  const _BatchGenerationWorkspaceLayout({
+    required this.controls,
+    required this.preview,
+  });
+
+  final Widget controls;
+  final Widget preview;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < AppBreakpoints.medium) {
+          return _ScrollableWorkspacePane(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                controls,
+                const SizedBox(height: layoutGap),
+                preview,
+              ],
+            ),
+          );
+        }
+
+        return ResponsiveWorkspaceSplit(
+          storageKey: 'batch_generation',
+          controls: _ScrollableWorkspacePane(child: controls),
+          preview: preview,
+        );
+      },
+    );
+  }
+}
+
+class _ScrollableWorkspacePane extends StatefulWidget {
+  const _ScrollableWorkspacePane({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_ScrollableWorkspacePane> createState() =>
+      _ScrollableWorkspacePaneState();
+}
+
+class _ScrollableWorkspacePaneState extends State<_ScrollableWorkspacePane> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.expand(
+      child: Scrollbar(
+        controller: _controller,
+        child: SingleChildScrollView(
+          controller: _controller,
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+
+class _BatchGenerationPreviewPane extends StatelessWidget {
+  const _BatchGenerationPreviewPane({
+    required this.jobs,
+    required this.summary,
+    required this.isRunning,
+    required this.onStart,
+    required this.onRemoveJob,
+    required this.onRetryJob,
+    required this.onPreviewJobImages,
+    required this.onCopyImage,
+    required this.onExportImage,
+    required this.onMakeBackgroundTransparent,
+  });
+
+  final List<BatchGenerationJob> jobs;
+  final BatchGenerationJobSummary summary;
+  final bool isRunning;
+  final VoidCallback onStart;
+  final ValueChanged<BatchGenerationJob> onRemoveJob;
+  final ValueChanged<BatchGenerationJob> onRetryJob;
+  final ValueChanged<BatchGenerationJob> onPreviewJobImages;
+  final void Function(int index, GeneratedImage image) onCopyImage;
+  final void Function(int index, GeneratedImage image) onExportImage;
+  final void Function(int index, GeneratedImage image)
+  onMakeBackgroundTransparent;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    Widget buildPreviewPanel({required bool expandChild}) {
+      return PreviewPanel(
+        errorMessage: null,
+        generatedImages: summary.previewImages,
+        isGenerating: isRunning,
+        targetImageCount: summary.targetImageCount,
+        targetAspectRatio: summary.previewAspectRatio,
+        expandTallPreview: true,
+        expandChild: expandChild,
+        imageSourceLabels: [
+          for (final source in summary.previewImageSources)
+            _batchPreviewSourceLabel(l10n, source),
+        ],
+        noticeMessage: summary.isPreviewTruncated
+            ? l10n.batchPreviewTruncatedNotice(
+                summary.returnedImageCount,
+                summary.previewImages.length,
+                summary.hiddenPreviewImageCount,
+              )
+            : null,
+        debugRecord: summary.latestDebugRecord,
+        onRetry: onStart,
+        onCopyImage: onCopyImage,
+        onExportImage: onExportImage,
+        onMakeBackgroundTransparent: onMakeBackgroundTransparent,
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hasBoundedHeight =
+            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        final canUseSplitPreview =
+            hasBoundedHeight && constraints.maxWidth >= AppBreakpoints.expanded;
+
+        if (!hasBoundedHeight) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _BatchGenerationSummaryPanel(summary: summary),
+              const SizedBox(height: layoutGap),
+              _BatchGenerationJobList(
+                jobs: jobs,
+                onRemoveJob: onRemoveJob,
+                onRetryJob: onRetryJob,
+                onPreviewJobImages: onPreviewJobImages,
+              ),
+              const SizedBox(height: layoutGap),
+              buildPreviewPanel(expandChild: false),
+            ],
+          );
+        }
+
+        if (canUseSplitPreview) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _BatchGenerationSummaryPanel(summary: summary),
+              const SizedBox(height: layoutGap),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Flexible(
+                      flex: 5,
+                      child: _BatchGenerationJobList(
+                        jobs: jobs,
+                        expandList: true,
+                        onRemoveJob: onRemoveJob,
+                        onRetryJob: onRetryJob,
+                        onPreviewJobImages: onPreviewJobImages,
+                      ),
+                    ),
+                    const SizedBox(width: layoutGap),
+                    Flexible(
+                      flex: 6,
+                      child: buildPreviewPanel(expandChild: true),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _BatchGenerationSummaryPanel(summary: summary),
+            const SizedBox(height: layoutGap),
+            Flexible(
+              flex: 4,
+              child: _BatchGenerationJobList(
+                jobs: jobs,
+                expandList: true,
+                onRemoveJob: onRemoveJob,
+                onRetryJob: onRetryJob,
+                onPreviewJobImages: onPreviewJobImages,
+              ),
+            ),
+            const SizedBox(height: layoutGap),
+            Flexible(flex: 6, child: buildPreviewPanel(expandChild: true)),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _BatchGenerationSummaryPanel extends StatelessWidget {
+  const _BatchGenerationSummaryPanel({required this.summary});
+
+  final BatchGenerationJobSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final stats = [
+      _BatchSummaryStat(
+        label: l10n.batchSummaryTotalJobsLabel,
+        value: '${summary.totalJobCount}',
+        icon: Icons.format_list_bulleted_outlined,
+      ),
+      _BatchSummaryStat(
+        label: l10n.batchSummaryRequestedImagesLabel,
+        value: '${summary.requestedImageCount}',
+        icon: Icons.all_inclusive_outlined,
+      ),
+      _BatchSummaryStat(
+        label: l10n.batchSummaryReturnedImagesLabel,
+        value: '${summary.returnedImageCount}',
+        icon: Icons.image_outlined,
+      ),
+      _BatchSummaryStat(
+        label: l10n.batchSummaryPreviewImagesLabel,
+        value: '${summary.previewImages.length}',
+        icon: Icons.grid_view_outlined,
+      ),
+      _BatchSummaryStat(
+        label: l10n.batchSummaryFailedJobsLabel,
+        value: '${summary.failedCount}',
+        icon: Icons.error_outline,
+      ),
+    ];
+
+    return AppPanel(
+      title: l10n.batchSummaryPanelTitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 720
+                  ? 5
+                  : constraints.maxWidth >= 420
+                  ? 2
+                  : 1;
+              const statHeight = 64.0;
+              final rowCount = (stats.length / columns).ceil();
+
+              return SizedBox(
+                height: rowCount * statHeight + (rowCount - 1) * 8,
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  primary: false,
+                  itemCount: stats.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    mainAxisExtent: statHeight,
+                  ),
+                  itemBuilder: (context, index) => stats[index],
+                ),
+              );
+            },
+          ),
+          if (summary.isPreviewTruncated) ...[
+            const SizedBox(height: 10),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer.withValues(alpha: 0.42),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: colorScheme.onErrorContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.batchPreviewTruncatedNotice(
+                          summary.returnedImageCount,
+                          summary.previewImages.length,
+                          summary.hiddenPreviewImageCount,
+                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BatchSummaryStat extends StatelessWidget {
+  const _BatchSummaryStat({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox.square(
+              dimension: 30,
+              child: Center(
+                child: Icon(icon, size: 20, color: colorScheme.primary),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -574,11 +986,15 @@ class _BatchGenerationJobList extends StatefulWidget {
     required this.jobs,
     required this.onRemoveJob,
     required this.onRetryJob,
+    required this.onPreviewJobImages,
+    this.expandList = false,
   });
 
   final List<BatchGenerationJob> jobs;
   final ValueChanged<BatchGenerationJob> onRemoveJob;
   final ValueChanged<BatchGenerationJob> onRetryJob;
+  final ValueChanged<BatchGenerationJob> onPreviewJobImages;
+  final bool expandList;
 
   @override
   State<_BatchGenerationJobList> createState() =>
@@ -587,6 +1003,7 @@ class _BatchGenerationJobList extends StatefulWidget {
 
 class _BatchGenerationJobListState extends State<_BatchGenerationJobList> {
   final ScrollController _controller = ScrollController();
+  var _filter = _BatchJobListFilter.all;
 
   @override
   void dispose() {
@@ -602,6 +1019,7 @@ class _BatchGenerationJobListState extends State<_BatchGenerationJobList> {
     if (jobs.isEmpty) {
       return AppPanel(
         title: l10n.batchJobListTitle,
+        expandChild: widget.expandList,
         child: Semantics(
           container: true,
           readOnly: true,
@@ -614,39 +1032,211 @@ class _BatchGenerationJobListState extends State<_BatchGenerationJobList> {
       );
     }
 
+    final visibleJobs = _visibleBatchJobs(jobs, _filter);
+    final attentionCount = jobs.where(_batchJobNeedsAttention).length;
+    final returnedCount = jobs
+        .where((job) => job.resultImages.isNotEmpty)
+        .length;
+
     return AppPanel(
       title: l10n.batchJobListTitle,
+      expandChild: widget.expandList,
       trailing: Text(
-        l10n.batchJobCount(jobs.length),
+        visibleJobs.length == jobs.length
+            ? l10n.batchJobCount(jobs.length)
+            : l10n.batchJobFilteredCount(visibleJobs.length, jobs.length),
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
-      child: SizedBox(
-        height: _batchJobListHeight(jobs.length),
-        child: Scrollbar(
-          controller: _controller,
-          child: ListView.separated(
-            controller: _controller,
-            primary: false,
-            itemCount: jobs.length,
-            separatorBuilder: (context, index) => const Divider(height: 18),
-            itemBuilder: (context, index) {
-              return _BatchGenerationJobTile(
-                job: jobs[index],
-                onRemove: widget.onRemoveJob,
-                onRetry: widget.onRetryJob,
-              );
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _BatchJobListFilterControl(
+            selectedFilter: _filter,
+            allCount: jobs.length,
+            attentionCount: attentionCount,
+            returnedCount: returnedCount,
+            onFilterChanged: (filter) {
+              setState(() {
+                _filter = filter;
+                if (_controller.hasClients) {
+                  _controller.jumpTo(0);
+                }
+              });
             },
           ),
-        ),
+          const SizedBox(height: 12),
+          if (widget.expandList)
+            Expanded(
+              child: _BatchGenerationJobListBody(
+                visibleJobs: visibleJobs,
+                controller: _controller,
+                emptyLabel: l10n.batchJobFilterEmpty,
+                onRemove: widget.onRemoveJob,
+                onRetry: widget.onRetryJob,
+                onPreviewImages: widget.onPreviewJobImages,
+              ),
+            )
+          else
+            _BatchGenerationJobListBody(
+              visibleJobs: visibleJobs,
+              controller: _controller,
+              emptyLabel: l10n.batchJobFilterEmpty,
+              maxHeight: _batchJobListHeight(visibleJobs.length),
+              onRemove: widget.onRemoveJob,
+              onRetry: widget.onRetryJob,
+              onPreviewImages: widget.onPreviewJobImages,
+            ),
+        ],
       ),
     );
   }
 }
 
+class _BatchGenerationJobListBody extends StatelessWidget {
+  const _BatchGenerationJobListBody({
+    required this.visibleJobs,
+    required this.controller,
+    required this.emptyLabel,
+    required this.onRemove,
+    required this.onRetry,
+    required this.onPreviewImages,
+    this.maxHeight,
+  });
+
+  final List<_VisibleBatchJob> visibleJobs;
+  final ScrollController controller;
+  final String emptyLabel;
+  final ValueChanged<BatchGenerationJob> onRemove;
+  final ValueChanged<BatchGenerationJob> onRetry;
+  final ValueChanged<BatchGenerationJob> onPreviewImages;
+  final double? maxHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (visibleJobs.isEmpty) {
+      final empty = Semantics(
+        container: true,
+        readOnly: true,
+        label: emptyLabel,
+        child: Text(
+          emptyLabel,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+      return maxHeight == null
+          ? empty
+          : SizedBox(height: maxHeight, child: empty);
+    }
+
+    final list = Scrollbar(
+      controller: controller,
+      child: ListView.separated(
+        key: const ValueKey('batch-job-list'),
+        controller: controller,
+        primary: false,
+        itemCount: visibleJobs.length,
+        separatorBuilder: (context, index) => const Divider(height: 18),
+        itemBuilder: (context, index) {
+          final visibleJob = visibleJobs[index];
+          return _BatchGenerationJobTile(
+            job: visibleJob.job,
+            jobNumber: visibleJob.jobNumber,
+            onRemove: onRemove,
+            onRetry: onRetry,
+            onPreviewImages: onPreviewImages,
+          );
+        },
+      ),
+    );
+
+    return maxHeight == null ? list : SizedBox(height: maxHeight, child: list);
+  }
+}
+
+enum _BatchJobListFilter { all, attention, returned }
+
+class _VisibleBatchJob {
+  const _VisibleBatchJob({required this.job, required this.jobNumber});
+
+  final BatchGenerationJob job;
+  final int jobNumber;
+}
+
+class _BatchJobListFilterControl extends StatelessWidget {
+  const _BatchJobListFilterControl({
+    required this.selectedFilter,
+    required this.allCount,
+    required this.attentionCount,
+    required this.returnedCount,
+    required this.onFilterChanged,
+  });
+
+  final _BatchJobListFilter selectedFilter;
+  final int allCount;
+  final int attentionCount;
+  final int returnedCount;
+  final ValueChanged<_BatchJobListFilter> onFilterChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10nOf(context);
+    final options = [
+      _BatchJobFilterOption(
+        value: _BatchJobListFilter.all,
+        icon: Icons.format_list_bulleted_outlined,
+        label: l10n.batchJobFilterAll(allCount),
+      ),
+      _BatchJobFilterOption(
+        value: _BatchJobListFilter.attention,
+        icon: Icons.report_problem_outlined,
+        label: l10n.batchJobFilterAttention(attentionCount),
+      ),
+      _BatchJobFilterOption(
+        value: _BatchJobListFilter.returned,
+        icon: Icons.photo_library_outlined,
+        label: l10n.batchJobFilterReturned(returnedCount),
+      ),
+    ];
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final option in options)
+          ChoiceChip(
+            showCheckmark: false,
+            selected: selectedFilter == option.value,
+            avatar: Icon(option.icon, size: 18),
+            label: Text(option.label),
+            onSelected: (_) => onFilterChanged(option.value),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+      ],
+    );
+  }
+}
+
+class _BatchJobFilterOption {
+  const _BatchJobFilterOption({
+    required this.value,
+    required this.icon,
+    required this.label,
+  });
+
+  final _BatchJobListFilter value;
+  final IconData icon;
+  final String label;
+}
+
 double _batchJobListHeight(int jobCount) {
-  const estimatedTileHeight = 74.0;
+  const estimatedTileHeight = 84.0;
   const separatorHeight = 18.0;
   const maxHeight = 320.0;
   final contentHeight =
@@ -657,13 +1247,17 @@ double _batchJobListHeight(int jobCount) {
 class _BatchGenerationJobTile extends StatelessWidget {
   const _BatchGenerationJobTile({
     required this.job,
+    required this.jobNumber,
     required this.onRemove,
     required this.onRetry,
+    required this.onPreviewImages,
   });
 
   final BatchGenerationJob job;
+  final int jobNumber;
   final ValueChanged<BatchGenerationJob> onRemove;
   final ValueChanged<BatchGenerationJob> onRetry;
+  final ValueChanged<BatchGenerationJob> onPreviewImages;
 
   @override
   Widget build(BuildContext context) {
@@ -685,6 +1279,11 @@ class _BatchGenerationJobTile extends StatelessWidget {
             maxBatchGenerationAutoRetryAttempts,
           )
         : '';
+    final hasReturnedImages = job.resultImages.isNotEmpty;
+    final attentionMessage = _batchJobAttentionMessage(l10n, job);
+    final returnSummaryColor = attentionMessage == null
+        ? theme.colorScheme.onSurfaceVariant
+        : theme.colorScheme.error;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -716,6 +1315,32 @@ class _BatchGenerationJobTile extends StatelessWidget {
                 ),
                 style: theme.textTheme.bodySmall,
               ),
+              const SizedBox(height: 2),
+              Text(
+                l10n.batchJobReturnSummary(
+                  job.imageCount,
+                  job.resultImages.length,
+                ),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: returnSummaryColor,
+                ),
+              ),
+              if (attentionMessage != null) ...[
+                const SizedBox(height: 2),
+                Semantics(
+                  container: true,
+                  liveRegion: true,
+                  label: attentionMessage,
+                  readOnly: true,
+                  child: Text(
+                    attentionMessage,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
               if (job.errorMessage != null) ...[
                 const SizedBox(height: 4),
                 Semantics(
@@ -742,6 +1367,17 @@ class _BatchGenerationJobTile extends StatelessWidget {
             onPressed: () => onRetry(job),
             icon: const Icon(Icons.replay_outlined),
           ),
+        if (hasReturnedImages)
+          IconButton(
+            tooltip: _batchJobImagesTooltip(
+              l10n,
+              job,
+              jobNumber,
+              job.resultImages.length,
+            ),
+            onPressed: () => onPreviewImages(job),
+            icon: const Icon(Icons.photo_library_outlined),
+          ),
         IconButton(
           tooltip: l10n.batchRemoveJobTooltip,
           onPressed: job.canDelete ? () => onRemove(job) : null,
@@ -760,4 +1396,141 @@ String _jobStatusLabel(AppLocalizations l10n, BatchGenerationJobStatus status) {
     BatchGenerationJobStatus.failed => l10n.batchJobStatusFailed,
     BatchGenerationJobStatus.skipped => l10n.batchJobStatusSkipped,
   };
+}
+
+List<_VisibleBatchJob> _visibleBatchJobs(
+  List<BatchGenerationJob> jobs,
+  _BatchJobListFilter filter,
+) {
+  final visibleJobs = <_VisibleBatchJob>[];
+  for (var index = 0; index < jobs.length; index++) {
+    final job = jobs[index];
+    final isVisible = switch (filter) {
+      _BatchJobListFilter.all => true,
+      _BatchJobListFilter.attention => _batchJobNeedsAttention(job),
+      _BatchJobListFilter.returned => job.resultImages.isNotEmpty,
+    };
+    if (isVisible) {
+      visibleJobs.add(_VisibleBatchJob(job: job, jobNumber: index + 1));
+    }
+  }
+  return visibleJobs;
+}
+
+bool _batchJobNeedsAttention(BatchGenerationJob job) {
+  return job.canRetry ||
+      job.status == BatchGenerationJobStatus.skipped ||
+      _batchJobMissingImageCount(job) > 0;
+}
+
+int _batchJobMissingImageCount(BatchGenerationJob job) {
+  if (!job.isTerminal ||
+      job.status == BatchGenerationJobStatus.failed ||
+      job.status == BatchGenerationJobStatus.skipped) {
+    return 0;
+  }
+  return (job.imageCount - job.resultImages.length)
+      .clamp(0, job.imageCount)
+      .toInt();
+}
+
+String? _batchJobAttentionMessage(
+  AppLocalizations l10n,
+  BatchGenerationJob job,
+) {
+  if (job.canRetry) {
+    return l10n.batchJobAttentionFailed;
+  }
+  if (job.status == BatchGenerationJobStatus.skipped) {
+    return l10n.batchJobAttentionSkipped;
+  }
+  final missingImageCount = _batchJobMissingImageCount(job);
+  if (missingImageCount > 0) {
+    return l10n.batchJobAttentionUnderReturned(missingImageCount);
+  }
+  return null;
+}
+
+String _batchPreviewSourceLabel(
+  AppLocalizations l10n,
+  BatchPreviewImageSource source,
+) {
+  if (source.hasMultipleBatches) {
+    return l10n.batchPreviewImageSource(
+      source.batchIndex,
+      source.batchTotal,
+      source.imageIndex,
+      source.imageTotal,
+    );
+  }
+
+  return l10n.batchPreviewSingleJobImageSource(
+    source.jobNumber,
+    source.imageIndex,
+    source.imageTotal,
+  );
+}
+
+String _batchJobImagePreviewTitle(
+  AppLocalizations l10n,
+  BatchGenerationJob job,
+  int jobNumber,
+  int imageIndex,
+) {
+  final imageNumber = imageIndex + 1;
+  final imageTotal = job.resultImages.length;
+  if (job.hasMultipleBatches) {
+    return l10n.batchPreviewImageSource(
+      job.batchIndex,
+      job.batchTotal,
+      imageNumber,
+      imageTotal,
+    );
+  }
+
+  return l10n.batchPreviewSingleJobImageSource(
+    jobNumber,
+    imageNumber,
+    imageTotal,
+  );
+}
+
+String _batchJobImagesTooltip(
+  AppLocalizations l10n,
+  BatchGenerationJob job,
+  int jobNumber,
+  int imageCount,
+) {
+  if (job.hasMultipleBatches) {
+    return l10n.batchPreviewJobImagesTooltip(
+      job.batchIndex,
+      job.batchTotal,
+      imageCount,
+    );
+  }
+
+  return l10n.batchPreviewSingleJobImagesTooltip(jobNumber, imageCount);
+}
+
+int _batchJobDisplayNumber(
+  List<BatchGenerationJob> jobs,
+  BatchGenerationJob job,
+) {
+  final index = jobs.indexWhere((candidate) => candidate.id == job.id);
+  return index < 0 ? 1 : index + 1;
+}
+
+int _batchResultImageGlobalIndex(
+  List<BatchGenerationJob> jobs,
+  BatchGenerationJob job,
+  int jobImageIndex,
+) {
+  var globalIndex = 0;
+  for (final candidate in jobs) {
+    if (candidate.id == job.id) {
+      return globalIndex + jobImageIndex;
+    }
+    globalIndex += candidate.resultImages.length;
+  }
+  return jobImageIndex;
 }

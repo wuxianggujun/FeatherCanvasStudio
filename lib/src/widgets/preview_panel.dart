@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../l10n/app_l10n.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/generated_image.dart';
 import '../services/image_api_client.dart';
 import '../theme/layout_constants.dart';
@@ -20,6 +22,10 @@ class PreviewPanel extends StatelessWidget {
     required this.onMakeBackgroundTransparent,
     this.targetImageCount,
     this.targetAspectRatio = 1,
+    this.expandTallPreview = false,
+    this.expandChild = false,
+    this.imageSourceLabels = const <String>[],
+    this.noticeMessage,
     super.key,
   });
 
@@ -34,6 +40,10 @@ class PreviewPanel extends StatelessWidget {
   onMakeBackgroundTransparent;
   final int? targetImageCount;
   final double targetAspectRatio;
+  final bool expandTallPreview;
+  final bool expandChild;
+  final List<String> imageSourceLabels;
+  final String? noticeMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +52,7 @@ class PreviewPanel extends StatelessWidget {
       title: l10n.previewPanelTitle,
       debugRecord: debugRecord,
       showDebugButton: true,
+      expandChild: expandChild,
       child: _buildContent(context),
     );
   }
@@ -101,44 +112,121 @@ class PreviewPanel extends StatelessWidget {
         final captionHeight = hasCaption ? 96.0 : 0.0;
         final tileHeight = imageHeight + captionHeight;
         final rowCount = (totalCount / columns).ceil();
+        final maxGridHeight = _previewGridMaxHeight(
+          context,
+          constraints,
+          isCompact: isCompact,
+          expandTallPreview: expandTallPreview,
+        );
         final gridHeight = (rowCount * tileHeight + (rowCount - 1) * layoutGap)
-            .clamp(180.0, 620.0)
+            .clamp(180.0, maxGridHeight)
             .toDouble();
 
-        return SizedBox(
-          height: gridHeight,
-          child: GridView.builder(
-            key: const ValueKey('preview-grid'),
-            primary: false,
-            itemCount: totalCount,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              crossAxisSpacing: layoutGap,
-              mainAxisSpacing: layoutGap,
-              childAspectRatio: tileWidth / tileHeight,
-            ),
-            itemBuilder: (context, index) {
-              if (index >= previewCount) {
-                return _PendingImageTile(
-                  index: index,
-                  aspectRatio: tileAspectRatio,
-                );
-              }
-
-              final image = generatedImages[index];
-              return _GeneratedImageTile(
-                image: image,
-                images: generatedImages,
-                previewIndex: index,
-                aspectRatio: tileAspectRatio,
-                onCopyImage: onCopyImage,
-                onExportImage: onExportImage,
-                onMakeBackgroundTransparent: onMakeBackgroundTransparent,
-              );
-            },
+        final grid = GridView.builder(
+          key: const ValueKey('preview-grid'),
+          primary: false,
+          itemCount: totalCount,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: layoutGap,
+            mainAxisSpacing: layoutGap,
+            childAspectRatio: tileWidth / tileHeight,
           ),
+          itemBuilder: (context, index) {
+            if (index >= previewCount) {
+              return _PendingImageTile(
+                index: index,
+                aspectRatio: tileAspectRatio,
+              );
+            }
+
+            final image = generatedImages[index];
+            final sourceLabel = _previewSourceLabel(imageSourceLabels, index);
+            return _GeneratedImageTile(
+              image: image,
+              images: generatedImages,
+              previewIndex: index,
+              sourceLabel: sourceLabel,
+              sourceLabels: imageSourceLabels,
+              aspectRatio: tileAspectRatio,
+              onCopyImage: onCopyImage,
+              onExportImage: onExportImage,
+              onMakeBackgroundTransparent: onMakeBackgroundTransparent,
+            );
+          },
+        );
+
+        if (constraints.hasBoundedHeight && constraints.maxHeight.isFinite) {
+          return Column(
+            children: [
+              if (noticeMessage != null) ...[
+                _PreviewNotice(message: noticeMessage!),
+                const SizedBox(height: layoutGap),
+              ],
+              Expanded(child: grid),
+            ],
+          );
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (noticeMessage != null) ...[
+              _PreviewNotice(message: noticeMessage!),
+              const SizedBox(height: layoutGap),
+            ],
+            SizedBox(height: gridHeight, child: grid),
+          ],
         );
       },
+    );
+  }
+}
+
+class _PreviewNotice extends StatelessWidget {
+  const _PreviewNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: message,
+      readOnly: true,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.tertiaryContainer.withValues(alpha: 0.56),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 18,
+                color: colorScheme.onTertiaryContainer,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onTertiaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -148,6 +236,8 @@ class _GeneratedImageTile extends StatelessWidget {
     required this.image,
     required this.images,
     required this.previewIndex,
+    required this.sourceLabel,
+    required this.sourceLabels,
     required this.aspectRatio,
     required this.onCopyImage,
     required this.onExportImage,
@@ -157,6 +247,8 @@ class _GeneratedImageTile extends StatelessWidget {
   final GeneratedImage image;
   final List<GeneratedImage> images;
   final int previewIndex;
+  final String? sourceLabel;
+  final List<String> sourceLabels;
   final double aspectRatio;
   final void Function(int index, GeneratedImage image) onCopyImage;
   final void Function(int index, GeneratedImage image) onExportImage;
@@ -167,6 +259,7 @@ class _GeneratedImageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = appL10nOf(context);
+    final title = _previewTitle(l10n, previewIndex, sourceLabel);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,19 +279,32 @@ class _GeneratedImageTile extends StatelessWidget {
                       image: image,
                       images: images,
                       initialIndex: previewIndex,
-                      title: l10n.previewResultTitle(previewIndex + 1),
-                      titleBuilder: (index, _) =>
-                          l10n.previewResultTitle(index + 1),
+                      title: title,
+                      titleBuilder: (index, _) => _previewTitle(
+                        l10n,
+                        index,
+                        _previewSourceLabel(sourceLabels, index),
+                      ),
                       onCopyImageAt: onCopyImage,
                       onExportImageAt: onExportImage,
                     ),
                     child: _GeneratedImageContent(
                       image: image,
-                      semanticLabel: l10n.previewResultTitle(previewIndex + 1),
+                      semanticLabel: title,
                     ),
                   ),
                 ),
               ),
+              if (sourceLabel != null)
+                Positioned(
+                  left: 8,
+                  bottom: 8,
+                  right: 8,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _ImageSourceBadge(label: sourceLabel!),
+                  ),
+                ),
               Positioned(
                 top: 8,
                 right: 8,
@@ -262,6 +368,46 @@ class _GeneratedImageTile extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _ImageSourceBadge extends StatelessWidget {
+  const _ImageSourceBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      label: label,
+      readOnly: true,
+      child: Tooltip(
+        message: label,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.64),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -395,6 +541,25 @@ class _GeneratedImageContent extends StatelessWidget {
   }
 }
 
+double _previewGridMaxHeight(
+  BuildContext context,
+  BoxConstraints constraints, {
+  required bool isCompact,
+  required bool expandTallPreview,
+}) {
+  if (!expandTallPreview || isCompact) {
+    return 620.0;
+  }
+
+  if (constraints.hasBoundedHeight && constraints.maxHeight.isFinite) {
+    return math.max(180.0, constraints.maxHeight).toDouble();
+  }
+
+  final viewportHeight = MediaQuery.sizeOf(context).height;
+  // 单图或少量结果时，优先吃满当前视口，减少右侧预览底部留白。
+  return math.max(620.0, viewportHeight * 0.8).toDouble();
+}
+
 int? _scaledImageCacheDimension(double logicalPixels, double devicePixelRatio) {
   if (!logicalPixels.isFinite || logicalPixels <= 0) {
     return null;
@@ -407,6 +572,19 @@ double _normalizedPreviewAspectRatio(double aspectRatio) {
     return 1;
   }
   return aspectRatio.clamp(1 / 3, 3).toDouble();
+}
+
+String? _previewSourceLabel(List<String> labels, int index) {
+  if (index < 0 || index >= labels.length) {
+    return null;
+  }
+  final label = labels[index].trim();
+  return label.isEmpty ? null : label;
+}
+
+String _previewTitle(AppLocalizations l10n, int index, String? sourceLabel) {
+  final resultTitle = l10n.previewResultTitle(index + 1);
+  return sourceLabel == null ? resultTitle : '$resultTitle · $sourceLabel';
 }
 
 Future<void> showGeneratedImagePreviewDialog(

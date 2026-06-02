@@ -1257,6 +1257,29 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String batchJobFilteredCount(int visibleCount, int totalCount) {
+    return '显示 $visibleCount/$totalCount 个任务';
+  }
+
+  @override
+  String batchJobFilterAll(int count) {
+    return '全部 $count';
+  }
+
+  @override
+  String batchJobFilterAttention(int count) {
+    return '需关注 $count';
+  }
+
+  @override
+  String batchJobFilterReturned(int count) {
+    return '有返回 $count';
+  }
+
+  @override
+  String get batchJobFilterEmpty => '当前筛选下没有任务。';
+
+  @override
   String batchJobBatchPrefix(int batchIndex, int batchTotal) {
     return '第 $batchIndex/$batchTotal 批 · ';
   }
@@ -1279,10 +1302,58 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String batchJobReturnSummary(int requestedCount, int returnedCount) {
+    return '请求 $requestedCount 张，实际返回 $returnedCount 张';
+  }
+
+  @override
+  String get batchJobAttentionFailed => '需关注：任务失败，可重试';
+
+  @override
+  String get batchJobAttentionSkipped => '需关注：任务已取消';
+
+  @override
+  String batchJobAttentionUnderReturned(int missingCount) {
+    return '需关注：少返回 $missingCount 张';
+  }
+
+  @override
+  String get batchSummaryPanelTitle => '批量结果统计';
+
+  @override
+  String get batchSummaryTotalJobsLabel => '总批次';
+
+  @override
+  String get batchSummaryRequestedImagesLabel => '请求图片';
+
+  @override
+  String get batchSummaryReturnedImagesLabel => '成功返回';
+
+  @override
+  String get batchSummaryPreviewImagesLabel => '当前预览';
+
+  @override
+  String get batchSummaryFailedJobsLabel => '失败批次';
+
+  @override
   String get batchRetryJobTooltip => '重试任务';
 
   @override
   String get batchRemoveJobTooltip => '移除任务';
+
+  @override
+  String batchPreviewJobImagesTooltip(
+    int batchIndex,
+    int batchTotal,
+    int imageCount,
+  ) {
+    return '查看第 $batchIndex/$batchTotal 批返回的 $imageCount 张图片';
+  }
+
+  @override
+  String batchPreviewSingleJobImagesTooltip(int jobNumber, int imageCount) {
+    return '查看任务 $jobNumber 返回的 $imageCount 张图片';
+  }
 
   @override
   String get batchJobStatusQueued => '等待中';
@@ -3713,6 +3784,34 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String batchGenerationResultTitle(int index) {
     return '批量结果 $index';
+  }
+
+  @override
+  String batchPreviewTruncatedNotice(
+    int returnedCount,
+    int previewCount,
+    int hiddenCount,
+  ) {
+    return '已成功返回 $returnedCount 张，当前仅预览 $previewCount 张，还有 $hiddenCount 张未在预览区显示。';
+  }
+
+  @override
+  String batchPreviewImageSource(
+    int batchIndex,
+    int batchTotal,
+    int imageIndex,
+    int imageTotal,
+  ) {
+    return '第 $batchIndex/$batchTotal 批 · 第 $imageIndex/$imageTotal 张';
+  }
+
+  @override
+  String batchPreviewSingleJobImageSource(
+    int jobNumber,
+    int imageIndex,
+    int imageTotal,
+  ) {
+    return '任务 $jobNumber · 第 $imageIndex/$imageTotal 张';
   }
 
   @override
