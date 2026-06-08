@@ -28,6 +28,9 @@ class AppLocalStore {
   static const String _modelKey = 'settings.model';
   static const String _promptKey = 'settings.prompt';
   static const String _negativePromptKey = 'settings.negativePrompt';
+  static const String _imageToImagePromptKey = 'settings.imageToImagePrompt';
+  static const String _imageToImageNegativePromptKey =
+      'settings.imageToImageNegativePrompt';
   static const String _sizeKey = 'settings.size';
   static const String _imageCountKey = 'settings.imageCount';
   static const String _apiConfigsKey = 'apiConfigs.entries';
@@ -54,6 +57,12 @@ class AppLocalStore {
       prompt: prefs.getString(_promptKey) ?? defaults.prompt,
       negativePrompt:
           prefs.getString(_negativePromptKey) ?? defaults.negativePrompt,
+      imageToImagePrompt:
+          prefs.getString(_imageToImagePromptKey) ??
+          defaults.imageToImagePrompt,
+      imageToImageNegativePrompt:
+          prefs.getString(_imageToImageNegativePromptKey) ??
+          defaults.imageToImageNegativePrompt,
       size: prefs.getString(_sizeKey) ?? defaults.size,
       imageCount: normalizeImageGenerationTargetCount(
         prefs.getInt(_imageCountKey) ?? defaults.imageCount,
@@ -91,6 +100,11 @@ class AppLocalStore {
     await prefs.setString(_modelKey, settings.model);
     await prefs.setString(_promptKey, settings.prompt);
     await prefs.setString(_negativePromptKey, settings.negativePrompt);
+    await prefs.setString(_imageToImagePromptKey, settings.imageToImagePrompt);
+    await prefs.setString(
+      _imageToImageNegativePromptKey,
+      settings.imageToImageNegativePrompt,
+    );
     await prefs.setString(_sizeKey, settings.size);
     await prefs.setInt(_imageCountKey, settings.imageCount);
     await prefs.setString(

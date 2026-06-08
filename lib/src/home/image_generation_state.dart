@@ -60,6 +60,8 @@ mixin _ImageGenerationStateMixin
   String? get _animationErrorMessage;
   @override
   set _animationErrorMessage(String? value);
+  TextEditingController get _imageToImagePromptController;
+  TextEditingController get _imageToImageNegativePromptController;
   AnimationProject? get _animationProject;
   set _animationProject(AnimationProject? value);
   String? get _selectedAnimationTrackId;
@@ -261,7 +263,13 @@ mixin _ImageGenerationStateMixin
       return;
     }
 
-    final prompt = _promptController.text.trim();
+    final promptController = feature == WorkspaceFeature.imageToImage
+        ? _imageToImagePromptController
+        : _promptController;
+    final negativePromptController = feature == WorkspaceFeature.imageToImage
+        ? _imageToImageNegativePromptController
+        : _negativePromptController;
+    final prompt = promptController.text.trim();
     final templatePaths = requireTemplateImages
         ? List<String>.unmodifiable(_imageTemplateImagePaths)
         : const <String>[];
@@ -311,7 +319,7 @@ mixin _ImageGenerationStateMixin
     });
 
     try {
-      final negativePrompt = _negativePromptController.text.trim();
+      final negativePrompt = negativePromptController.text.trim();
       final user = _userController.text.trim();
       final targetImageCount = normalizeImageGenerationTargetCount(_imageCount);
       final batches = splitImageGenerationBatches(
@@ -2256,8 +2264,8 @@ mixin _ImageGenerationStateMixin
       historyControls: _buildCompactHistoryControls(),
       apiConfigs: _apiConfigs,
       selectedApiConfig: _selectedApiConfig,
-      promptController: _promptController,
-      negativePromptController: _negativePromptController,
+      promptController: _imageToImagePromptController,
+      negativePromptController: _imageToImageNegativePromptController,
       size: _size,
       imageCount: _imageCount,
       templateImagePaths: _imageTemplateImagePaths,

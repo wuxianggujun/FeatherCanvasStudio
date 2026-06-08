@@ -13,6 +13,8 @@ class _GenerationReuseSnapshot {
     required this.generationTimeout,
     required this.prompt,
     required this.negativePrompt,
+    required this.imageToImagePrompt,
+    required this.imageToImageNegativePrompt,
     required this.user,
     required this.size,
     required this.imageCount,
@@ -31,6 +33,8 @@ class _GenerationReuseSnapshot {
   final String generationTimeout;
   final String prompt;
   final String negativePrompt;
+  final String imageToImagePrompt;
+  final String imageToImageNegativePrompt;
   final String user;
   final String size;
   final int imageCount;
@@ -52,6 +56,8 @@ class _GenerationReuseSnapshot {
             generationTimeout == other.generationTimeout &&
             prompt == other.prompt &&
             negativePrompt == other.negativePrompt &&
+            imageToImagePrompt == other.imageToImagePrompt &&
+            imageToImageNegativePrompt == other.imageToImageNegativePrompt &&
             user == other.user &&
             size == other.size &&
             imageCount == other.imageCount &&
@@ -72,6 +78,8 @@ class _GenerationReuseSnapshot {
     generationTimeout,
     prompt,
     negativePrompt,
+    imageToImagePrompt,
+    imageToImageNegativePrompt,
     user,
     size,
     imageCount,
@@ -1442,6 +1450,8 @@ mixin _ImageLibraryStateMixin
       generationTimeout: _generationTimeoutController.text,
       prompt: _promptController.text,
       negativePrompt: _negativePromptController.text,
+      imageToImagePrompt: _imageToImagePromptController.text,
+      imageToImageNegativePrompt: _imageToImageNegativePromptController.text,
       user: _userController.text,
       size: _size,
       imageCount: _imageCount,
@@ -1475,6 +1485,16 @@ mixin _ImageLibraryStateMixin
         controller: _negativePromptController,
         value: snapshot.negativePrompt,
         remember: (value) => _lastNegativePromptText = value,
+      );
+      _setControllerText(
+        controller: _imageToImagePromptController,
+        value: snapshot.imageToImagePrompt,
+        remember: (value) => _lastImageToImagePromptText = value,
+      );
+      _setControllerText(
+        controller: _imageToImageNegativePromptController,
+        value: snapshot.imageToImageNegativePrompt,
+        remember: (value) => _lastImageToImageNegativePromptText = value,
       );
       _userController.text = snapshot.user;
 

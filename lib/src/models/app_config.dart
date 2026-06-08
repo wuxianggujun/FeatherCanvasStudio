@@ -161,6 +161,8 @@ class AppSettings {
     required this.model,
     required this.prompt,
     required this.negativePrompt,
+    this.imageToImagePrompt = '',
+    this.imageToImageNegativePrompt = '',
     required this.size,
     required this.imageCount,
     this.advancedSettings = const ImageAdvancedSettings(),
@@ -174,6 +176,8 @@ class AppSettings {
       prompt:
           'A clean product render of a futuristic camera on a neutral background',
       negativePrompt: '',
+      imageToImagePrompt: '',
+      imageToImageNegativePrompt: '',
       size: '1024x1024',
       imageCount: 1,
       advancedSettings: ImageAdvancedSettings(),
@@ -189,6 +193,11 @@ class AppSettings {
       prompt: json['prompt'] as String? ?? defaults.prompt,
       negativePrompt:
           json['negativePrompt'] as String? ?? defaults.negativePrompt,
+      imageToImagePrompt:
+          json['imageToImagePrompt'] as String? ?? defaults.imageToImagePrompt,
+      imageToImageNegativePrompt:
+          json['imageToImageNegativePrompt'] as String? ??
+          defaults.imageToImageNegativePrompt,
       size: json['size'] as String? ?? defaults.size,
       imageCount: normalizeImageGenerationTargetCount(
         (json['imageCount'] as num?)?.toInt() ?? defaults.imageCount,
@@ -202,6 +211,8 @@ class AppSettings {
   final String model;
   final String prompt;
   final String negativePrompt;
+  final String imageToImagePrompt;
+  final String imageToImageNegativePrompt;
   final String size;
   final int imageCount;
   final ImageAdvancedSettings advancedSettings;
@@ -213,6 +224,8 @@ class AppSettings {
       'model': model,
       'prompt': prompt,
       'negativePrompt': negativePrompt,
+      'imageToImagePrompt': imageToImagePrompt,
+      'imageToImageNegativePrompt': imageToImageNegativePrompt,
       'size': size,
       'imageCount': imageCount,
       ...advancedSettings.toJson(),

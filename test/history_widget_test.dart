@@ -172,6 +172,40 @@ Future<void> _confirmResetToDefaults(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('text-to-image and image-to-image prompts are independent', (
+    tester,
+  ) async {
+    const settings = AppSettings(
+      baseUrl: 'https://api.openai.com/v1',
+      apiKey: '',
+      model: '',
+      prompt: 'text initial prompt',
+      negativePrompt: 'text negative prompt',
+      imageToImagePrompt: 'reference initial prompt',
+      imageToImageNegativePrompt: 'reference negative prompt',
+      size: '1024x1024',
+      imageCount: 1,
+    );
+    await _pumpApp(tester, settings: settings);
+
+    await _openWorkspace(tester, '文本生图');
+    expect(_textFieldValue(tester, '正向提示词'), 'text initial prompt');
+
+    await _enterTextByLabel(tester, '正向提示词', 'text only prompt');
+    await _openWorkspace(tester, '图生图');
+
+    expect(_textFieldValue(tester, '正向提示词'), 'reference initial prompt');
+
+    await _enterTextByLabel(tester, '正向提示词', 'reference only prompt');
+    await _openWorkspace(tester, '文本生图');
+
+    expect(_textFieldValue(tester, '正向提示词'), 'text only prompt');
+
+    await _openWorkspace(tester, '图生图');
+
+    expect(_textFieldValue(tester, '正向提示词'), 'reference only prompt');
+  });
+
   testWidgets('local generation preset can be undone and redone', (
     tester,
   ) async {

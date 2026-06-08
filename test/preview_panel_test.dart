@@ -241,6 +241,51 @@ void main() {
     expect(tester.getSize(grid).height, greaterThan(620));
   });
 
+  testWidgets('preview panel can expand compact multi-image grids', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1400, 1000)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final images = [
+      for (var index = 0; index < 12; index++)
+        GeneratedImage.bytes(
+          base64Decode(_onePixelPngBase64),
+          revisedPrompt: 'refined prompt $index',
+        ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 1200,
+            child: PreviewPanel(
+              errorMessage: null,
+              generatedImages: images,
+              isGenerating: false,
+              debugRecord: null,
+              targetAspectRatio: 1024 / 1536,
+              expandTallPreview: true,
+              onRetry: () {},
+              onCopyImage: (_, _) {},
+              onExportImage: (_, _) {},
+              onMakeBackgroundTransparent: (_, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final grid = find.byKey(const ValueKey('preview-grid'));
+    expect(grid, findsOneWidget);
+    expect(tester.getSize(grid).height, greaterThan(700));
+  });
+
   testWidgets('preview panel shows optional source labels and notice', (
     tester,
   ) async {

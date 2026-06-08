@@ -161,6 +161,10 @@ mixin _LocalSettingsStateMixin
   );
   final TextEditingController _negativePromptController =
       TextEditingController();
+  final TextEditingController _imageToImagePromptController =
+      TextEditingController();
+  final TextEditingController _imageToImageNegativePromptController =
+      TextEditingController();
   final TextEditingController _userController = TextEditingController();
 
   @override
@@ -179,13 +183,19 @@ mixin _LocalSettingsStateMixin
   DateTime? _lastGenerationFormHistoryAt;
   Object? _lastGenerationFormHistoryBefore;
   String _lastPromptText = defaultAppSettings.prompt;
+  String _lastImageToImagePromptText = '';
   String _lastAnimationPromptText = defaultAnimationPrompt;
   String _lastNegativePromptText = '';
+  String _lastImageToImageNegativePromptText = '';
 
   void _initLocalSettingsState() {
     _promptController.addListener(_handlePromptTextChanged);
+    _imageToImagePromptController.addListener(_handleImageToImagePromptChanged);
     _animationPromptController.addListener(_handleAnimationPromptChanged);
     _negativePromptController.addListener(_handleNegativePromptChanged);
+    _imageToImageNegativePromptController.addListener(
+      _handleImageToImageNegativePromptChanged,
+    );
     _userController.addListener(_syncUserAndScheduleSettingsSave);
   }
 
@@ -195,6 +205,8 @@ mixin _LocalSettingsStateMixin
     _animationPromptController.removeListener(_handleAnimationPromptChanged);
     _promptController.dispose();
     _negativePromptController.dispose();
+    _imageToImagePromptController.dispose();
+    _imageToImageNegativePromptController.dispose();
     _userController.dispose();
   }
 
@@ -240,6 +252,8 @@ mixin _LocalSettingsStateMixin
         model: apiConfig.model,
         prompt: _promptController.text,
         negativePrompt: _negativePromptController.text,
+        imageToImagePrompt: _imageToImagePromptController.text,
+        imageToImageNegativePrompt: _imageToImageNegativePromptController.text,
         size: normalizedSize,
         imageCount: _imageCount,
         advancedSettings: _advancedSettings.copyWith(
@@ -329,7 +343,6 @@ mixin _LocalSettingsStateMixin
       remember: (value) => _lastPromptText = value,
       feature: switch (_selectedFeature) {
         WorkspaceFeature.imageGeneration => WorkspaceFeature.imageGeneration,
-        WorkspaceFeature.imageToImage => WorkspaceFeature.imageToImage,
         WorkspaceFeature.localSettings => WorkspaceFeature.localSettings,
         _ => null,
       },
@@ -337,6 +350,26 @@ mixin _LocalSettingsStateMixin
         controller: _promptController,
         value: value,
         remember: (value) => _lastPromptText = value,
+        saveSettings: true,
+      ),
+    );
+  }
+
+  void _handleImageToImagePromptChanged() {
+    _handleGenerationTextChanged(
+      key: _textPromptHistoryKey,
+      label: appL10nOf(context).localSettingsStateEditPositivePromptHistory,
+      before: _lastImageToImagePromptText,
+      after: _imageToImagePromptController.text,
+      remember: (value) => _lastImageToImagePromptText = value,
+      feature: switch (_selectedFeature) {
+        WorkspaceFeature.imageToImage => WorkspaceFeature.imageToImage,
+        _ => null,
+      },
+      restore: (value) => _restoreTextControllerValue(
+        controller: _imageToImagePromptController,
+        value: value,
+        remember: (value) => _lastImageToImagePromptText = value,
         saveSettings: true,
       ),
     );
@@ -364,21 +397,42 @@ mixin _LocalSettingsStateMixin
   }
 
   void _handleNegativePromptChanged() {
-    final feature = _generationFormHistoryFeature(
-      includeAnimationProject: true,
-      includeImageGeneration: true,
-    );
     _handleGenerationTextChanged(
       key: _negativePromptHistoryKey,
       label: appL10nOf(context).localSettingsStateEditNegativePromptHistory,
       before: _lastNegativePromptText,
       after: _negativePromptController.text,
       remember: (value) => _lastNegativePromptText = value,
-      feature: feature,
+      feature: switch (_selectedFeature) {
+        WorkspaceFeature.imageGeneration => WorkspaceFeature.imageGeneration,
+        WorkspaceFeature.animationProject => WorkspaceFeature.animationProject,
+        WorkspaceFeature.localSettings => WorkspaceFeature.localSettings,
+        _ => null,
+      },
       restore: (value) => _restoreTextControllerValue(
         controller: _negativePromptController,
         value: value,
         remember: (value) => _lastNegativePromptText = value,
+        saveSettings: true,
+      ),
+    );
+  }
+
+  void _handleImageToImageNegativePromptChanged() {
+    _handleGenerationTextChanged(
+      key: _negativePromptHistoryKey,
+      label: appL10nOf(context).localSettingsStateEditNegativePromptHistory,
+      before: _lastImageToImageNegativePromptText,
+      after: _imageToImageNegativePromptController.text,
+      remember: (value) => _lastImageToImageNegativePromptText = value,
+      feature: switch (_selectedFeature) {
+        WorkspaceFeature.imageToImage => WorkspaceFeature.imageToImage,
+        _ => null,
+      },
+      restore: (value) => _restoreTextControllerValue(
+        controller: _imageToImageNegativePromptController,
+        value: value,
+        remember: (value) => _lastImageToImageNegativePromptText = value,
         saveSettings: true,
       ),
     );

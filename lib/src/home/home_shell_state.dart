@@ -19,6 +19,8 @@ class _ResetDefaultsSnapshot {
     required this.generationTimeout,
     required this.prompt,
     required this.negativePrompt,
+    required this.imageToImagePrompt,
+    required this.imageToImageNegativePrompt,
     required this.animationPrompt,
     required this.user,
     required this.size,
@@ -62,6 +64,8 @@ class _ResetDefaultsSnapshot {
   final String generationTimeout;
   final String prompt;
   final String negativePrompt;
+  final String imageToImagePrompt;
+  final String imageToImageNegativePrompt;
   final String animationPrompt;
   final String user;
   final String size;
@@ -240,6 +244,10 @@ mixin _HomeShellStateMixin
   @override
   TextEditingController get _negativePromptController;
   @override
+  TextEditingController get _imageToImagePromptController;
+  @override
+  TextEditingController get _imageToImageNegativePromptController;
+  @override
   TextEditingController get _animationPromptController;
   @override
   TextEditingController get _userController;
@@ -278,6 +286,9 @@ mixin _HomeShellStateMixin
         .toString();
     _promptController.text = settings.prompt;
     _negativePromptController.text = settings.negativePrompt;
+    _imageToImagePromptController.text = settings.imageToImagePrompt;
+    _imageToImageNegativePromptController.text =
+        settings.imageToImageNegativePrompt;
     _userController.text = settings.advancedSettings.user;
 
     setState(() {
@@ -382,6 +393,8 @@ mixin _HomeShellStateMixin
       generationTimeout: _generationTimeoutController.text,
       prompt: _promptController.text,
       negativePrompt: _negativePromptController.text,
+      imageToImagePrompt: _imageToImagePromptController.text,
+      imageToImageNegativePrompt: _imageToImageNegativePromptController.text,
       animationPrompt: _animationPromptController.text,
       user: _userController.text,
       size: _size,
@@ -431,6 +444,8 @@ mixin _HomeShellStateMixin
       generationTimeout: defaultApiConfig.generationTimeoutSeconds.toString(),
       prompt: defaultAppSettings.prompt,
       negativePrompt: defaultAppSettings.negativePrompt,
+      imageToImagePrompt: defaultAppSettings.imageToImagePrompt,
+      imageToImageNegativePrompt: defaultAppSettings.imageToImageNegativePrompt,
       animationPrompt: defaultAnimationPrompt,
       user: '',
       size: defaultAppSettings.size,
@@ -484,6 +499,9 @@ mixin _HomeShellStateMixin
     _generationTimeoutController.text = snapshot.generationTimeout;
     _promptController.text = snapshot.prompt;
     _negativePromptController.text = snapshot.negativePrompt;
+    _imageToImagePromptController.text = snapshot.imageToImagePrompt;
+    _imageToImageNegativePromptController.text =
+        snapshot.imageToImageNegativePrompt;
     _animationPromptController.text = snapshot.animationPrompt;
     _userController.text = snapshot.user;
 

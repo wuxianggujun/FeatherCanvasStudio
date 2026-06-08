@@ -19,6 +19,8 @@ void main() {
       model: 'gpt-image-2',
       prompt: 'hello world',
       negativePrompt: 'blurry',
+      imageToImagePrompt: 'use this reference style',
+      imageToImageNegativePrompt: 'washed out',
       size: '1024x1536',
       imageCount: 3,
       advancedSettings: ImageAdvancedSettings(
@@ -43,6 +45,11 @@ void main() {
     expect(restoredSettings.model, settings.model);
     expect(restoredSettings.prompt, settings.prompt);
     expect(restoredSettings.negativePrompt, settings.negativePrompt);
+    expect(restoredSettings.imageToImagePrompt, settings.imageToImagePrompt);
+    expect(
+      restoredSettings.imageToImageNegativePrompt,
+      settings.imageToImageNegativePrompt,
+    );
     expect(restoredSettings.size, settings.size);
     expect(restoredSettings.imageCount, settings.imageCount);
     expect(restoredSettings.advancedSettings.quality, 'high');
@@ -230,6 +237,11 @@ void main() {
       expect(decodedPresets.first['kind'], 'localGeneration');
       expect(restoredSettings.prompt, settings.prompt);
       expect(restoredSettings.negativePrompt, settings.negativePrompt);
+      expect(restoredSettings.imageToImagePrompt, settings.imageToImagePrompt);
+      expect(
+        restoredSettings.imageToImageNegativePrompt,
+        settings.imageToImageNegativePrompt,
+      );
       expect(restoredSettings.imageCount, settings.imageCount);
     },
   );

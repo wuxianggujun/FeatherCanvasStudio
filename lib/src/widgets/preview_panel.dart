@@ -115,7 +115,6 @@ class PreviewPanel extends StatelessWidget {
         final maxGridHeight = _previewGridMaxHeight(
           context,
           constraints,
-          isCompact: isCompact,
           expandTallPreview: expandTallPreview,
         );
         final gridHeight = (rowCount * tileHeight + (rowCount - 1) * layoutGap)
@@ -544,10 +543,9 @@ class _GeneratedImageContent extends StatelessWidget {
 double _previewGridMaxHeight(
   BuildContext context,
   BoxConstraints constraints, {
-  required bool isCompact,
   required bool expandTallPreview,
 }) {
-  if (!expandTallPreview || isCompact) {
+  if (!expandTallPreview) {
     return 620.0;
   }
 
