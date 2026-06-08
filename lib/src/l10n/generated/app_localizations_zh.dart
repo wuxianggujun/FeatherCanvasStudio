@@ -1365,6 +1365,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get batchJobStatusSucceeded => '已完成';
 
   @override
+  String get batchJobStatusUnderReturned => '少图完成';
+
+  @override
   String get batchJobStatusFailed => '失败';
 
   @override

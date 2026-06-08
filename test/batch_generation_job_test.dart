@@ -57,6 +57,33 @@ void main() {
     expect(plan.jobs.first.user, 'user-1');
   });
 
+  test('defaults batch queue to one request per prompt line', () {
+    const config = ApiConfig(
+      id: 'config',
+      name: 'Config',
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'key',
+      model: 'gpt-image-2',
+    );
+
+    final plan = buildBatchGenerationJobCreationPlan(
+      apiConfig: config,
+      prompts: const ['first', 'second', 'third'],
+      negativePrompt: '',
+      size: '1024x1024',
+      targetCount: defaultBatchGenerationTargetCount,
+      requestCount: defaultBatchGenerationRequestCount,
+      advancedSettings: const ImageAdvancedSettings(),
+      user: '',
+    );
+
+    expect(plan.canCreate, isTrue);
+    expect(plan.jobs, hasLength(3));
+    expect(plan.jobs.map((job) => job.imageCount), [4, 4, 4]);
+    expect(plan.jobs.fold<int>(0, (total, job) => total + job.imageCount), 12);
+    expect(plan.jobs.map((job) => job.batchTotal).toSet(), {1});
+  });
+
   test('rejects invalid batch generation job creation plans', () {
     const validConfig = ApiConfig(
       id: 'config',
@@ -282,6 +309,29 @@ void main() {
     expect(generationService.requestedCounts, [4, 3, 2, 1]);
   });
 
+  test(
+    'batch image service fills jobs when provider returns two images per call',
+    () async {
+      final generationService = _TwoImagesAtATimeGenerationService();
+      final job = _job('two images per response').copyWith(imageCount: 4);
+
+      final completed = await const BatchImageGenerationService().runJob(
+        job: job,
+        client: OpenAICompatibleImageClient(),
+        store: AppLocalStore(),
+        imageLibraryService: const ImageLibraryService(),
+        imageGenerationService: generationService,
+        titlePrefix: '批量结果',
+        source: '批量生成',
+      );
+
+      expect(completed.status, BatchGenerationJobStatus.succeeded);
+      expect(completed.resultImages, hasLength(4));
+      expect(completed.libraryItems, hasLength(4));
+      expect(generationService.requestedCounts, [4, 2]);
+    },
+  );
+
   test('replaces batch job by index while preserving order', () {
     final first = _job('first');
     final second = _job('second');
@@ -380,6 +430,58 @@ class _OneImageAtATimeGenerationService extends ImageGenerationService {
         user: user,
       ),
       libraryItems: [_libraryItem('result-$imageNumber')],
+    );
+  }
+}
+
+class _TwoImagesAtATimeGenerationService extends ImageGenerationService {
+  final requestedCounts = <int>[];
+
+  @override
+  Future<TextImageGenerationResult> generateTextImages({
+    required OpenAICompatibleImageClient client,
+    required AppLocalStore store,
+    required ImageLibraryService imageLibraryService,
+    required ApiConfig apiConfig,
+    required String prompt,
+    required String negativePrompt,
+    required String size,
+    required int imageCount,
+    required ImageAdvancedSettings advancedSettings,
+    required String user,
+    String? templateImagePath,
+    List<String> templateImagePaths = const <String>[],
+    ImageAssetKind libraryKind = ImageAssetKind.generatedImage,
+    required String titlePrefix,
+    required String source,
+    void Function(ImageRequestDebugRecord record)? onDebugRecord,
+  }) async {
+    requestedCounts.add(imageCount);
+    final requestNumber = requestedCounts.length;
+    final groupId = 'group-$requestNumber';
+    final returnedCount = imageCount < 2 ? imageCount : 2;
+    final images = [
+      for (var index = 0; index < returnedCount; index++)
+        GeneratedImage.bytes(Uint8List.fromList([requestNumber, index])),
+    ];
+    return TextImageGenerationResult(
+      groupId: groupId,
+      cachedImages: images,
+      generation: buildGenerationSnapshot(
+        groupId: groupId,
+        apiConfig: apiConfig,
+        prompt: prompt,
+        negativePrompt: negativePrompt,
+        requestSize: size,
+        imageCount: imageCount,
+        resultCount: images.length,
+        advancedSettings: advancedSettings,
+        user: user,
+      ),
+      libraryItems: [
+        for (var index = 0; index < images.length; index++)
+          _libraryItem('result-$requestNumber-$index'),
+      ],
     );
   }
 }

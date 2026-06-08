@@ -2,9 +2,10 @@ const int minImageGenerationCount = 1;
 const int maxImageGenerationRequestCount = 4;
 const int maxImageGenerationTargetCount = 1000;
 const int maxTemplateImageReferenceCount = 8;
-const int defaultBatchGenerationTargetCount = 100;
-const int maxBatchGenerationTargetCount = maxImageGenerationTargetCount;
 const int defaultBatchGenerationRequestCount = maxImageGenerationRequestCount;
+const int defaultBatchGenerationTargetCount =
+    defaultBatchGenerationRequestCount;
+const int maxBatchGenerationTargetCount = maxImageGenerationTargetCount;
 
 int normalizeImageGenerationCount(int value) {
   return value < minImageGenerationCount ? minImageGenerationCount : value;

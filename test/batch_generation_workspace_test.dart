@@ -527,6 +527,7 @@ void main() {
     expect(find.text('需关注 3'), findsOneWidget);
     expect(find.text('有返回 2'), findsOneWidget);
     expect(find.text('6 个任务'), findsOneWidget);
+    expect(find.textContaining('少图完成'), findsOneWidget);
     expect(find.text('需关注：少返回 2 张'), findsOneWidget);
 
     await tester.tap(find.text('需关注 3'));

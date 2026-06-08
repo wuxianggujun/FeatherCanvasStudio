@@ -2361,6 +2361,12 @@ abstract class AppLocalizations {
   /// **'已完成'**
   String get batchJobStatusSucceeded;
 
+  /// 批量生成：任务已结束但返回图片少于请求数量
+  ///
+  /// In zh, this message translates to:
+  /// **'少图完成'**
+  String get batchJobStatusUnderReturned;
+
   /// 批量生成：任务状态失败
   ///
   /// In zh, this message translates to:

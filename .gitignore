@@ -10,6 +10,7 @@
 /.codex/
 /.mcp/
 /.mcp-*/
+/.tools/
 *.mcp.tmp
 
 .atom/

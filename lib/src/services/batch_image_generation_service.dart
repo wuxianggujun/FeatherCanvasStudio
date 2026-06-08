@@ -51,6 +51,14 @@ class BatchImageGenerationService {
       libraryItems.addAll(result.libraryItems.take(missingImageCount));
     }
 
+    if (resultImages.length != job.imageCount ||
+        libraryItems.length != job.imageCount) {
+      throw ImageGenerationException(
+        '批量任务请求 ${job.imageCount} 张，实际只返回 ${resultImages.length} 张，'
+        '未达到目标数量。',
+      );
+    }
+
     return job.copyWith(
       status: BatchGenerationJobStatus.succeeded,
       resultImages: List.unmodifiable(resultImages),

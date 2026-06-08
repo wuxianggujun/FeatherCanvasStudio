@@ -1263,13 +1263,17 @@ class _BatchGenerationJobTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = appL10nOf(context);
     final theme = Theme.of(context);
-    final statusColor = switch (job.status) {
-      BatchGenerationJobStatus.succeeded => Colors.green,
-      BatchGenerationJobStatus.failed => theme.colorScheme.error,
-      BatchGenerationJobStatus.running => theme.colorScheme.primary,
-      BatchGenerationJobStatus.skipped => theme.colorScheme.outline,
-      BatchGenerationJobStatus.queued => theme.colorScheme.onSurfaceVariant,
-    };
+    final attentionMessage = _batchJobAttentionMessage(l10n, job);
+    final statusColor = attentionMessage != null
+        ? theme.colorScheme.error
+        : switch (job.status) {
+            BatchGenerationJobStatus.succeeded => Colors.green,
+            BatchGenerationJobStatus.failed => theme.colorScheme.error,
+            BatchGenerationJobStatus.running => theme.colorScheme.primary,
+            BatchGenerationJobStatus.skipped => theme.colorScheme.outline,
+            BatchGenerationJobStatus.queued =>
+              theme.colorScheme.onSurfaceVariant,
+          };
     final batchLabel = job.hasMultipleBatches
         ? l10n.batchJobBatchPrefix(job.batchIndex, job.batchTotal)
         : '';
@@ -1280,7 +1284,6 @@ class _BatchGenerationJobTile extends StatelessWidget {
           )
         : '';
     final hasReturnedImages = job.resultImages.isNotEmpty;
-    final attentionMessage = _batchJobAttentionMessage(l10n, job);
     final returnSummaryColor = attentionMessage == null
         ? theme.colorScheme.onSurfaceVariant
         : theme.colorScheme.error;
@@ -1306,7 +1309,7 @@ class _BatchGenerationJobTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 l10n.batchJobSummary(
-                  _jobStatusLabel(l10n, job.status),
+                  _batchJobStatusLabel(l10n, job),
                   batchLabel,
                   job.size,
                   job.imageCount,
@@ -1386,6 +1389,14 @@ class _BatchGenerationJobTile extends StatelessWidget {
       ],
     );
   }
+}
+
+String _batchJobStatusLabel(AppLocalizations l10n, BatchGenerationJob job) {
+  if (job.status == BatchGenerationJobStatus.succeeded &&
+      _batchJobMissingImageCount(job) > 0) {
+    return l10n.batchJobStatusUnderReturned;
+  }
+  return _jobStatusLabel(l10n, job.status);
 }
 
 String _jobStatusLabel(AppLocalizations l10n, BatchGenerationJobStatus status) {

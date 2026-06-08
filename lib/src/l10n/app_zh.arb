@@ -1942,6 +1942,10 @@
   "@batchJobStatusSucceeded": {
     "description": "批量生成：任务状态已完成"
   },
+  "batchJobStatusUnderReturned": "少图完成",
+  "@batchJobStatusUnderReturned": {
+    "description": "批量生成：任务已结束但返回图片少于请求数量"
+  },
   "batchJobStatusFailed": "失败",
   "@batchJobStatusFailed": {
     "description": "批量生成：任务状态失败"
