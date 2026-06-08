@@ -10,6 +10,8 @@ import '../services/image_api_client.dart';
 import '../theme/layout_constants.dart';
 import 'preview_common_widgets.dart';
 
+const int _inlinePreviewGridItemLimit = 80;
+
 class PreviewPanel extends StatelessWidget {
   const PreviewPanel({
     required this.errorMessage,
@@ -112,18 +114,26 @@ class PreviewPanel extends StatelessWidget {
         final captionHeight = hasCaption ? 96.0 : 0.0;
         final tileHeight = imageHeight + captionHeight;
         final rowCount = (totalCount / columns).ceil();
+        final contentHeight =
+            rowCount * tileHeight + (rowCount - 1) * layoutGap;
+        final hasPageScrollable = Scrollable.maybeOf(context) != null;
+        final canInlineGrid =
+            !constraints.hasBoundedHeight &&
+            hasPageScrollable &&
+            totalCount <= _inlinePreviewGridItemLimit;
         final maxGridHeight = _previewGridMaxHeight(
           context,
           constraints,
           expandTallPreview: expandTallPreview,
         );
-        final gridHeight = (rowCount * tileHeight + (rowCount - 1) * layoutGap)
-            .clamp(180.0, maxGridHeight)
-            .toDouble();
+        final gridHeight = canInlineGrid
+            ? math.max(180.0, contentHeight).toDouble()
+            : contentHeight.clamp(180.0, maxGridHeight).toDouble();
 
         final grid = GridView.builder(
           key: const ValueKey('preview-grid'),
           primary: false,
+          physics: canInlineGrid ? const NeverScrollableScrollPhysics() : null,
           itemCount: totalCount,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,

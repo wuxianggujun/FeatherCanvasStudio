@@ -286,6 +286,57 @@ void main() {
     expect(tester.getSize(grid).height, greaterThan(700));
   });
 
+  testWidgets(
+    'preview panel delegates moderate unbounded grid scrolling to the page',
+    (tester) async {
+      tester.view
+        ..physicalSize = const Size(1800, 1000)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final images = [
+        for (var index = 0; index < 12; index++)
+          GeneratedImage.bytes(
+            base64Decode(_onePixelPngBase64),
+            revisedPrompt: 'refined prompt $index',
+          ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SizedBox(
+                width: 1600,
+                child: PreviewPanel(
+                  errorMessage: null,
+                  generatedImages: images,
+                  isGenerating: false,
+                  debugRecord: null,
+                  targetAspectRatio: 2160 / 3840,
+                  expandTallPreview: true,
+                  onRetry: () {},
+                  onCopyImage: (_, _) {},
+                  onExportImage: (_, _) {},
+                  onMakeBackgroundTransparent: (_, _) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final grid = find.byKey(const ValueKey('preview-grid'));
+      expect(grid, findsOneWidget);
+      expect(tester.getSize(grid).height, greaterThan(1000));
+
+      final gridView = tester.widget<GridView>(grid);
+      expect(gridView.physics, isA<NeverScrollableScrollPhysics>());
+    },
+  );
+
   testWidgets('preview panel shows optional source labels and notice', (
     tester,
   ) async {
