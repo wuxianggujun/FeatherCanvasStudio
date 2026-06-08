@@ -75,25 +75,38 @@ class ImageGenerationService {
     final normalizedImageCount = normalizeImageGenerationRequestCount(
       imageCount,
     );
-    final request = buildImageGenerationRequest(
-      apiConfig: apiConfig,
-      prompt: prompt,
-      negativePrompt: negativePrompt,
-      requestSize: requestSize,
-      imageCount: normalizedImageCount,
-      advancedSettings: advancedSettings,
-      user: user,
-      templateImagePath: templateImagePath,
-      templateImagePaths: templateImagePaths,
-    );
-    final response = await client.generate(
-      request,
-      onDebugRecord: onDebugRecord,
-    );
+    final responseImages = <GeneratedImage>[];
+    while (responseImages.length < normalizedImageCount) {
+      final missingImageCount = normalizedImageCount - responseImages.length;
+      final request = buildImageGenerationRequest(
+        apiConfig: apiConfig,
+        prompt: prompt,
+        negativePrompt: negativePrompt,
+        requestSize: requestSize,
+        imageCount: missingImageCount,
+        advancedSettings: advancedSettings,
+        user: user,
+        templateImagePath: templateImagePath,
+        templateImagePaths: templateImagePaths,
+      );
+      final response = await client.generate(
+        request,
+        onDebugRecord: onDebugRecord,
+      );
+
+      if (response.images.isEmpty) {
+        throw ImageGenerationException(
+          '本次请求没有返回图片，仍缺少 $missingImageCount 张，无法补齐目标数量。',
+        );
+      }
+
+      responseImages.addAll(response.images.take(missingImageCount));
+    }
+
     final cachedImages = await imageLibraryService.cacheGeneratedImages(
       store: store,
       groupId: groupId,
-      images: response.images,
+      images: responseImages,
       resolveImageBytes: client.resolveImageBytes,
     );
     final generation = buildGenerationSnapshot(

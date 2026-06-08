@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -64,25 +64,17 @@ void main() {
       );
 
       expect(result.groupId, isNotEmpty);
-      expect(result.cachedImages, hasLength(2));
+      expect(result.cachedImages, hasLength(1));
       expect(result.cachedImages.first.filePath, isNotNull);
       expect(await File(result.cachedImages.first.filePath!).readAsBytes(), [
         4,
         5,
         6,
       ]);
-      expect(await File(result.cachedImages[1].filePath!).readAsBytes(), [
-        7,
-        8,
-        9,
-      ]);
       expect(result.generation.prompt, 'paint a bird');
       expect(result.generation.advancedSettings.user, 'user-123');
-      expect(result.libraryItems, hasLength(2));
-      expect(result.libraryItems.map((item) => item.title), [
-        '文本生图 1',
-        '文本生图 2',
-      ]);
+      expect(result.libraryItems, hasLength(1));
+      expect(result.libraryItems.map((item) => item.title), ['文本生图 1']);
       expect(
         result.libraryItems.map((item) => item.generation?.id),
         everyElement(result.groupId),
@@ -92,6 +84,99 @@ void main() {
         unorderedEquals(result.libraryItems.map((item) => item.id)),
       );
       expect(debugRecord?.statusCode, 200);
+    },
+  );
+
+  test(
+    'keeps requesting image edits until the target count is filled',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final tempDir = await Directory.systemTemp.createTemp(
+        'image_generation_reference_fill_test_',
+      );
+      addTearDown(() async {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+
+      final templateFile = File(
+        '${tempDir.path}${Platform.pathSeparator}reference.png',
+      );
+      await templateFile.writeAsBytes([9, 8, 7, 6], flush: true);
+
+      final requestedCounts = <int>[];
+      final client = OpenAICompatibleImageClient(
+        httpClient: MockClient.streaming((request, bodyStream) async {
+          expect(
+            request.url.toString(),
+            'https://api.openai.com/v1/images/edits',
+          );
+          expect(request, isA<http.MultipartRequest>());
+
+          final multipartRequest = request as http.MultipartRequest;
+          requestedCounts.add(int.parse(multipartRequest.fields['n']!));
+          expect(multipartRequest.fields['prompt'], contains('a robot'));
+          expect(multipartRequest.files, hasLength(1));
+          await bodyStream.drain<void>();
+
+          final requestNumber = requestedCounts.length;
+          return http.StreamedResponse(
+            Stream.value(
+              utf8.encode(
+                jsonEncode({
+                  'data': [
+                    {
+                      'b64_json': base64Encode([requestNumber, 1]),
+                    },
+                    {
+                      'b64_json': base64Encode([requestNumber, 2]),
+                    },
+                  ],
+                }),
+              ),
+            ),
+            200,
+          );
+        }),
+      );
+
+      final store = AppLocalStore(baseDirectoryOverride: tempDir);
+      final result = await const ImageGenerationService().generateTextImages(
+        client: client,
+        store: store,
+        imageLibraryService: const ImageLibraryService(),
+        apiConfig: _officialApiConfig,
+        prompt: 'a robot in a red coat',
+        negativePrompt: '',
+        size: '1024x1024',
+        imageCount: 4,
+        advancedSettings: const ImageAdvancedSettings(),
+        user: '',
+        templateImagePath: templateFile.path,
+        titlePrefix: '图生图',
+        source: '图生图',
+      );
+
+      expect(requestedCounts, [4, 2]);
+      expect(result.cachedImages, hasLength(4));
+      expect(result.libraryItems.map((item) => item.title), [
+        '图生图 1',
+        '图生图 2',
+        '图生图 3',
+        '图生图 4',
+      ]);
+      expect(result.generation.imageCount, 4);
+      expect(result.generation.resultCount, 4);
+      expect(await store.loadImageLibrary(), hasLength(4));
+      expect(await File(result.cachedImages[2].filePath!).readAsBytes(), [
+        2,
+        1,
+      ]);
+      expect(await File(result.cachedImages[3].filePath!).readAsBytes(), [
+        2,
+        2,
+      ]);
     },
   );
 
